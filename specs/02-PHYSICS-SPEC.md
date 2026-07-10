@@ -74,20 +74,26 @@ Each physics tick, the car controller applies forces as **impulses (N·s per ste
    - Force = DownforceCoeff × speed² × 0.0001
    - Applied as downward impulse
 
-6. AUTO-CORRECT (lateral stability)
-   - Active when steer input < 0.01 and speed > 2 m/s
-   - Correction = -lateralVelocity × AutoCorrect × 0.1
-   - Applied in right direction to counteract slide
+6. GRIP / SLIP MODEL (lateral stability)
+   - Replaces old auto-correct system
+   - Lateral force governed by slip angle → grip coefficient curve
+   - Active when speed > 0.5 m/s and slip angle > 0°
+   - See section 3.4 for full model
+
+7. THROTTLE RAMP-UP
+   - Throttle input ramps linearly from 0 → 1 at THROTTLE_RAMP_UP (2.5 /sec)
+   - Throttle decays from 1 → 0 at THROTTLE_RAMP_DOWN (4.0 /sec) when released
+   - Prevents instant full-power snap, gives 0-1 in ~0.4s
 ```
 
-### 3.4 Tire Grip Model (Simplified)
+### 3.4 Tire Grip Model
 
 Grip is modeled through the interaction of:
 - **Slip angle** — difference between car heading and velocity direction
 - **Peak grip coefficient** — determines maximum lateral force
 - **Slip angle peak** — slip angle at which grip is maximum
 - **Slip angle limit** — slip angle beyond which car loses control
-- **Auto-correct** — corrective impulse when not steering
+- **Grip force factor** — global scaling (GRIP_FORCE_FACTOR = 0.15)
 
 ```
                    Grip
@@ -100,6 +106,40 @@ Grip is modeled through the interaction of:
 ╱                           ╲
 ──────┼──────────┼───────────→ Slip Angle
      0°        Peak        Limit
+```
+
+**Slip Angle Calculation:**
+```
+slipAngle = atan2(|lateralVelocity|, |forwardSpeed|) × (180 / π)
+```
+
+**Grip Response Curve (per car config):**
+- **0° to slipAnglePeak:** Grip increases linearly from 0 to peakGrip
+- **slipAnglePeak to slipAngleLimit:** Grip decreases linearly from peakGrip to 0
+- **Beyond slipAngleLimit:** Grip = 0 (full slide)
+
+**Lateral Force Application:**
+```
+if (slipAngle < slipAnglePeak):
+    gripCoeff = peakGrip × (slipAngle / slipAnglePeak)
+else if (slipAngle < slipAngleLimit):
+    gripCoeff = peakGrip × (1 - (slipAngle - slipAnglePeak) / (slipAngleLimit - slipAnglePeak))
+else:
+    gripCoeff = 0
+
+lateralForce = sign × gripCoeff × speed × GRIP_FORCE_FACTOR
+```
+
+The lateral force is applied as an impulse in the car's right direction to counteract sliding. When grip is high, the car resists sliding. When grip drops, the car slides freely.
+
+**Key constants:**
+```
+GRIP_FORCE_FACTOR = 0.15
+THROTTLE_RAMP_UP  = 2.5 /sec
+THROTTLE_RAMP_DOWN = 4.0 /sec
+WHEEL_RADIUS      = 0.32 m
+ROLL_FACTOR       = 0.03
+MAX_ROLL_ANGLE    = 5°
 ```
 
 ### 3.5 Speed-Dependent Steering
@@ -142,9 +182,11 @@ interface CarConfig {
   downforce: number     // downforce coefficient (0.8-1.8)
   slipAnglePeak: number // degrees (6-12)
   slipAngleLimit: number // degrees (20-35)
-  autoCorrect: number   // lateral stability (0.2-0.6)
+  autoCorrect: number   // DEPRECATED — not used by grip/slip model
 }
 ```
+
+> **Note:** `autoCorrect` remains in the interface for backward compatibility but is no longer applied by the physics engine. The grip/slip model (section 3.4) replaces all lateral auto-correction.
 
 ### 4.2 Actual Car Parameters
 
@@ -232,3 +274,5 @@ All car parameters adjustable via debug UI sliders:
 | NaN guard works | Car resets on NaN position |
 | Downforce increases grip | Less sliding at high speed |
 | Auto-correct stabilizes | Lateral velocity reduced when not steering |
+| Throttle ramp-up | ~0.4s from 0 to full throttle |
+| Grip/slip model | Car slides controllably at high slip angles |

@@ -9,6 +9,7 @@ export interface CameraConfig {
   rotationLag: number
   baseFOV: number
   fovRange: number
+  wallCheckRadius: number
 }
 
 const DEFAULT_CONFIG: CameraConfig = {
@@ -19,8 +20,11 @@ const DEFAULT_CONFIG: CameraConfig = {
   springDamping: 0.95,
   rotationLag: 0.08,
   baseFOV: 60,
-  fovRange: 2
+  fovRange: 2,
+  wallCheckRadius: 0.5
 }
+
+const raycaster = new THREE.Raycaster()
 
 export class CameraController {
   private camera: THREE.PerspectiveCamera
@@ -28,11 +32,16 @@ export class CameraController {
 
   private velocity = new THREE.Vector3()
   private currentFOV: number
+  private wallObjects: THREE.Object3D[] = []
 
   constructor(camera: THREE.PerspectiveCamera, config?: Partial<CameraConfig>) {
     this.camera = camera
     this.config = { ...DEFAULT_CONFIG, ...config }
     this.currentFOV = this.config.baseFOV
+  }
+
+  setWallObjects(objects: THREE.Object3D[]): void {
+    this.wallObjects = objects
   }
 
   update(
@@ -44,6 +53,7 @@ export class CameraController {
     dt: number
   ): void {
     const targetPosition = this.calculateTargetPosition(carPosition, carQuaternion)
+    this.resolveWallCollision(carPosition, targetPosition)
     this.springFollow(targetPosition, dt)
     this.updateLookAt(carPosition, carQuaternion)
     this.updateFOV(speed, maxSpeed)
@@ -63,6 +73,30 @@ export class CameraController {
     lookAheadOffset.y = 0
 
     return carPosition.clone().add(behind).add(up).add(lookAheadOffset)
+  }
+
+  private resolveWallCollision(carPosition: THREE.Vector3, target: THREE.Vector3): void {
+    if (this.wallObjects.length === 0) return
+
+    const dir = target.clone().sub(carPosition)
+    const distance = dir.length()
+    if (distance < 0.01) return
+
+    dir.normalize()
+
+    raycaster.set(carPosition, dir)
+    raycaster.far = distance
+    raycaster.near = 0
+
+    const intersects = raycaster.intersectObjects(this.wallObjects, true)
+
+    if (intersects.length > 0) {
+      const hit = intersects[0]
+      const safeDistance = Math.max(hit.distance - this.config.wallCheckRadius, 0.5)
+      const clampedDir = dir.multiplyScalar(safeDistance)
+      target.copy(carPosition).add(clampedDir)
+      target.y = carPosition.y + this.config.height
+    }
   }
 
   private springFollow(target: THREE.Vector3, dt: number): void {

@@ -32,29 +32,64 @@ const DEFAULT_CONFIG: CarConfig = {
   autoCorrect: 0.4
 }
 
+const WHEEL_RADIUS = 0.32
+const ROLL_FACTOR = 0.03
+const MAX_ROLL_ANGLE = 5 * (Math.PI / 180)
+const GRIP_FORCE_FACTOR = 0.15
+const THROTTLE_RAMP_UP = 2.5
+const THROTTLE_RAMP_DOWN = 4.0
+
 export class CarController {
   private body: RAPIER.RigidBody
   private mesh: THREE.Group
   private config: CarConfig
   private currentSteer = 0
   private lateralVelocity = 0
+  private wheelSpin = 0
+  private throttleLevel = 0
+
+  private wheelFL!: THREE.Group
+  private wheelFR!: THREE.Group
+  private wheelRL!: THREE.Group
+  private wheelRR!: THREE.Group
 
   constructor(body: RAPIER.RigidBody, mesh: THREE.Group, config?: Partial<CarConfig>) {
     this.body = body
     this.mesh = mesh
     this.config = { ...DEFAULT_CONFIG, ...config }
+    this.findWheels()
+  }
+
+  private findWheels(): void {
+    const children = this.mesh.children
+    const wheelGroups: THREE.Group[] = []
+    for (const child of children) {
+      if (child instanceof THREE.Group && child.children.length >= 2) {
+        const hasTire = child.children.some(c =>
+          c instanceof THREE.Mesh && c.geometry.type === 'CylinderGeometry'
+        )
+        if (hasTire) wheelGroups.push(child)
+      }
+    }
+    if (wheelGroups.length >= 4) {
+      this.wheelFL = wheelGroups[0]
+      this.wheelFR = wheelGroups[1]
+      this.wheelRL = wheelGroups[2]
+      this.wheelRR = wheelGroups[3]
+    }
   }
 
   update(dt: number, input: InputState): void {
     this.enforceGround()
     this.updateLateralVelocity()
     this.updateSteering(input.steer, dt)
-    this.applyThrottle(input.throttle)
+    this.updateThrottleLevel(input.throttle, dt)
+    this.applyThrottle(this.throttleLevel)
     this.applyBrake(input.brake)
     this.applyDrag()
     this.applyDownforce()
-    this.applyAutoCorrect()
-    this.updateMesh()
+    this.applyGripForce()
+    this.updateMesh(dt)
   }
 
   private updateLateralVelocity(): void {
@@ -63,6 +98,55 @@ export class CarController {
     const quat = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(quat)
     this.lateralVelocity = velocity.x * right.x + velocity.z * right.z
+  }
+
+  private calculateSlipAngle(): number {
+    const velocity = this.body.linvel()
+    const rotation = this.body.rotation()
+    const quat = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
+    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(quat)
+
+    const forwardSpeed = Math.abs(velocity.x * forward.x + velocity.z * forward.z)
+    const latSpeed = Math.abs(this.lateralVelocity)
+
+    if (forwardSpeed < 0.5) return 0
+    return Math.atan2(latSpeed, forwardSpeed) * (180 / Math.PI)
+  }
+
+  private calculateGripCoefficient(slipAngle: number): number {
+    const peak = this.config.slipAnglePeak
+    const limit = this.config.slipAngleLimit
+
+    if (slipAngle <= 0) return 0
+    if (slipAngle <= peak) {
+      return this.config.peakGrip * (slipAngle / peak)
+    }
+    if (slipAngle <= limit) {
+      return this.config.peakGrip * (1 - (slipAngle - peak) / (limit - peak))
+    }
+    return 0
+  }
+
+  private applyGripForce(): void {
+    const speed = this.getSpeed() / 3.6
+    if (speed < 0.5) return
+
+    const slipAngle = this.calculateSlipAngle()
+    const gripCoeff = this.calculateGripCoefficient(slipAngle)
+
+    if (gripCoeff < 0.01) return
+
+    const rotation = this.body.rotation()
+    const quat = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(quat)
+
+    const sign = this.lateralVelocity > 0 ? -1 : 1
+    const force = sign * gripCoeff * speed * GRIP_FORCE_FACTOR
+
+    this.body.applyImpulse(
+      { x: right.x * force, y: 0, z: right.z * force },
+      true
+    )
   }
 
   private updateSteering(input: number, dt: number): void {
@@ -95,6 +179,14 @@ export class CarController {
       true
     )
     this.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
+  }
+
+  private updateThrottleLevel(input: number, dt: number): void {
+    if (input > 0) {
+      this.throttleLevel = Math.min(1, this.throttleLevel + THROTTLE_RAMP_UP * dt)
+    } else {
+      this.throttleLevel = Math.max(0, this.throttleLevel - THROTTLE_RAMP_DOWN * dt)
+    }
   }
 
   private applyThrottle(input: number): void {
@@ -169,22 +261,6 @@ export class CarController {
     this.body.applyImpulse({ x: 0, y: -force, z: 0 }, true)
   }
 
-  private applyAutoCorrect(): void {
-    if (Math.abs(this.currentSteer) < 0.01) {
-      const speed = this.getSpeed() / 3.6
-      if (speed > 2) {
-        const correction = -this.lateralVelocity * this.config.autoCorrect * 0.1
-        const rotation = this.body.rotation()
-        const quat = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
-        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(quat)
-        this.body.applyImpulse(
-          { x: right.x * correction, y: 0, z: right.z * correction },
-          true
-        )
-      }
-    }
-  }
-
   private enforceGround(): void {
     const pos = this.body.translation()
     if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z)) {
@@ -202,12 +278,34 @@ export class CarController {
     }
   }
 
-  private updateMesh(): void {
+  private updateMesh(dt: number): void {
     const position = this.body.translation()
     const rotation = this.body.rotation()
 
     this.mesh.position.set(position.x, position.y - 0.5, position.z)
     this.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
+
+    const speed = this.getSpeed() / 3.6
+    this.wheelSpin += speed * dt / WHEEL_RADIUS
+
+    const rollAngle = Math.max(-MAX_ROLL_ANGLE,
+      Math.min(MAX_ROLL_ANGLE, this.lateralVelocity * ROLL_FACTOR))
+    this.mesh.rotateZ(rollAngle)
+
+    if (this.wheelFL) {
+      this.wheelFL.rotation.x = this.wheelSpin
+      this.wheelFL.rotation.y = this.currentSteer
+    }
+    if (this.wheelFR) {
+      this.wheelFR.rotation.x = this.wheelSpin
+      this.wheelFR.rotation.y = this.currentSteer
+    }
+    if (this.wheelRL) {
+      this.wheelRL.rotation.x = this.wheelSpin
+    }
+    if (this.wheelRR) {
+      this.wheelRR.rotation.x = this.wheelSpin
+    }
   }
 
   getPosition(): THREE.Vector3 {
@@ -234,6 +332,8 @@ export class CarController {
     this.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
     this.currentSteer = 0
     this.lateralVelocity = 0
+    this.wheelSpin = 0
+    this.throttleLevel = 0
   }
 
   getVelocity(): THREE.Vector3 {
@@ -263,6 +363,14 @@ export class CarController {
 
   getSteerAngle(): number {
     return this.currentSteer
+  }
+
+  getSlipAngle(): number {
+    return this.calculateSlipAngle()
+  }
+
+  getGripCoefficient(): number {
+    return this.calculateGripCoefficient(this.calculateSlipAngle())
   }
 
   getRPM(): number {

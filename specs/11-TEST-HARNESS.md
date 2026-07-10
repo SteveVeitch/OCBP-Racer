@@ -84,7 +84,7 @@ interface TestResult {
 | 5 | Scene + camera + lights | Sync | Creates scene with camera + ambient + directional, checks ≥3 children |
 | 6 | Ground plane creates | Sync | Creates PlaneGeometry, checks vertex count > 0 |
 
-### Phase 2: Car Physics (5 tests)
+### Phase 2: Car Physics (6 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
@@ -93,91 +93,92 @@ interface TestResult {
 | 9 | Car accelerates on throttle | Async | Runs 60 physics steps with full throttle, checks speed > 0 |
 | 10 | Car brakes | Async | Accelerates then brakes for 120 steps, checks speed decreased |
 | 11 | Car steers | Async | Runs 120 steps with steer=1, checks quaternion angle changed |
+| 12 | 4 cars have distinct configs | Async | Creates 4 cars via CarFactory, checks each config differs |
 
 ### Phase 3: Chase Camera (2 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 12 | CameraController creates | Sync | Creates CameraController, checks not null |
-| 13 | Camera follows car position | Sync | Updates camera with car position, checks camera moved |
+| 13 | CameraController creates | Sync | Creates CameraController, checks not null |
+| 14 | Camera follows car position | Sync | Updates camera with car position, checks camera moved |
 
 ### Phase 4: Track (5 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 14 | Track creates | Sync | Creates Track, checks spline exists |
-| 15 | Track spline is closed loop | Sync | Gets points at t=0 and t=0.5, checks distance > 10 |
-| 16 | Track has checkpoints | Sync | Gets start position, checks defined |
-| 17 | Track lap counting works | Sync | Checks lapCount=3, currentLap=0 |
-| 18 | Track builds into scene | Async | Builds track into scene, checks children added |
+| 15 | Track creates | Sync | Creates Track, checks spline exists |
+| 16 | Track spline is closed loop | Sync | Gets points at t=0 and t=0.5, checks distance > 10 |
+| 17 | Track has checkpoints | Sync | Gets start position, checks defined |
+| 18 | Track lap counting works | Sync | Checks lapCount=3, currentLap=0 |
+| 19 | Track builds into scene | Async | Builds track into scene, checks children added |
 
 ### Phase 5: Input System (2 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 19 | InputManager creates | Sync | Creates InputManager, checks throttle/brake/steer are numbers, pause is boolean |
-| 20 | Default input is zeroed | Sync | Checks throttle=0, brake=0, steer=0 |
+| 20 | InputManager creates | Sync | Creates InputManager, checks throttle/brake/steer are numbers, pause is boolean |
+| 21 | Default input is zeroed | Sync | Checks throttle=0, brake=0, steer=0 |
 
-### Phase 6: Car Roster (5 tests)
+### Phase 6: Car Roster (6 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 21 | Phantom GT config | Sync | Checks mass=1550, color=0xcccccc |
-| 22 | Viper RS config | Sync | Checks peakGrip=2.4 |
-| 23 | Inferno SS config | Sync | Checks engineForce=950 |
-| 24 | AeroVen TT config | Sync | Checks maxSpeed=265 |
-| 25 | CarFactory creates colored mesh | Async | Creates car, checks mesh has ≥5 children (body+cabin+4wheels) |
+| 22 | Phantom GT config | Sync | Checks mass=1550, color=0xcccccc |
+| 23 | Viper RS config | Sync | Checks peakGrip=2.4 |
+| 24 | Inferno SS config | Sync | Checks engineForce=950 |
+| 25 | AeroVen TT config | Sync | Checks maxSpeed=265 |
+| 26 | CarFactory creates colored mesh | Async | Creates car, checks mesh has ≥5 children (body+cabin+4wheels) |
 
 ### Phase 7: Audio System (1 test)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 26 | AudioManager creates without error | Sync | Creates AudioManager, checks not null |
+| 27 | AudioManager creates without error | Sync | Creates AudioManager, checks not null |
 
 ### Phase 8: AI Opponents (2 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 27 | AIController creates | Async | Creates AIController, checks not null, car matches |
-| 28 | AI produces input | Async | Updates AI, checks throttle/steer are numbers |
+| 28 | AIController creates | Async | Creates AIController, checks not null, car matches |
+| 29 | AI produces input | Async | Updates AI, checks throttle/steer are numbers |
 
 ### Phase 9: UI (4 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 29 | StateMachine creates with MENU state | Sync | Creates StateMachine, checks current='MENU' |
-| 30 | StateMachine transitions | Sync | Transitions to CAR_SELECT, checks current and previous |
-| 31 | StateMachine stores car selection | Sync | Sets selected car, gets it back |
-| 32 | StateMachine stores race results | Sync | Sets results, gets them back |
+| 30 | StateMachine creates with MENU state | Sync | Creates StateMachine, checks current='MENU' |
+| 31 | StateMachine transitions | Sync | Transitions to CAR_SELECT, checks current and previous |
+| 32 | StateMachine stores car selection | Sync | Sets selected car, gets it back |
+| 33 | StateMachine stores race results | Sync | Sets results, gets them back |
 
 ### Phase 10: Game Loop (2 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 33 | Full integration: car on track | Async | Creates world + track + car, runs 300 steps, checks speed > 0 and position changed |
-| 34 | Full integration: 4 cars on track | Async | Creates 4 cars, runs 60 steps, checks all speeds > 0 |
+| 34 | Full integration: car on track | Async | Creates world + track + car, runs 300 steps, checks speed > 0 and position changed |
+| 35 | Full integration: 4 cars on track | Async | Creates 4 cars, runs 60 steps, checks all speeds > 0 |
 
-**Total: 34 tests**
+**Total: 35 tests**
 
 ## 5. Test Dependencies
 
 ### 5.1 Required Systems
 | System | Tests Using It |
 |--------|---------------|
-| Three.js | 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 25 |
-| Rapier.js | 7, 8, 9, 10, 11, 18, 25, 27, 28, 33, 34 |
-| CarFactory | 8, 9, 10, 11, 25, 33, 34 |
-| CarConfigs | 2, 3, 21, 22, 23, 24 |
-| Track | 14, 15, 16, 17, 18, 27, 28, 33, 34 |
-| SplinePath | 15, 16, 18 |
-| AIController | 27, 28 |
-| InputManager | 19, 20 |
-| StateMachine | 29, 30, 31, 32 |
-| AudioManager | 26 |
-| CameraController | 12, 13 |
+| Three.js | 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 26 |
+| Rapier.js | 7, 8, 9, 10, 11, 12, 19, 26, 28, 29, 34, 35 |
+| CarFactory | 8, 9, 10, 11, 12, 26, 34, 35 |
+| CarConfigs | 2, 3, 22, 23, 24, 25 |
+| Track | 15, 16, 17, 18, 19, 28, 29, 34, 35 |
+| SplinePath | 16, 17, 19 |
+| AIController | 28, 29 |
+| InputManager | 20, 21 |
+| StateMachine | 30, 31, 32, 33 |
+| AudioManager | 27 |
+| CameraController | 13, 14 |
 
 ### 5.2 Async Tests
-Tests 7, 8, 9, 10, 11, 18, 25, 27, 28, 33, 34 require async execution because they initialize Rapier.js WASM. Each test creates and disposes its own PhysicsWorld instance.
+Tests 7, 8, 9, 10, 11, 12, 19, 26, 28, 29, 34, 35 require async execution because they initialize Rapier.js WASM. Each test creates and disposes its own PhysicsWorld instance.
 
 ### 5.3 Test Isolation
 - Each async test creates its own PhysicsWorld and disposes it after
@@ -212,6 +213,7 @@ npm run dev
   ✓ Car accelerates on throttle
   ✓ Car brakes
   ✓ Car steers
+  ✓ 4 cars have distinct configs
 
 -- Phase 3: Chase Camera --
   ✓ CameraController creates

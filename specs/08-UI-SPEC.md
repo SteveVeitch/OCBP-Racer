@@ -30,9 +30,11 @@
 
 ```
 MENU → CAR_SELECT → TRACK_SELECT → COUNTDOWN → RACING → RESULTS → MENU
+                                    ↕
+                                SETTINGS
 ```
 
-Note: LOADING state was removed. Track select directly triggers race start.
+Note: LOADING state was removed. SETTINGS is accessible from Main Menu or Pause Menu. Back from SETTINGS returns to previous state (MENU or PAUSED).
 
 ## 3. Screen Definitions
 
@@ -46,6 +48,7 @@ Note: LOADING state was removed. Track select directly triggers race start.
 │           STREET RACING                 │
 │                                         │
 │           [ START RACE ]                │
+│           [ SETTINGS ]                  │
 │                                         │
 │           v0.1.0 MVP                    │
 └─────────────────────────────────────────┘
@@ -57,6 +60,7 @@ Note: LOADING state was removed. Track select directly triggers race start.
 | Title | Heading | "OCBP RACER" — decorative |
 | Subtitle | Text | "STREET RACING" |
 | Start Race | Button (primary) | → CAR_SELECT |
+| Settings | Button | → SETTINGS |
 | Version | Text | "v0.1.0 MVP" |
 
 ### 3.2 Car Select
@@ -164,6 +168,7 @@ Note: LOADING state was removed. Track select directly triggers race start.
 │              PAUSED                     │
 │                                         │
 │         [ RESUME    ]                   │
+│         [ SETTINGS  ]                   │
 │         [ RESTART   ]                   │
 │         [ QUIT RACE ]                   │
 │                                         │
@@ -175,6 +180,8 @@ Note: LOADING state was removed. Track select directly triggers race start.
 - Semi-transparent dark overlay (rgba(0,0,0,0.7))
 - Input blocked except menu navigation
 - Escape or Start button to pause/unpause
+- Settings button opens SETTINGS, back returns to PAUSED (not MENU)
+- Audio suspended while paused, resumed on unpause
 
 ### 3.7 Race Results
 
@@ -288,24 +295,57 @@ This ensures all UI content is centered regardless of screen size.
 ### 7.2 UI Scaling
 ```
 Scale Factor = min(screenWidth / 1920, screenHeight / 1080)
-Apply to all UI element sizes
+Clamped between 0.5 and 1.0
+Applied as CSS transform: scale() on the UI container
+Transform-origin: top left
 ```
 
-## 8. Settings Menu (Post-MVP)
+The UI container gets `transform: scale(factor)` with `transform-origin: top left`. The container is sized to 1920×1080 and scaled down for smaller screens. The canvas behind is unaffected.
 
-| Setting | Options |
-|---------|---------|
-| Resolution | 720p, 1080p, 1440p |
-| Fullscreen | On/Off |
-| VSync | On/Off |
-| Master Volume | 0-100% |
-| SFX Volume | 0-100% |
-| Music Volume | 0-100% |
-| Graphics Quality | Low, Medium, High |
-| Steer Sensitivity | 0.5-2.0 |
-| Dead Zone | 0.05-0.3 |
+### 7.3 Resize Handling
+- Window resize event triggers recalculation of scale factor
+- Three.js camera aspect ratio updated separately
+- UI scales independently of 3D viewport
 
-## 9. Acceptance Criteria
+## 8. Settings Menu
+
+**Layout:**
+```
+┌─────────────────────────────────────────┐
+│                                         │
+│           SETTINGS                      │
+│                                         │
+│  Master Volume    ████████░░  80%       │
+│  Engine Volume    ██████░░░░  60%       │
+│  Steer Sensitivity ████░░░░░  1.0x      │
+│  Graphics Quality  [Low] [Med] [High]   │
+│                                         │
+│           [ BACK ]                      │
+└─────────────────────────────────────────┘
+```
+
+**Settings (GameSettings interface):**
+
+| Setting | Type | Range | Default | Description |
+|---------|------|-------|---------|-------------|
+| Master Volume | Slider | 0-100% | 100% | Overall audio volume |
+| Engine Volume | Slider | 0-100% | 60% | Engine + procedural sound volume |
+| Steer Sensitivity | Slider | 0-200% | 100% | Steering response curve exponent (1.0-2.0) |
+| Graphics Quality | Button group | Low/Med/High | High | Bloom strength + pixel ratio |
+
+**Behavior:**
+- Accessible from Main Menu and Pause Menu
+- Changes apply immediately (no restart needed)
+- Settings persisted to `localStorage` key `ocbp-settings`
+- Back button returns to previous state (MENU or PAUSED via RACING)
+- AudioContext auto-resumes on user interaction
+
+**Graphics Quality Levels:**
+- **Low:** Bloom disabled, pixel ratio 1
+- **Medium:** Bloom strength 0.4, half-resolution, pixel ratio 1
+- **High:** Bloom strength 0.6, full resolution, pixel ratio up to 2
+
+## 10. Acceptance Criteria
 
 | Test | Pass Condition |
 |------|---------------|
@@ -319,3 +359,8 @@ Apply to all UI element sizes
 | No UI lag | Animations smooth at 60 FPS |
 | Styling consistent | All screens match design system |
 | Centered layout | All screens centered vertically and horizontally |
+| Settings accessible | Can open settings from main menu |
+| Volume controls | Sliders adjust audio volume in real-time |
+| Sensitivity control | Steering sensitivity adjusts driving feel |
+| Graphics toggle | Bloom can be toggled on/off |
+| Settings persist | Settings saved to localStorage |

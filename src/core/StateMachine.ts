@@ -7,12 +7,44 @@ export type GameState =
   | 'RACING'
   | 'PAUSED'
   | 'RESULTS'
+  | 'SETTINGS'
 
 export interface RaceResults {
   position: number
   totalTime: number
   bestLapTime: number
   lapTimes: number[]
+}
+
+export interface GameSettings {
+  masterVolume: number
+  engineVolume: number
+  steerSensitivity: number
+  graphicsQuality: 'low' | 'medium' | 'high'
+}
+
+const DEFAULT_SETTINGS: GameSettings = {
+  masterVolume: 1.0,
+  engineVolume: 0.6,
+  steerSensitivity: 1.0,
+  graphicsQuality: 'high'
+}
+
+function loadSettings(): GameSettings {
+  try {
+    const raw = localStorage.getItem('ocbp-settings')
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      return { ...DEFAULT_SETTINGS, ...parsed }
+    }
+  } catch { /* ignore */ }
+  return { ...DEFAULT_SETTINGS }
+}
+
+function saveSettings(settings: GameSettings): void {
+  try {
+    localStorage.setItem('ocbp-settings', JSON.stringify(settings))
+  } catch { /* ignore */ }
 }
 
 export class StateMachine {
@@ -22,6 +54,7 @@ export class StateMachine {
   private raceResults: RaceResults | null = null
   private selectedCarId = 'phantom-gt'
   private selectedTrackId = 'midnight-circuit'
+  private settings: GameSettings = loadSettings()
 
   getCurrent(): GameState {
     return this.current
@@ -74,5 +107,14 @@ export class StateMachine {
 
   getSelectedTrack(): string {
     return this.selectedTrackId
+  }
+
+  getSettings(): GameSettings {
+    return this.settings
+  }
+
+  updateSettings(partial: Partial<GameSettings>): void {
+    this.settings = { ...this.settings, ...partial }
+    saveSettings(this.settings)
   }
 }

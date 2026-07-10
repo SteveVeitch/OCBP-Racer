@@ -12,7 +12,7 @@ export class InputManager {
   private gamepadIndex: number | null = null
 
   private readonly DEAD_ZONE = 0.15
-  private readonly STEER_EXPONENT = 1.4
+  private STEER_EXPONENT = 1.4
 
   constructor() {
     this.setupKeyboard()
@@ -37,6 +37,10 @@ export class InputManager {
     window.addEventListener('gamepaddisconnected', () => {
       this.gamepadIndex = null
     })
+  }
+
+  setSteerSensitivity(sensitivity: number): void {
+    this.STEER_EXPONENT = 1.0 + (1 - Math.max(0, Math.min(1, sensitivity))) * 1.0
   }
 
   getState(): InputState {

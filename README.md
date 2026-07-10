@@ -86,9 +86,9 @@ Each car has distinct handling tuned through 12 parameters: mass, engine force, 
 
 ### Tech Stack
 
-- **Three.js r185** — WebGL2 rendering with PBR materials
+- **Three.js r185** — WebGL2 rendering with PBR materials, bloom post-processing
 - **Rapier.js 0.19.3** — WASM-accelerated rigid body physics
-- **Howler.js 2.2** — Cross-browser audio (stubbed in MVP)
+- **Web Audio API** — Procedural audio synthesis (no audio files)
 - **TypeScript 7.x** — Type-safe development
 - **Vite 5.4** — Fast dev server and bundling
 
@@ -97,9 +97,12 @@ Each car has distinct handling tuned through 12 parameters: mass, engine force, 
 The game uses an arcade-realistic physics model:
 
 - **Engine force** applied as impulse (N·s per step), diminishing with speed
+- **Throttle ramp-up** — 0.4s from 0 to full power (prevents snap)
 - **Linear drag** opposes motion (`dragCoeff × speed × 0.01`)
 - **Downforce** increases grip at speed
-- **Auto-correct** stabilizes lateral sliding when not steering
+- **Grip/slip model** — triangle curve from slip angle to grip coefficient, replaces auto-correct
+- **Body roll** — mesh tilts ±5° in corners based on lateral velocity
+- **Wheel animation** — spin with speed, front wheels steer
 - **Reverse gear** with intuitive steering reversal
 - **NaN guard** resets car on physics corruption
 
@@ -132,7 +135,10 @@ interface CarConfig {
 - 20 street lights (point lights, warm orange)
 - Car headlights (spot lights, intensity 8)
 - Car taillights (point lights, red)
+- **Bloom post-processing** (UnrealBloomPass) — makes emissive materials glow
+- **Camera wall collision** — raycast prevents camera clipping through barriers
 - Tire smoke particles during drift
+- Body roll and wheel animation
 - PBR materials (metalness/roughness workflow)
 
 ### Car Mesh
@@ -146,10 +152,12 @@ Each car is a procedural sports car built from box geometry:
 
 ### AI
 
-3 AI opponents follow the track spline with:
+3 AI opponents with 3-state behavior:
+- **STARTING** — Cautious launch with throttle ramp and 3-second delay
+- **RACING** — Normal racing with corner speed reduction, 5m car avoidance (steer + brake + throttle reduction)
+- **RECOVERING** — Post-crash state, cuts throttle, steers away from obstacles, rejoins when aligned with track
 - Racing line tracking via closest spline point
-- Corner speed reduction based on tangent angle
-- Configurable aggressiveness per car
+- Configurable aggressiveness per car (0.3-0.7)
 - Independent lap progress tracking
 
 ### Input
@@ -160,12 +168,24 @@ Each car is a procedural sports car built from box geometry:
 - Hot-plug detection for gamepads
 - Correct steering in reverse (A=left, D=right)
 
+### Audio
+
+- 100% procedural synthesis via Web Audio API — no audio files
+- Engine: sawtooth + square oscillators, frequency mapped to RPM
+- Tire screech: bandpass-filtered white noise, triggered by slip angle
+- Wind: lowpass-filtered white noise, scales with speed
+- Collision: noise burst + sine tone with decay
+- UI: sine/square tones for navigation, countdown, race complete
+
 ### UI
 
 - HTML/CSS overlay on Three.js canvas
 - Neon green (#00ff88) + hot pink (#ff3366) + gold (#ffcc00) design system
 - Rajdhani font (Google Fonts)
-- Screens: Main Menu, Car Select, Track Select, Countdown, HUD, Pause, Results
+- Screens: Main Menu, Car Select, Track Select, Countdown, HUD, Pause, Results, Settings
+- **Settings menu** — master volume, engine volume, steer sensitivity, graphics quality (Low/Med/High)
+- **Responsive scaling** — CSS transform scales UI to any resolution (1920×1080 base)
+- **Settings persistence** — saved to localStorage
 - Centered flexbox layout
 - Loading screen with CSS spinner
 
@@ -184,12 +204,12 @@ OCBP Racer/
 │   │   └── InputManager.ts     # Keyboard + gamepad input
 │   ├── physics/
 │   │   ├── PhysicsWorld.ts     # Rapier.js WASM wrapper
-│   │   └── CarController.ts    # Car physics + reverse gear
+│   │   └── CarController.ts    # Car physics, grip/slip, throttle ramp, wheel anim
 │   ├── rendering/
-│   │   ├── CameraController.ts # Chase cam with spring follow
+│   │   ├── CameraController.ts # Chase cam with spring follow + wall collision
 │   │   └── ParticleSystem.ts   # Tire smoke particles
 │   ├── audio/
-│   │   └── AudioManager.ts     # Howler.js stub
+│   │   └── AudioManager.ts     # Web Audio API procedural synthesis
 │   ├── cars/
 │   │   ├── CarConfigs.ts       # 4 car definitions
 │   │   └── CarFactory.ts       # Car mesh + body creation
@@ -198,7 +218,7 @@ OCBP Racer/
 │   │   ├── TrackBuilder.ts     # Procedural road + barriers
 │   │   └── SplinePath.ts       # Catmull-Rom spline
 │   ├── ai/
-│   │   └── AIController.ts     # AI racing line follower
+│   │   └── AIController.ts     # AI 3-state behavior (STARTING/RACING/RECOVERING)
 │   └── ui/
 │       └── UIManager.ts        # HTML/CSS overlay UI
 ├── index.html

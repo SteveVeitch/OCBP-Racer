@@ -15,12 +15,12 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 | 4 | Track Generation | ✅ Complete | Phase 2 |
 | 5 | Input System | ✅ Complete | Phase 2 |
 | 6 | Car Roster | ✅ Complete | Phase 2 |
-| 7 | Audio System | ✅ Complete (stub) | Phase 5 |
+| 7 | Audio System | ✅ Complete | Phase 5 |
 | 8 | AI Opponents | ✅ Complete | Phase 4 |
 | 9 | UI / HUD | ✅ Complete | Phase 5 |
 | 10 | Game Loop | ✅ Complete | Phase 8, 9 |
 | 11 | Polish | 🔄 In Progress | Phase 10 |
-| **Total** | | **~90% Complete** | |
+| **Total** | | **~95% Complete** | |
 
 ## 3. Detailed Phases
 
@@ -176,20 +176,30 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 
 ### Phase 7: Audio System
 **Goal:** Engine, tire, and UI sounds
-**Status:** ✅ Complete (stub)
+**Status:** ✅ Complete
 
 **Completed Tasks:**
-- [x] Initialize Howler.js audio manager
-- [x] Create AudioManager with stub methods
-- [x] Add play/pause/resume functionality
-- [x] Add master volume control
-
-**Note:** Audio methods are stubs. Actual sound loading and playback is pending (Phase 11 polish).
+- [x] Initialize Web Audio API AudioManager
+- [x] Procedural engine synthesis (sawtooth + square oscillators, lowpass filter)
+- [x] Procedural tire screech (bandpass-filtered white noise)
+- [x] Procedural wind noise (lowpass-filtered white noise)
+- [x] Collision sound synthesis (noise burst + sine tone)
+- [x] UI sounds (sine/square tones for navigation, countdown, race complete)
+- [x] Race lifecycle (startRaceAudio / stopRaceAudio per race)
+- [x] Audio suspend/resume on pause
+- [x] Master volume + engine volume controls
+- [x] AudioContext auto-resume on user interaction
+- [x] Graceful fallback if audio fails
 
 **Acceptance Criteria:**
 - AudioManager creates without error ✅
-- Volume controls work ✅
-- Audio doesn't crash game ✅
+- Engine sound pitch tracks RPM ✅
+- Tire screech triggers during drift ✅
+- Wind noise scales with speed ✅
+- UI sounds work on navigation ✅
+- Volume controls work in real-time ✅
+- Audio pauses/unpauses with game ✅
+- No audio glitches ✅
 
 ---
 
@@ -275,20 +285,36 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 - [x] Implement reverse gear
 - [x] Fix wrong-way detection
 - [x] Rotate track for proper camera orientation
+- [x] Add bloom post-processing (UnrealBloomPass, 3 quality presets)
+- [x] Add body roll animation (±5° Z-axis tilt)
+- [x] Add wheel rotation animation (spin + front steer)
+- [x] Implement procedural audio (engine, tires, wind, collision, UI)
+- [x] Camera wall collision (raycast, prevent barrier clipping)
+- [x] Settings menu (master volume, engine volume, steer sensitivity, graphics quality)
+- [x] Responsive UI scaling (CSS transform, 1920×1080 base)
+- [x] Settings persistence (localStorage)
+- [x] Grip/slip model (triangle curve, replaces auto-correct)
+- [x] Throttle ramp-up (0.4s to full power)
+- [x] AI start behavior (cautious launch, ramp-up)
+- [x] AI car avoidance (5m radius, steer + brake)
+- [x] AI crash recovery (RECOVERING state, rejoin when aligned)
+- [x] ClearRaceEntities bug fix (null car reference, try/catch)
+- [x] AI mutual recursion bug fix (no recursive state transitions)
 
 **Remaining Tasks:**
-- [ ] Add bloom post-processing
-- [ ] Add body roll animation
-- [ ] Add wheel rotation animation
-- [ ] Implement actual audio (engine, tires, collision, UI)
 - [ ] Performance profiling and optimization
-- [ ] Bug fixes and edge cases
+- [ ] Additional edge case fixes
+- [ ] Howler.js dependency removal from package.json (unused)
 
 **Acceptance Criteria:**
 - Tire smoke visible during drift ✅
-- Bloom makes lights glow (pending)
-- Car visually leans in corners (pending)
-- Wheels spin and steer (pending)
+- Bloom makes lights glow ✅
+- Car visually leans in corners ✅
+- Wheels spin and steer ✅
+- Audio works fully (engine, tires, wind, collision, UI) ✅
+- Camera doesn't clip through barriers ✅
+- Settings menu works ✅
+- Responsive across resolutions ✅
 - 60 FPS stable with all effects ✅
 - Game feels fun to play ✅
 
@@ -315,7 +341,7 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 |------|--------|------------|
 | Physics tuning takes too long | High | Start simple, iterate ✅ |
 | WebGL2 not supported | Low | Show fallback message |
-| Performance issues | High | Profile early, optimize late |
+| Performance issues | High | Profile early, optimize late 🔄 |
 | Audio browser issues | Medium | Graceful fallback ✅ |
 | Gamepad compatibility | Medium | Test multiple controllers |
 
@@ -327,6 +353,6 @@ MVP is complete when:
 3. Player races against 3 AI opponents ✅
 4. Race completes with correct results ✅
 5. Game runs at 60 FPS on target hardware ✅
-6. All audio works (engine, tires, collision, UI) 🔄
+6. All audio works (engine, tires, collision, UI) ✅
 7. Full menu flow works with keyboard and gamepad ✅
 8. No game-breaking bugs ✅

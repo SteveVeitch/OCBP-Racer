@@ -8,6 +8,7 @@ export class UIManager {
   private onRaceStart?: () => void
   private onRestart?: () => void
   private onBackToMenu?: () => void
+  private onSettingsChanged?: () => void
   private selectedCarIndex = 0
 
   constructor(state: StateMachine) {
@@ -19,11 +20,13 @@ export class UIManager {
     onRaceStart?: () => void
     onRestart?: () => void
     onBackToMenu?: () => void
+    onSettingsChanged?: () => void
   }): void {
     this.onCarSelected = callbacks.onCarSelected
     this.onRaceStart = callbacks.onRaceStart
     this.onRestart = callbacks.onRestart
     this.onBackToMenu = callbacks.onBackToMenu
+    this.onSettingsChanged = callbacks.onSettingsChanged
 
     this.container = document.createElement('div')
     this.container.id = 'ui-container'
@@ -36,12 +39,31 @@ export class UIManager {
       pointer-events: none;
       z-index: 100;
       font-family: 'Segoe UI', system-ui, sans-serif;
+      transform-origin: top left;
     `
     document.body.appendChild(this.container)
 
     this.injectStyles()
     this.setupStateListeners()
+    this.setupResponsiveScaling()
     this.showScreen('MENU')
+  }
+
+  private setupResponsiveScaling(): void {
+    const updateScale = () => {
+      const w = window.innerWidth
+      const h = window.innerHeight
+      const baseW = 1920
+      const baseH = 1080
+      const scaleX = w / baseW
+      const scaleY = h / baseH
+      const scale = Math.max(Math.min(scaleX, scaleY), 0.5)
+      this.container.style.transform = `scale(${scale})`
+      this.container.style.width = `${baseW}px`
+      this.container.style.height = `${baseH}px`
+    }
+    updateScale()
+    window.addEventListener('resize', updateScale)
   }
 
   private injectStyles(): void {
@@ -518,6 +540,117 @@ export class UIManager {
         background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
         transition: width 0.05s linear;
       }
+
+      .settings-panel {
+        background: var(--bg-darker);
+        padding: 50px 80px;
+        border: 1px solid var(--border);
+        animation: slideUp 0.3s ease;
+        min-width: 500px;
+      }
+
+      .settings-title {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 42px;
+        font-weight: 700;
+        color: var(--primary);
+        text-transform: uppercase;
+        letter-spacing: 6px;
+        margin-bottom: 30px;
+        text-align: center;
+      }
+
+      .settings-group {
+        margin-bottom: 24px;
+      }
+
+      .settings-label {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      .settings-slider {
+        width: 100%;
+        height: 6px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: rgba(255, 255, 255, 0.1);
+        outline: none;
+        cursor: pointer;
+      }
+
+      .settings-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: var(--primary);
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+      }
+
+      .settings-slider::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: var(--primary);
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 255, 136, 0.5);
+      }
+
+      .settings-value {
+        font-family: 'Courier New', monospace;
+        font-size: 14px;
+        color: var(--primary);
+        float: right;
+        margin-top: -22px;
+      }
+
+      .settings-options {
+        display: flex;
+        gap: 8px;
+      }
+
+      .settings-option {
+        flex: 1;
+        padding: 10px;
+        background: transparent;
+        border: 2px solid var(--border);
+        color: var(--text-dim);
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        text-align: center;
+      }
+
+      .settings-option:hover {
+        border-color: rgba(255, 255, 255, 0.3);
+        color: var(--text);
+      }
+
+      .settings-option.active {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: rgba(0, 255, 136, 0.1);
+      }
+
+      .settings-buttons {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        margin-top: 30px;
+      }
     `
     document.head.appendChild(style)
   }
@@ -526,6 +659,7 @@ export class UIManager {
     this.state.on('MENU', () => this.showScreen('MENU'))
     this.state.on('CAR_SELECT', () => this.showScreen('CAR_SELECT'))
     this.state.on('TRACK_SELECT', () => this.showScreen('TRACK_SELECT'))
+    this.state.on('SETTINGS', () => this.showScreen('SETTINGS'))
     this.state.on('COUNTDOWN', () => this.showCountdown())
     this.state.on('RACING', () => this.showHUD())
     this.state.on('PAUSED', () => this.showPause())
@@ -548,6 +682,9 @@ export class UIManager {
       case 'TRACK_SELECT':
         this.buildTrackSelect(screen)
         break
+      case 'SETTINGS':
+        this.buildSettings(screen)
+        break
     }
 
     this.container.appendChild(screen)
@@ -568,6 +705,9 @@ export class UIManager {
     const startBtn = this.createButton('Start Race', 'primary')
     startBtn.onclick = () => this.state.transition('CAR_SELECT')
 
+    const settingsBtn = this.createButton('Settings')
+    settingsBtn.onclick = () => this.state.transition('SETTINGS')
+
     const version = document.createElement('div')
     version.className = 'version-text'
     version.textContent = 'v0.1.0 MVP'
@@ -575,6 +715,7 @@ export class UIManager {
     overlay.appendChild(title)
     overlay.appendChild(subtitle)
     overlay.appendChild(startBtn)
+    overlay.appendChild(settingsBtn)
     overlay.appendChild(version)
     parent.appendChild(overlay)
   }
@@ -708,6 +849,124 @@ export class UIManager {
     parent.appendChild(overlay)
   }
 
+  private buildSettings(parent: HTMLElement): void {
+    const overlay = document.createElement('div')
+    overlay.className = 'ui-overlay'
+
+    const panel = document.createElement('div')
+    panel.className = 'settings-panel'
+
+    const title = document.createElement('div')
+    title.className = 'settings-title'
+    title.textContent = 'Settings'
+
+    const settings = this.state.getSettings()
+
+    const masterGroup = this.createSliderGroup('Master Volume', settings.masterVolume, 0, 1, 0.01, (v) => {
+      this.state.updateSettings({ masterVolume: v })
+      this.onSettingsChanged?.()
+    })
+
+    const engineGroup = this.createSliderGroup('Engine Volume', settings.engineVolume, 0, 1, 0.01, (v) => {
+      this.state.updateSettings({ engineVolume: v })
+      this.onSettingsChanged?.()
+    })
+
+    const steerGroup = this.createSliderGroup('Steer Sensitivity', settings.steerSensitivity, 0, 2, 0.05, (v) => {
+      this.state.updateSettings({ steerSensitivity: v })
+      this.onSettingsChanged?.()
+    })
+
+    const graphicsGroup = document.createElement('div')
+    graphicsGroup.className = 'settings-group'
+
+    const graphicsLabel = document.createElement('div')
+    graphicsLabel.className = 'settings-label'
+    graphicsLabel.textContent = 'Graphics Quality'
+
+    const graphicsOptions = document.createElement('div')
+    graphicsOptions.className = 'settings-options'
+
+    const qualities: Array<'low' | 'medium' | 'high'> = ['low', 'medium', 'high']
+    qualities.forEach(q => {
+      const btn = document.createElement('button')
+      btn.className = `settings-option ${settings.graphicsQuality === q ? 'active' : ''}`
+      btn.textContent = q.charAt(0).toUpperCase() + q.slice(1)
+      btn.onclick = () => {
+        this.state.updateSettings({ graphicsQuality: q })
+        this.onSettingsChanged?.()
+        graphicsOptions.querySelectorAll('.settings-option').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+      }
+      graphicsOptions.appendChild(btn)
+    })
+
+    graphicsGroup.appendChild(graphicsLabel)
+    graphicsGroup.appendChild(graphicsOptions)
+
+    const buttons = document.createElement('div')
+    buttons.className = 'settings-buttons'
+
+    const backBtn = this.createButton('Back', 'primary')
+    backBtn.onclick = () => {
+      const prev = this.state.getPrevious()
+      if (prev === 'PAUSED') {
+        this.state.transition('RACING')
+      } else {
+        this.state.transition('MENU')
+      }
+    }
+
+    buttons.appendChild(backBtn)
+
+    panel.appendChild(title)
+    panel.appendChild(masterGroup)
+    panel.appendChild(engineGroup)
+    panel.appendChild(steerGroup)
+    panel.appendChild(graphicsGroup)
+    panel.appendChild(buttons)
+    overlay.appendChild(panel)
+    parent.appendChild(overlay)
+  }
+
+  private createSliderGroup(
+    label: string,
+    value: number,
+    min: number,
+    max: number,
+    step: number,
+    onChange: (v: number) => void
+  ): HTMLElement {
+    const group = document.createElement('div')
+    group.className = 'settings-group'
+
+    const labelEl = document.createElement('div')
+    labelEl.className = 'settings-label'
+    labelEl.textContent = label
+
+    const valueEl = document.createElement('div')
+    valueEl.className = 'settings-value'
+    valueEl.textContent = `${Math.round(value * 100)}%`
+
+    const slider = document.createElement('input')
+    slider.type = 'range'
+    slider.className = 'settings-slider'
+    slider.min = String(min)
+    slider.max = String(max)
+    slider.step = String(step)
+    slider.value = String(value)
+    slider.oninput = () => {
+      const v = parseFloat(slider.value)
+      valueEl.textContent = `${Math.round(v * 100)}%`
+      onChange(v)
+    }
+
+    group.appendChild(labelEl)
+    group.appendChild(valueEl)
+    group.appendChild(slider)
+    return group
+  }
+
   private showCountdown(): void {
     this.container.innerHTML = ''
     const overlay = document.createElement('div')
@@ -811,6 +1070,9 @@ export class UIManager {
       const resumeBtn = this.createButton('Resume', 'primary')
       resumeBtn.onclick = () => this.state.transition('RACING')
 
+      const settingsBtn = this.createButton('Settings')
+      settingsBtn.onclick = () => this.state.transition('SETTINGS')
+
       const restartBtn = this.createButton('Restart Race')
       restartBtn.onclick = () => {
         this.onRestart?.()
@@ -823,6 +1085,7 @@ export class UIManager {
 
       pauseOverlay.appendChild(title)
       pauseOverlay.appendChild(resumeBtn)
+      pauseOverlay.appendChild(settingsBtn)
       pauseOverlay.appendChild(restartBtn)
       pauseOverlay.appendChild(quitBtn)
       this.container.appendChild(pauseOverlay)

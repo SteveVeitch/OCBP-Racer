@@ -1,4 +1,7 @@
 import * as THREE from 'three'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
 import { InputManager } from '../input/InputManager'
 import { PhysicsWorld } from '../physics/PhysicsWorld'
 import { CarController } from '../physics/CarController'
@@ -35,6 +38,8 @@ export class Game {
   private scene!: THREE.Scene
   private camera!: THREE.PerspectiveCamera
   private cameraController!: CameraController
+  private composer!: EffectComposer
+  private bloomPass!: UnrealBloomPass
   private clock!: THREE.Clock
   private input!: InputManager
   private physics!: PhysicsWorld
@@ -113,8 +118,12 @@ export class Game {
       log('Setting up camera controller...')
       this.cameraController = new CameraController(this.camera)
 
+      log('Setting up post-processing...')
+      this.setupPostProcessing()
+
       log('Initializing audio...')
       await this.audio.init()
+      this.applySettings()
       log('Audio initialized OK')
 
       log('Setting up particle system...')
@@ -125,7 +134,8 @@ export class Game {
         onCarSelected: (id) => this.state.setSelectedCar(id),
         onRaceStart: () => this.startRace(),
         onRestart: () => this.restartRace(),
-        onBackToMenu: () => this.returnToMenu()
+        onBackToMenu: () => this.returnToMenu(),
+        onSettingsChanged: () => this.applySettings()
       })
       log('UI initialized OK')
 
@@ -180,6 +190,45 @@ export class Game {
     )
     this.camera.position.set(0, 3, -6)
     this.camera.lookAt(0, 1, 0)
+  }
+
+  private setupPostProcessing(): void {
+    this.composer = new EffectComposer(this.renderer)
+
+    const renderPass = new RenderPass(this.scene, this.camera)
+    this.composer.addPass(renderPass)
+
+    this.bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.6,
+      0.4,
+      0.85
+    )
+    this.composer.addPass(this.bloomPass)
+    this.applyGraphicsQuality()
+  }
+
+  private applyGraphicsQuality(): void {
+    const quality = this.state.getSettings().graphicsQuality
+    switch (quality) {
+      case 'low':
+        this.bloomPass.strength = 0
+        this.bloomPass.enabled = false
+        this.renderer.setPixelRatio(1)
+        break
+      case 'medium':
+        this.bloomPass.strength = 0.4
+        this.bloomPass.enabled = true
+        this.bloomPass.resolution.set(window.innerWidth / 2, window.innerHeight / 2)
+        this.renderer.setPixelRatio(1)
+        break
+      case 'high':
+        this.bloomPass.strength = 0.6
+        this.bloomPass.enabled = true
+        this.bloomPass.resolution.set(window.innerWidth, window.innerHeight)
+        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        break
+    }
   }
 
   private setupLighting(): void {
@@ -335,6 +384,7 @@ export class Game {
 
     this.aiCars = []
     this.aiControllers = []
+    const allCars: CarController[] = [this.car]
     const otherCars = CARS.filter(c => c.id !== carId)
     for (let i = 0; i < 3; i++) {
       const aiCarDef = otherCars[i % otherCars.length]
@@ -343,8 +393,9 @@ export class Game {
       aiCar.setPosition(new THREE.Vector3(aiPos.x, 0.5, aiPos.z))
       aiCar.setLookAt(startRot)
       aiCar.resetPhysics()
+      allCars.push(aiCar)
 
-      const aiController = new AIController(aiCar, this.track.getSpline(), 0.3 + i * 0.2)
+      const aiController = new AIController(aiCar, this.track.getSpline(), 0.3 + i * 0.2, allCars)
       this.aiCars.push(aiCar)
       this.aiControllers.push(aiController)
     }
@@ -364,6 +415,12 @@ export class Game {
 
     this.countdownStep = -1
     this.countdownTimer = 0
+    try {
+      this.audio.stopRaceAudio()
+      this.audio.startRaceAudio()
+    } catch (err) {
+      logError('Audio init failed (non-fatal):', err)
+    }
     this.state.transition('COUNTDOWN')
   }
 
@@ -375,6 +432,7 @@ export class Game {
 
   private returnToMenu(): void {
     this.clearRaceEntities()
+    this.audio.stopRaceAudio()
     this.ui.hideAll()
     this.state.transition('MENU')
     this.paused = false
@@ -383,11 +441,12 @@ export class Game {
   private clearRaceEntities(): void {
     if (this.car) {
       this.scene.remove(this.car.getMesh())
-      this.physics.getWorld().removeRigidBody(this.car.getBody())
+      try { this.physics.getWorld().removeRigidBody(this.car.getBody()) } catch { /* already removed */ }
+      this.car = undefined as unknown as CarController
     }
     this.aiCars.forEach(car => {
       this.scene.remove(car.getMesh())
-      this.physics.getWorld().removeRigidBody(car.getBody())
+      try { this.physics.getWorld().removeRigidBody(car.getBody()) } catch { /* already removed */ }
     })
     this.aiCars = []
     this.aiControllers = []
@@ -427,6 +486,7 @@ export class Game {
       this.updateRaceLogic()
       this.updateHUD()
       this.updateParticles()
+      this.updateAudio()
     }
 
     this.updateCamera()
@@ -582,6 +642,7 @@ export class Game {
 
     this.state.setRaceResults(results)
     this.audio.playRaceComplete()
+    this.audio.stopRaceAudio()
     this.state.transition('RESULTS')
     this.ui.showResults()
   }
@@ -611,6 +672,26 @@ export class Game {
     this.particles.update(1 / 60)
   }
 
+  private updateAudio(): void {
+    if (!this.car) return
+
+    const rpm = this.car.getRPM()
+    const speed = this.car.getSpeed()
+    const slipAngle = this.car.getSlipAngle()
+    const gripCoeff = this.car.getGripCoefficient()
+
+    this.audio.playEngine(rpm, 0)
+
+    if (slipAngle > 5 && gripCoeff < this.car.getConfig().peakGrip * 0.8) {
+      const screechIntensity = Math.min(1, (slipAngle - 5) / 15)
+      this.audio.playTireScreech(screechIntensity)
+    } else {
+      this.audio.playTireScreech(0)
+    }
+
+    this.audio.playWindNoise(speed)
+  }
+
   private updateCamera(): void {
     if (!this.car) return
 
@@ -624,13 +705,30 @@ export class Game {
   }
 
   private render(): void {
-    this.renderer.render(this.scene, this.camera)
+    if (this.bloomPass.enabled) {
+      this.composer.render()
+    } else {
+      this.renderer.render(this.scene, this.camera)
+    }
   }
 
   private onResize(): void {
-    this.camera.aspect = window.innerWidth / window.innerHeight
+    const w = window.innerWidth
+    const h = window.innerHeight
+    this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
-    this.renderer.setSize(window.innerWidth, window.innerHeight)
+    this.renderer.setSize(w, h)
+    this.composer.setSize(w, h)
+    this.bloomPass.resolution.set(w, h)
+    this.applyGraphicsQuality()
+  }
+
+  private applySettings(): void {
+    const settings = this.state.getSettings()
+    this.audio.setMasterVolume(settings.masterVolume)
+    this.audio.setEngineVolume(settings.engineVolume)
+    this.input?.setSteerSensitivity(settings.steerSensitivity)
+    this.applyGraphicsQuality()
   }
 
   dispose(): void {

@@ -156,6 +156,12 @@ camera.position += velocity × dt
 - Position set behind car based on start rotation
 - Velocity zeroed
 
+### 4.5 Camera Wall Collision
+- Raycast from car position to desired camera position
+- If ray hits a barrier collider, camera pulls forward to intersection point + 0.5m offset
+- Prevents camera from clipping through track barriers
+- Smooth interpolation back when obstruction clears
+
 ## 5. Material System
 
 ### 5.1 PBR Materials (MeshStandardMaterial)
@@ -275,6 +281,20 @@ Rear-Left:   (-0.95, 0.32, -1.2)
 Rear-Right:  (0.95, 0.32, -1.2)
 ```
 
+### 7.3 Wheel Animation
+- **Spin:** All 4 wheels rotate around local X axis based on forward speed
+  - Spin angle += speed × dt × (1 / wheelRadius)
+  - Wheel radius ≈ 0.32m
+- **Steer:** Front 2 wheels rotate around local Y axis based on currentSteer
+  - Front wheel Y rotation = currentSteer angle
+- Wheel groups stored as references in CarController for animation
+
+### 7.4 Body Roll
+- Car mesh tilts around Z axis based on lateral force
+- Roll angle = lateralVelocity × rollFactor (clamped to ±5°)
+- Applied as additional rotation in CarController.updateMesh()
+- Creates visual lean into corners
+
 ## 8. Particle Effects (MVP Scope)
 
 ### 8.1 Tire Smoke
@@ -286,7 +306,34 @@ Rear-Right:  (0.95, 0.32, -1.2)
 - Particles rise and fade over lifetime
 - Size grows over lifetime (0.8 to 2.8)
 
-## 9. Performance Optimization
+## 9. Post-Processing
+
+### 9.1 Bloom (UnrealBloomPass)
+```
+Threshold:  0.85
+Strength:   0.6
+Radius:     0.4
+Pipeline:   EffectComposer → RenderPass → UnrealBloomPass → Output
+```
+
+Bloom makes emissive materials (headlights, taillights, street light bulbs, building windows) glow naturally in the night scene. The threshold ensures only bright emissive surfaces bloom, not the entire scene.
+
+**Quality presets (via Settings menu):**
+
+| Quality | Strength | Resolution | Pixel Ratio |
+|---------|----------|------------|-------------|
+| Low | 0 (disabled) | — | 1 |
+| Medium | 0.4 | half | 1 |
+| High | 0.6 | full | max(devicePixelRatio, 2) |
+
+### 9.2 NOT in MVP
+- Motion blur
+- SSAO
+- Screen-space reflections
+- Depth of field
+- Ray tracing
+
+## 10. Performance Optimization
 
 ### 9.1 Frustum Culling
 - Enabled by default
@@ -295,15 +342,20 @@ Rear-Right:  (0.95, 0.32, -1.2)
 - Only primary directional light casts shadows
 - Shadow map 2048×2048
 
-## 10. Acceptance Criteria
+## 11. Acceptance Criteria
 
 | Test | Pass Condition |
 |------|---------------|
 | Scene renders | Car visible on track at 60 FPS |
 | Lighting correct | Night scene readable, no pitch black areas |
 | Camera follows | Smooth chase cam at 60 FPS |
+| Camera collision | Camera doesn't clip through barriers |
 | FOV changes | Subtle FOV increase at speed |
+| Bloom works | Emissive surfaces (headlights, street lights) glow |
 | Car headlights work | SpotLights illuminate road ahead |
 | Car taillights work | Red glow visible behind car |
+| Wheels spin | Front and rear wheels rotate with speed |
+| Wheels steer | Front wheels turn with steering input |
+| Body roll | Car leans into corners |
 | Shadows render | Car and track cast soft shadows |
 | 60 FPS maintained | No drops below 55 FPS on target hardware |

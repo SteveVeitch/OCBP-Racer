@@ -5,15 +5,15 @@
 ### 1.1 Abstraction Layer
 
 ```
-Physical Devices → Input Manager → Unified Axes → Game Systems
+Physical Devices → InputManager → Unified InputState → Game Systems
      ↓                                    ↓
-  Keyboard        InputManager.getAxis()    Throttle: 0.0 - 1.0
-  Gamepad         InputManager.isPressed()  Brake: 0.0 - 1.0
-                                     Steering: -1.0 - 1.0
+  Keyboard        InputManager.getState()  Throttle: 0.0 - 1.0
+  Gamepad                                   Brake: 0.0 - 1.0
+                                      Steering: -1.0 - 1.0
 ```
 
 ### 1.2 Polling Rate
-- Input polled every frame (60 Hz minimum)
+- Input polled every frame
 - Gamepad polled via `navigator.getGamepads()`
 - No event-based input (prevents timing issues)
 
@@ -23,7 +23,7 @@ Physical Devices → Input Manager → Unified Axes → Game Systems
 |--------|------|-------|-------------|
 | `throttle` | Axis | 0.0 → 1.0 | Acceleration |
 | `brake` | Axis | 0.0 → 1.0 | Braking / reverse |
-| `steer` | Axis | -1.0 → 1.0 | Left (-1) to Right (+1) |
+| `steer` | Axis | -1.0 → 1.0 | Right (-1) to Left (+1) |
 | `pause` | Button | true/false | Pause menu toggle |
 | `confirm` | Button | true/false | Menu selection |
 | `back` | Button | true/false | Menu back / cancel |
@@ -36,31 +36,33 @@ Action        Key(s)
 ─────────────────────
 Throttle      W / ArrowUp
 Brake         S / ArrowDown
-Steer Left    A / ArrowLeft
-Steer Right   D / ArrowRight
+Steer Left    A / ArrowLeft     (+1)
+Steer Right   D / ArrowRight    (-1)
 Pause         Escape
 Confirm       Enter / Space
 Back          Escape / Backspace
 ```
 
-### 3.2 Alt Layout (Optional, configurable post-MVP)
-```
-Throttle      Up Arrow
-Brake         Down Arrow
-Steer Left    Left Arrow
-Steer Right   Right Arrow
-```
+### 3.2 Steering Direction
+- A/ArrowLeft = +1 (left)
+- D/ArrowRight = -1 (right)
+- This matches the convention where positive steer = left
+
+### 3.3 No Smoothing
+- Throttle and brake: digital (0 or 1)
+- Steering: digital (-1, 0, or +1)
+- No input smoothing applied (responsive, instant feel)
 
 ## 4. Gamepad Mapping
 
 ### 4.1 Xbox Layout (Default)
 ```
-Action        Button
-─────────────────────
+Action        Button/Axis
+─────────────────────────
 Throttle      RT (Right Trigger, Axis 7)
 Brake         LT (Left Trigger, Axis 6)
-Steer Left    Left Stick Left (Axis 0 < 0)
-Steer Right   Left Stick Right (Axis 0 > 0)
+Steer Left    Left Stick Left (Axis 0 > 0, negated)
+Steer Right   Left Stick Right (Axis 0 < 0, negated)
 Pause         Start (Button 9)
 Confirm       A (Button 0)
 Back          B (Button 1)
@@ -68,12 +70,12 @@ Back          B (Button 1)
 
 ### 4.2 PlayStation Layout (Auto-detected)
 ```
-Action        Button
-─────────────────────
+Action        Button/Axis
+─────────────────────────
 Throttle      R2 (Axis 7)
 Brake         L2 (Axis 6)
-Steer Left    Left Stick Left (Axis 0 < 0)
-Steer Right   Left Stick Right (Axis 0 > 0)
+Steer Left    Left Stick Left (Axis 0 > 0, negated)
+Steer Right   Left Stick Right (Axis 0 < 0, negated)
 Pause         Options (Button 9)
 Confirm       X (Button 0)
 Back          O (Button 1)
@@ -81,12 +83,18 @@ Back          O (Button 1)
 
 ### 4.3 Gamepad Features
 - **Dead Zone:** 0.15 (both sticks and triggers)
+- **Steer Exponent:** 1.4 (sensitivity curve)
 - **Vibration:** Not used in MVP (reserved for post-MVP)
 - **Hot-plug:** Detect gamepad connect/disconnect at runtime
 
+### 4.4 Gamepad Steer Direction
+- Left stick left (Axis 0 > 0): Negated → negative steer → left
+- Left stick right (Axis 0 < 0): Negated → positive steer → right
+- Negation applied in `getGamepadState()`
+
 ## 5. Input Processing
 
-### 5.1 Dead Zone
+### 5.1 Dead Zone (Gamepad Only)
 ```
 if (abs(rawInput) < deadZone)
     output = 0
@@ -98,66 +106,52 @@ This ensures zero drift while maintaining full range.
 
 ### 5.2 Response Curves
 
-#### Throttle (Linear)
-```
-output = input
-```
-Direct mapping — press more, go faster.
+#### Throttle/Brake (Keyboard)
+- Digital: 0 or 1 (no analog)
+- Direct mapping for instant response
 
-#### Brake (Linear)
-```
-output = input
-```
-Direct mapping — press more, brake harder.
+#### Throttle/Brake (Gamepad)
+- Analog with dead zone applied
+- Linear response (no curve)
 
-#### Steering (Sensitivity Curve)
-```
-output = sign(input) × pow(abs(input), steerExponent)
-```
-`steerExponent = 1.4` (default)
+#### Steering (Keyboard)
+- Digital: -1, 0, or +1
+- No smoothing, instant response
 
-This makes small steering inputs less twitchy at high speed while keeping full lock available.
+#### Steering (Gamepad)
+- Dead zone applied first
+- Sensitivity curve: `output = sign(input) × pow(abs(input), 1.4)`
+- Exponent 1.4 makes small inputs less twitchy
 
-### 5.3 Input Smoothing
-
-#### Steering
-- Low-pass filter applied to raw steering input
-- Smoothing factor: `0.15` (lower = smoother, higher = more responsive)
-- Prevents instant full-lock snaps
-
-#### Throttle/Brake
-- No smoothing — direct response for feel
+### 5.3 No Input Smoothing
+- Throttle/Brake: no smoothing (direct response)
+- Steering: no smoothing (instant response)
+- This provides a responsive, arcade feel
 
 ## 6. Game State Input Behavior
 
 | Game State | Input Enabled |
 |------------|---------------|
-| MENU | Confirm, Back, Navigate |
+| MENU | Confirm, Back |
 | CAR_SELECT | Steer (browse), Confirm, Back |
-| TRACK_SELECT | Steer (browse), Confirm, Back |
+| TRACK_SELECT | Confirm, Back |
 | COUNTDOWN | None (locked) |
 | RACING | All driving inputs |
 | PAUSED | Confirm (resume), Back (quit) |
-| RESULTS | Confirm (continue), Back (replay) |
+| RESULTS | Confirm (replay), Back (menu) |
 
-## 7. Input Display
-
-### 7.1 Visual Feedback
-- Show current input device icon (keyboard / Xbox / PlayStation)
-- Show throttle/brake as vertical bars
-- Show steering as horizontal bar
-- Optional: show raw input vs processed input (debug mode)
-
-### 7.2 Device Switching
-- If gamepad connected → show gamepad prompts
-- If keyboard used → show keyboard prompts
-- Auto-detect and switch prompts in real-time
-
-## 8. Pause Behavior
+## 7. Pause Behavior
 
 - Pause freezes physics and game state
 - Input buffer cleared on unpause (prevents stale inputs)
-- Gamepad rumble stopped on pause
+- Escape key or Start button to pause/unpause
+
+## 8. Reverse Gear
+
+When brake input is held and car is nearly stationary (forwardSpeed ≤ 1.0 m/s):
+- Car applies reverse force at 40% of engine force
+- Reverse speed capped at 35% of max speed
+- Steering direction flips so controls remain intuitive (A=left, D=right)
 
 ## 9. Accessibility Considerations
 
@@ -178,7 +172,7 @@ This makes small steering inputs less twitchy at high speed while keeping full l
 | Gamepad input responds | All axes/buttons polled correctly |
 | Dead zone works | Input < 0.15 reads as 0 |
 | Dead zone full range | Input at 1.0 reaches 1.0 |
-| Steering smoothing | No instant full-lock from neutral |
 | Gamepad hot-plug | Device detected within 1 second |
 | Pause blocks input | Driving inputs ignored during pause |
 | Device detection | Correct prompts shown for active device |
+| Reverse controls | A=left, D=right when reversing |

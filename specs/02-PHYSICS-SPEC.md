@@ -11,18 +11,17 @@
 
 ## 2. Physics Engine
 
-**Rapier.js (WASM)** for:
+**Rapier.js 0.19.3 (WASM)** for:
 - Rigid body dynamics
 - Collision detection
-- Continuous collision detection (prevents tunneling at high speed)
 
 ### 2.1 Physics World Configuration
 ```
 Gravity:              -9.81 m/s² (Y-axis down)
 Fixed Timestep:       1/120 Hz (8.33ms)
-Solver Iterations:    4 (position), 8 (velocity)
-CCD:                  Enabled for car bodies
-Sleep Threshold:      Disabled for active cars
+Linear Damping:       1.0 (on car bodies)
+Angular Damping:      5.0 (on car bodies)
+Collider Friction:    0.8 (car), varies (barriers)
 ```
 
 ## 3. Car Physics Model
@@ -34,42 +33,61 @@ Sleep Threshold:      Disabled for active cars
 - All values in meters, meters/second, radians
 
 ### 3.2 Car Body
-- Represented as a Rapier rigid body
-- Shape: Box collider (simplified from mesh)
-- Dimensions: Approximated from car bounds
-- Center of mass: Low and slightly forward (0.3m height, 0.1m forward of center)
+- Represented as a Rapier dynamic rigid body
+- Shape: Box collider (1.0 × 0.5 × 2.0)
+- Mass set via `setAdditionalMass()` per car config
+- Ground enforced: car snapped to y=0.5, vertical velocity zeroed each tick
 
 ### 3.3 Force Application Model
 
-Each physics tick, the car controller applies:
+Each physics tick, the car controller applies forces as **impulses (N·s per step)**:
 
 ```
-1. ENGINE FORCE (longitudinal)
-   - Applied at rear wheels (RWD for all cars)
-   - Force = ThrottlePercent × MaxEngineForce
-   - Force reduced by: gear ratio, speed
+1. ENGINE FORCE (forward)
+   - Applied at car center in forward direction
+   - Force = ThrottlePercent × EngineForce × ForceMultiplier
+   - ForceMultiplier = max(0, 1 - speedRatio × 0.9)
+   - SpeedRatio = currentSpeed / maxSpeed
+   - Force diminishes toward zero as car approaches top speed
 
-2. BRAKE FORCE (longitudinal)
-   - Applied at all four wheels
-   - Force = BrakePercent × MaxBrakeForce
-   - Separate front/rear bias per car
+2. BRAKE / REVERSE FORCE
+   - If forwardSpeed > 1.0 m/s: BRAKE
+     - Applied opposite to velocity direction
+     - Force = BrakePercent × BrakeForce
+   - If forwardSpeed ≤ 1.0 m/s: REVERSE
+     - Applied opposite to forward direction (pushes car backward)
+     - Force = BrakePercent × EngineForce × 0.4
+     - Capped at 35% of maxSpeed (reverse speed limit)
 
-3. STEERING FORCE (lateral)
-   - Applied by rotating front wheel colliders
-   - MaxSteerAngle varies by speed (see §3.5)
+3. STEERING
+   - Rotates car body around Y-axis
+   - Steering angle lerps toward target at rate: dt × 10
+   - Turn rate = steerAngle × speedFactor × SteerSpeed
+   - SpeedFactor = min(speed / 3, 1) — no turning at standstill
+   - Steering direction flips when reversing (forwardSpeed < 0)
 
-4. DRAG FORCE (opposes motion)
-   - Aerodynamic drag: F_drag = 0.5 × Cd × A × ρ × v²
-   - Rolling resistance: F_roll = Crr × m × g
+4. DRAG FORCE (opposes motion, LINEAR)
+   - DragForce = DragCoeff × speed × 0.01
+   - Applied opposite to velocity vector
 
 5. DOWNFORCE (presses car to ground)
-   - F_down = DownforceCoeff × v²
-   - Increases grip at speed
+   - Force = DownforceCoeff × speed² × 0.0001
+   - Applied as downward impulse
+
+6. AUTO-CORRECT (lateral stability)
+   - Active when steer input < 0.01 and speed > 2 m/s
+   - Correction = -lateralVelocity × AutoCorrect × 0.1
+   - Applied in right direction to counteract slide
 ```
 
 ### 3.4 Tire Grip Model (Simplified)
 
-The heart of "arcade-realistic":
+Grip is modeled through the interaction of:
+- **Slip angle** — difference between car heading and velocity direction
+- **Peak grip coefficient** — determines maximum lateral force
+- **Slip angle peak** — slip angle at which grip is maximum
+- **Slip angle limit** — slip angle beyond which car loses control
+- **Auto-correct** — corrective impulse when not steering
 
 ```
                    Grip
@@ -81,106 +99,109 @@ The heart of "arcade-realistic":
  ╱                         ╲
 ╱                           ╲
 ──────┼──────────┼───────────→ Slip Angle
-     0°        12°         30°
-      ↑          ↑           ↑
-   Peak Grip  Breakaway   Full Slide
+     0°        Peak        Limit
 ```
-
-**Slip Angle Calculation:**
-```
-slipAngle = atan2(lateralVelocity, abs(forwardVelocity))
-```
-
-**Grip Response Curve:**
-- **0° - 12°:** Grip increases (progressive, predictable)
-- **12°:** Peak grip (optimal slip angle)
-- **12° - 25°:** Grip decreases gradually (controlled drift)
-- **25°+:** Grip drops off (full slide, harder to control)
-
-**Arcade Assist:**
-- Auto-corrective steering applied when slip angle > 15°
-- Strength varies per car (Inferno SS = less assist, Viper RS = more)
 
 ### 3.5 Speed-Dependent Steering
 
 ```
-MaxSteerAngle = BaseSteerAngle × (1 - Speed/MaxSpeed × 0.6)
+TurnRate = SteerAngle × SpeedFactor × SteerSpeed
+SpeedFactor = min(speed / 3, 1)
 ```
 
-At high speed, steering is reduced to prevent snap oversteer.
+At low speed (< 3 m/s), steering is reduced to prevent snap at standstill.
 
-### 3.6 Transmission (Auto Only)
+### 3.6 Reverse Gear
 
-```
-Gear Ratios:
-  1st: 3.5:1
-  2nd: 2.2:1
-  3rd: 1.5:1
-  4th: 1.1:1
-  5th: 0.85:1
-  6th: 0.7:1
+When brake input is held and forward speed is ≤ 1.0 m/s:
+- Car applies reverse force at 40% of engine force
+- Reverse speed capped at 35% of max speed
+- Steering direction flips so controls remain intuitive (A=left, D=right)
 
-Shift Points:
-  Upshift:   RPM > 7000
-  Downshift: RPM < 3000
+### 3.7 NaN Guard
 
-Shift Time: 150ms (torque interruption)
-```
-
-RPM Calculation:
-```
-RPM = (wheelAngularVelocity × gearRatio × finalDrive) × 9.55
-```
+If car position contains NaN values:
+- Position reset to (0, 0.5, 0)
+- Velocity and angular velocity zeroed
+- Prevents physics explosions from corrupting state
 
 ## 4. Car Tuning Parameters
 
-Each car is defined by these parameters:
+### 4.1 Actual CarConfig Interface
 
-| Parameter | Type | Range | Description |
-|-----------|------|-------|-------------|
-| `mass` | kg | 1200-1800 | Vehicle mass |
-| `maxEngineForce` | N | 5000-9000 | Peak engine output |
-| `maxBrakeForce` | N | 8000-15000 | Peak braking force |
-| `brakeBias` | 0-1 | 0.5-0.7 | Front brake proportion |
-| `maxSteerAngle` | rad | 0.4-0.6 | Max front wheel angle |
-| `wheelbase` | m | 2.4-2.8 | Front-to-rear axle |
-| `trackWidth` | m | 1.6-1.8 | Left-to-right axle |
-| `centerOfMassY` | m | 0.3-0.5 | Height of COM |
-| `dragCoeff` | - | 0.3-0.5 | Aerodynamic drag |
-| `downforceCoeff` | - | 0.5-2.0 | Speed-dependent downforce |
-| `peakGripCoeff` | - | 1.5-2.5 | Tire friction coefficient |
-| `slipAnglePeak` | deg | 10-14 | Slip angle at peak grip |
-| `slipAngleLimit` | deg | 25-35 | Slip angle at breakaway |
-| `autoCorrectStrength` | 0-1 | 0.2-0.6 | Arcade assist strength |
-| `maxSpeed` | m/s | 55-75 | Top speed (≈200-270 km/h) |
+```typescript
+interface CarConfig {
+  mass: number          // kg (1250-1550)
+  engineForce: number   // impulse N·s per step (750-950)
+  brakeForce: number    // impulse N·s per step (1900-2400)
+  steerSpeed: number    // rad/s turn rate multiplier (1.8-2.5)
+  maxSteerAngle: number // radians (0.42-0.48)
+  maxSpeed: number      // km/h (235-265)
+  dragCoeff: number     // linear drag coefficient (1.3-1.6)
+  peakGrip: number      // grip coefficient (1.6-2.4)
+  downforce: number     // downforce coefficient (0.8-1.8)
+  slipAnglePeak: number // degrees (6-12)
+  slipAngleLimit: number // degrees (20-35)
+  autoCorrect: number   // lateral stability (0.2-0.6)
+}
+```
+
+### 4.2 Actual Car Parameters
+
+| Parameter | Phantom GT | Viper RS | Inferno SS | AeroVen TT |
+|-----------|-----------|----------|------------|------------|
+| **Mass (kg)** | 1550 | 1400 | 1500 | 1250 |
+| **Engine Force (impulse)** | 800 | 850 | 950 | 750 |
+| **Brake Force (impulse)** | 2000 | 2200 | 1900 | 2400 |
+| **Steer Speed** | 1.8 | 2.2 | 2.0 | 2.5 |
+| **Max Steer (rad)** | 0.45 | 0.42 | 0.48 | 0.44 |
+| **Max Speed (km/h)** | 235 | 245 | 250 | 265 |
+| **Drag Coeff** | 1.5 | 1.4 | 1.6 | 1.3 |
+| **Peak Grip** | 1.9 | 2.4 | 1.6 | 2.1 |
+| **Downforce** | 1.2 | 1.8 | 0.8 | 1.5 |
+| **Slip Angle Peak (°)** | 8 | 6 | 12 | 7 |
+| **Slip Angle Limit (°)** | 25 | 20 | 35 | 22 |
+| **Auto-Correct** | 0.4 | 0.6 | 0.2 | 0.5 |
+
+### 4.3 RPM Calculation
+
+```
+RPM = 800 + min(1, speedRatio) × 6700
+Where: speedRatio = currentSpeed (m/s) / (maxSpeed / 3.6)
+```
+
+RPM ranges from 800 (idle) to 7500 (max).
 
 ## 5. Collision Model
 
 ### 5.1 Collision Groups
 ```
-GROUP_STATIC:    Track walls, barriers, buildings
-GROUP_CAR:       Player and AI car bodies
-GROUP_SENSOR:    Checkpoints, finish line
+GROUP_STATIC:    Track barriers (fixed rigid bodies)
+GROUP_CAR:       Player and AI car bodies (dynamic)
 ```
 
-### 5.2 Wall Collisions
-- Elastic collision with restitution = 0.3
-- No damage in MVP
+### 5.2 Barrier Collisions
+- Box colliders along track edges
+- Friction: varies by material
 - Cars are pushed away from walls
-- Speed loss on impact: 30-50% depending on angle
+- Restitution: default Rapier values
 
 ### 5.3 Car-to-Car Collisions
-- Soft-body approximation via restitution = 0.5
-- Both cars affected
-- Slight push-apart force
+- Default Rapier collision response
+- Both cars affected by contact forces
+
+### 5.4 Ground Collision
+- Fixed ground plane at y = -0.1
+- Car body size: cuboid(1, 0.5, 2)
+- Ground enforcement: car snapped to y = 0.5 each tick
 
 ## 6. AI Physics
 
 AI cars use the same physics model as the player car:
-- Same tire model
-- Same engine/brake forces
+- Same CarController with same forces
 - Same collision behavior
 - Different control inputs (see AI spec)
+- AI controllers track lap progress via spline parameter t
 
 ## 7. Debug Visualization
 
@@ -202,11 +223,12 @@ All car parameters adjustable via debug UI sliders:
 
 | Test | Pass Condition |
 |------|---------------|
-| Car accelerates from 0-100 km/h | Within ±0.5s of spec target |
-| Car brakes from 100-0 km/h | Within ±0.5m of spec target |
-| Car maintains grip at 10° slip | Grip coefficient > 0.9 × peak |
-| Car begins sliding at 20° slip | Grip coefficient < 0.7 × peak |
-| Car drifts controllably at 25° slip | Player can maintain drift for 2+ seconds |
-| Steering reduces at high speed | Max steer angle < 50% of low-speed max |
-| Top speed reached | Within ±5 km/h of spec target |
-| Auto-shift at correct RPM | Shifts within ±200 RPM of target |
+| Car accelerates from 0 | Speed increases on throttle |
+| Car brakes effectively | Speed decreases on brake |
+| Car steers correctly | A=left, D=right (forward and reverse) |
+| Reverse works | Car moves backward when brake held at low speed |
+| Top speed reached | Speed plateaus near maxSpeed config value |
+| Steering reduces at high speed | Turn rate decreases with speed |
+| NaN guard works | Car resets on NaN position |
+| Downforce increases grip | Less sliding at high speed |
+| Auto-correct stabilizes | Lateral velocity reduced when not steering |

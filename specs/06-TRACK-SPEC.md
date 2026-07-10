@@ -3,107 +3,110 @@
 ## 1. Track Philosophy
 
 - **Single track for MVP:** "Midnight Circuit"
-- Urban street circuit aesthetic
+- Urban night oval circuit aesthetic
 - Learnable layout that rewards skill
-- Mix of speed sections and technical corners
+- Mix of sweepers and straight sections
 
 ## 2. Track Design: "Midnight Circuit"
 
 ### 2.1 Overview
 ```
-Total Length:     1.8 km (approx)
-Lap Count:        3-5 (configurable)
-Surface:          Dry asphalt
+Total Length:     ~220m (closed oval)
+Lap Count:        3 (default)
+Surface:          Dry asphalt (procedural)
 Setting:          Urban night
-Theme:            Downtown city streets
+Theme:            City street circuit
+Shape:            Oval (rotated +90° from base orientation)
 ```
 
-### 2.2 Layout Map (Approximation)
+### 2.2 Layout Shape
 
 ```
+              START/FINISH
+                  ↓
          ╭────────────╮
-         │  CHICANE   │
     ╭────╯            ╰────╮
-    │   STRAIGHT 1         │
     │                      │
-    ╰──╮              ╭───╯
-       │  S-BEND      │
-    ╭──╯              ╰───╮
-    │   STRAIGHT 2         │
+    │   LEFT STRAIGHT      │
     │                      │
     ╰────╮            ╭────╯
-         │  HAIRPIN   │
+         │   RIGHT       │
+         │  STRAIGHT     │
          ╰────────────╯
-              ↓
-         START/FINISH
 ```
 
-### 2.3 Section Breakdown
+The track is a closed oval with control points rotated +90° so the initial tangent points +Z (toward the camera).
 
-| Section | Length | Character | Speed |
-|---------|--------|-----------|-------|
-| Start/Finish Straight | 200m | Wide, flat out | High |
-| Turn 1 (Right Sweeper) | 80m | Long radius, banked | Medium |
-| Back Straight | 180m | Slight curve, full throttle | High |
-| Chicane (L-R) | 60m | Tight, technical | Low |
-| Short Straight | 100m | Brief acceleration zone | Medium |
-| S-Bend (R-L-R) | 120m | Flowing, rhythm section | Medium |
-| Hairpin (Left) | 50m | Tightest corner, slow | Very Low |
-| Return Straight | 200m | Drag race to finish | High |
+### 2.3 Control Points
 
-### 2.4 Corner Properties
+12 Catmull-Rom control points defining the oval:
 
-| Corner | Radius | Ideal Entry Speed | Banking | Difficulty |
-|--------|--------|-------------------|---------|------------|
-| Turn 1 | 40m | 120 km/h | 5° | Easy |
-| Chicane Entry | 15m | 60 km/h | None | Hard |
-| Chicane Exit | 15m | 60 km/h | None | Hard |
-| S-Bend Entry | 25m | 90 km/h | 3° | Medium |
-| S-Bend Mid | 20m | 80 km/h | None | Medium |
-| S-Bend Exit | 30m | 100 km/h | 2° | Medium |
-| Hairpin | 12m | 40 km/h | None | Hard |
+| Index | Position (x, y, z) | Description |
+|-------|-------------------|-------------|
+| 0 | (0, 0, 0) | Start/finish (tangent → +Z) |
+| 1 | (0, 0, 25) | Start straight |
+| 2 | (-8, 0, 45) | Turn entry |
+| 3 | (-25, 0, 50) | Back straight start |
+| 4 | (-42, 0, 45) | Turn entry |
+| 5 | (-50, 0, 25) | Mid-back |
+| 6 | (-50, 0, 0) | Back straight midpoint |
+| 7 | (-50, 0, -25) | Turn entry |
+| 8 | (-42, 0, -45) | Turn entry |
+| 9 | (-25, 0, -50) | Back straight start |
+| 10 | (-8, 0, -45) | Turn entry |
+| 11 | (0, 0, -25) | Return to start |
+
+### 2.4 Spline Configuration
+```
+Curve Type:       CatmullRomCurve3
+Closed:           true
+Tension:          0.5
+Direction:        Counter-clockwise (when viewed from above)
+Initial Tangent:  +Z direction (toward camera)
+```
 
 ## 3. Track Geometry
 
 ### 3.1 Spline-Based Construction
 Track built from a Catmull-Rom spline:
 - Control points define center line
-- Track width extruded from center
-- Separate splines for left/right boundaries
+- Track width extruded from center using right vector
+- Right vector = cross(up, tangent) normalized
 
 ### 3.2 Road Surface
 ```
-Width:           12m (standard), 16m (start/finish)
-Lanes:           2 per direction (implied, not marked)
-Curbs:           0.5m raised edges on corners
-Surface:         Flat (no elevation changes in MVP)
+Width:           12m (standard)
+Road Divisions:  200 segments
+Surface:         Flat (y = 0.01), no elevation changes
+Material:        MeshStandardMaterial (#333333, rough 0.9)
+UV Mapping:      Tiling along track length
 ```
 
 ### 3.3 Geometry Resolution
-- Spline segments: 100-200 per track
+- Spline segments: 200 per track
 - Road mesh: Triangle strip from spline
-- Triangle count: < 50K for road surface
+- Road height: 0.01 (slightly above ground)
 
 ## 4. Track Boundaries
 
-### 4.1 Barrier Types
-| Type | Location | Physics | Visual |
-|------|----------|---------|--------|
-| Concrete Wall | Outside of corners | Solid | Grey concrete |
-| Guardrail | Straight sections | Solid | Metal rail |
-| Tire Barrier | Hairpin | Solid (high restitution) | Stacked tires |
-| No Barrier | Start/finish | None | Open |
+### 4.1 Barrier Configuration
+```
+Barrier Height:  1.0m
+Barrier Offset:  0.5m from road edge
+Total Edge:      6.5m from center (road half-width + offset)
+Material:        MeshStandardMaterial (#888888, rough 0.8, metal 0.2)
+```
 
 ### 4.2 Barrier Placement
-- Outer edge of all corners
-- Both sides of straight sections
-- 0.5m offset from track edge
+- Both sides of track along entire length
+- Visual barriers: thin mesh strips
+- Collision barriers: box colliders (0.5 × 0.5 × segmentLength/2)
 
 ### 4.3 Barrier Physics
 ```
-Restitution:       0.3 (concrete), 0.5 (tires)
-Friction:          0.4
-Collision Shape:   Box colliders along boundary
+Body Type:       Fixed (static)
+Collider:        Box (0.5 × 0.5 × segmentLength/2)
+Segments:        10 per side (20 total collision boxes per side)
 ```
 
 ## 5. Start/Finish
@@ -111,61 +114,96 @@ Collision Shape:   Box colliders along boundary
 ### 5.1 Start Positions
 ```
 Grid Layout:       2×2 staggered (4 cars)
-Pole Position:     Inside line, 10m before finish
-Grid Spacing:      3m between rows, 1.5m between columns
+Grid Spacing:      5m between rows (lengthwise)
+Column Offset:     2.5m between columns (sideways)
+Pole Position:     t = 0 on spline (start/finish)
+Start Direction:   +Z (initial tangent of spline)
 ```
 
-### 5.2 Checkpoint System
+### 5.2 Start Rotation
 ```
-Checkpoints:       4 (one per quarter track)
-Finish Line:       1 (cross to complete lap)
-Trigger Type:      Invisible plane across track
-Direction:         Forward only (wrong way detection)
+Rotation = atan2(tangent.x, tangent.z) at t = 0
 ```
 
-### 5.3 Wrong Way Detection
-- If car crosses checkpoint in wrong direction
-- Display "WRONG WAY" warning
-- No penalty in MVP (just visual feedback)
+### 5.3 Checkpoint System
+```
+Checkpoints:       8 (evenly spaced along track)
+Divisions:         8
+Trigger Radius:    20m (checkpoint width)
+Direction:         Track tangent at checkpoint position
+```
+
+### 5.4 Checkpoint Properties
+| Checkpoint | Approx. Position | Notes |
+|------------|------------------|-------|
+| 0 | Start/finish | Lap completion check |
+| 1 | 1/8 around | |
+| 2 | 1/4 around | |
+| 3 | 3/8 around | |
+| 4 | 1/2 around | Halfway point |
+| 5 | 5/8 around | |
+| 6 | 3/4 around | |
+| 7 | 7/8 around | Final before finish |
+
+### 5.5 Lap Detection
+- Checkpoints must be passed in order (0 → 1 → 2 → ... → 7 → 0)
+- When checkpoint 0 is passed after checkpoint 7: lap increments
+- Lap counter: 0-indexed internally, displayed as 1-indexed
+
+### 5.6 Wrong Way Detection
+- Compares car velocity direction to track tangent at last checkpoint
+- Track tangent stored as `checkpoint.normal` (spline tangent at that position)
+- Wrong way: `dot(velocityDir, trackTangent) < -0.5`
+- Speed gate: velocity < 0.5 → no wrong way (stationary car)
+- Ignored when car is reversing (forwardSpeed < 0)
+- Visual feedback: "WRONG WAY" pulsing text (no penalty in MVP)
 
 ## 6. Visual Environment
 
 ### 6.1 Track Decorations
 | Element | Count | Purpose |
 |---------|-------|---------|
-| Street Lights | 25-30 | Lighting, atmosphere |
-| Buildings | 20-30 | Skyline backdrop |
+| Street Lights | 20 | Lighting, atmosphere |
+| Buildings | 25 | Skyline backdrop |
 | Barriers | Along entire track | Boundary definition |
-| Start Gantry | 1 | Start/finish marker |
-| Billboards | 3-5 | Decorative, lit |
 
-### 6.2 Building Style
-- Simple box geometry
-- Dark silhouettes against night sky
-- Occasional lit windows (emissive material)
-- No detailed geometry needed
+### 6.2 Street Light Placement
+- Lights placed along spline at 20 evenly spaced points
+- Positioned 8m to the right of track center
+- Pole height: 7m
+- Bulb: sphere geometry (0.25m radius)
+- Material: emissive warm orange (#ffcc88, intensity 3)
 
-### 6.3 Ground Plane
-- Extends 100m beyond track in all directions
-- Dark ground texture
+### 6.3 Building Style
+- Simple box geometry with varied scale
+- Width: 5-15m, Height: 8-28m, Depth: 5-10m
+- Dark silhouettes against night sky (#1a1a2e)
+- Random lit windows (emissive yellow #ffdd88, intensity 0.5)
+- Placed 15-30m from track center, on random side
+- Cast and receive shadows
+
+### 6.4 Ground Plane
+- Large plane (200×200) at y = 0
+- Dark color (#111111)
 - Receives shadows from all lights
 
 ## 7. Track Loading
 
 ### 7.1 Asset Pipeline
 ```
-1. Define control points (JSON config)
-2. Generate spline at runtime
-3. Extrude road mesh from spline
-4. Generate collision mesh from boundaries
-5. Load decoration models
-6. Place lights along spline
+1. Define control points (12 Vector3 in code)
+2. Generate CatmullRomCurve3 spline (closed, tension 0.5)
+3. Extrude road mesh from spline (200 divisions)
+4. Generate barrier visual meshes (2 sides)
+5. Generate barrier collision boxes (2 sides × 10 segments)
+6. Place street lights along spline
+7. Place buildings randomly along spline
 ```
 
 ### 7.2 Runtime Generation
 - Track geometry built at load time (not pre-authored)
-- Allows parameter tweaking
-- Collision mesh generated automatically
+- Control points are hardcoded in Track.ts
+- All geometry is procedural
 
 ## 8. Post-MVP Track Features
 
@@ -175,6 +213,7 @@ Direction:         Forward only (wrong way detection)
 - Day/night cycle
 - Different surfaces (wet, gravel sections)
 - Track editor
+- Spline-based chicanes and tight corners
 
 ## 9. Acceptance Criteria
 
@@ -184,8 +223,8 @@ Direction:         Forward only (wrong way detection)
 | Track driveable | Car stays on surface, no falling through |
 | Barriers work | Car bounces off walls |
 | Lap detection | Lap counter increments on finish line cross |
-| Wrong way detection | Warning displays on wrong direction |
-| Start grid | Cars spawn in correct positions |
+| Wrong way detection | Warning displays on wrong direction (not when reversing) |
+| Start grid | Cars spawn in correct staggered positions |
 | 60 FPS | Track renders at target frame rate |
 | No visual pop-in | Fog hides distant geometry |
-| Consistent width | Road width matches spec throughout |
+| Consistent width | Road width matches 12m spec throughout |

@@ -4,11 +4,11 @@
 
 | Layer | Technology | Version | Purpose |
 |-------|-----------|---------|---------|
-| Language | TypeScript | 5.x | Type safety, developer experience |
-| Renderer | Three.js | r160+ | WebGL2 3D rendering |
-| Physics | Rapier.js | 0.14+ | WASM-accelerated rigid body physics |
+| Language | TypeScript | 7.x | Type safety, developer experience |
+| Renderer | Three.js | r185+ | WebGL2 3D rendering |
+| Physics | Rapier.js | 0.19.3 | WASM-accelerated rigid body physics |
 | Audio | Howler.js | 2.2+ | Cross-browser audio playback |
-| Build | Vite | 6.x | Dev server, bundling, HMR |
+| Build | Vite | 5.4 | Dev server, bundling, HMR |
 | Package Manager | npm | 10+ | Dependency management |
 
 ## 2. System Architecture
@@ -39,22 +39,24 @@
 
 ### 3.1 Game Loop
 - Fixed timestep physics (120 Hz)
-- Variable timestep rendering with interpolation
-- Frame time capping to prevent spiral of death
+- Variable timestep rendering
+- Frame time capping to prevent spiral of death (max 0.1s)
 
 ### 3.2 State Machine
 ```
 MENU → CAR_SELECT → TRACK_SELECT → COUNTDOWN → RACING → RESULTS → MENU
 ```
+Note: LOADING state was removed; loading is handled by the browser before game init.
 
 ### 3.3 Entity Model (MVP)
 ```
 GameWorld
-├── PlayerCar (physics body + car controller)
-├── AICars[] (physics body + AI controller)
-├── Track (static collision mesh + visual mesh)
-├── Environment (lighting, skybox, decorations)
-└── Camera (chase cam with spring dynamics)
+├── PlayerCar (physics body + CarController)
+├── AICars[] (physics body + AIController)
+├── Track (spline path + procedural road mesh + barriers)
+├── Environment (lighting, buildings, street lights)
+├── Camera (chase cam with spring dynamics)
+└── Particles (tire smoke)
 ```
 
 ## 4. File Structure
@@ -72,84 +74,47 @@ OCBP Racer/
 │   ├── 07-CAR-SPEC.md
 │   ├── 08-UI-SPEC.md
 │   ├── 09-ASSET-PIPELINE.md
-│   └── 10-MVP-ROADMAP.md
+│   ├── 10-MVP-ROADMAP.md
+│   └── 11-TEST-HARNESS.md
 │
 ├── src/
 │   ├── main.ts                     ← Entry point, game initialization
+│   ├── test-harness.ts             ← Automated test suite (35 tests)
+│   │
 │   ├── core/
-│   │   ├── Game.ts                 ← Main game class, loop management
-│   │   ├── StateMachine.ts         ← Game state transitions
-│   │   ├── Clock.ts                ← Fixed timestep management
-│   │   └── EventBus.ts             ← Inter-system communication
+│   │   ├── Game.ts                 ← Main game class, loop, race logic
+│   │   └── StateMachine.ts         ← Game state transitions
 │   │
 │   ├── input/
-│   │   ├── InputManager.ts         ← Unified input abstraction
-│   │   ├── KeyboardDevice.ts       ← Keyboard polling
-│   │   └── GamepadDevice.ts        ← Gamepad polling + vibration
+│   │   └── InputManager.ts         ← Unified keyboard + gamepad input
 │   │
 │   ├── physics/
-│   │   ├── PhysicsWorld.ts         ← Rapier.js wrapper
-│   │   ├── CarController.ts        ← Car physics model
-│   │   ├── TireModel.ts            ← Lateral/longitudinal grip
-│   │   └── CollisionGroups.ts      ← Collision layer definitions
+│   │   ├── PhysicsWorld.ts         ← Rapier.js WASM wrapper
+│   │   └── CarController.ts        ← Car physics model + reverse gear
 │   │
 │   ├── rendering/
-│   │   ├── SceneManager.ts         ← Three.js scene setup
 │   │   ├── CameraController.ts     ← Chase cam with spring follow
-│   │   ├── Lighting.ts             ← Scene lighting configuration
-│   │   ├── Materials.ts            ← PBR material definitions
-│   │   └── PostProcessing.ts       ← Bloom, motion blur
+│   │   └── ParticleSystem.ts       ← Tire smoke particles
 │   │
 │   ├── audio/
-│   │   ├── AudioManager.ts         ← Sound loading, playback
-│   │   ├── EngineSound.ts          ← RPM-mapped engine audio
-│   │   └── TireSound.ts            ← Slip-mapped screech
+│   │   └── AudioManager.ts         ← Howler.js stub (placeholder)
 │   │
 │   ├── cars/
-│   │   ├── CarFactory.ts           ← Car instantiation from config
-│   │   ├── CarConfig.ts            ← Car tuning parameter types
-│   │   └── configs/
-│   │       ├── phantom-gt.ts
-   │       ├── viper-rs.ts
-│   │       ├── inferno-ss.ts
-│   │       └── aeroven-tt.ts
+│   │   ├── CarConfigs.ts           ← 4 car definitions + types
+│   │   └── CarFactory.ts           ← Car mesh + physics body creation
 │   │
 │   ├── track/
-│   │   ├── TrackBuilder.ts         ← Track mesh generation
-│   │   ├── SplinePath.ts           ← Catmull-Rom spline math
-│   │   └── CollisionMesh.ts        ← Physics boundary generation
+│   │   ├── Track.ts                ← Track logic, checkpoints, wrong way
+│   │   ├── TrackBuilder.ts         ← Procedural road + barrier meshes
+│   │   └── SplinePath.ts           ← Catmull-Rom spline wrapper
 │   │
 │   ├── ai/
-│   │   ├── AIController.ts         ← Basic AI driver
-│   │   └── RacingLine.ts           ← Precomputed optimal path
+│   │   └── AIController.ts         ← AI racing line follower
 │   │
-│   ├── ui/
-│   │   ├── HUD.ts                  ← In-race overlay
-│   │   ├── MainMenu.ts             ← Title screen
-│   │   ├── CarSelect.ts            ← Car selection screen
-│   │   └── RaceResults.ts          ← Post-race display
-│   │
-│   └── debug/
-│       ├── PhysicsGraph.ts         ← Real-time physics telemetry
-│       ├── DebugOverlay.ts         ← FPS, memory, physics stats
-│       └── DevControls.ts          ← Runtime parameter tweaking
+│   └── ui/
+│       └── UIManager.ts            ← HTML/CSS overlay UI
 │
-├── assets/
-│   ├── models/                     ← GLTF/GLB car and track models
-│   ├── textures/                   ← PBR texture maps
-│   │   ├── cars/                   ← Per-car textures
-│   │   ├── track/                  ← Track surface, barriers
-│   │   └── env/                    ← Skybox, environment maps
-│   ├── audio/
-│   │   ├── engine/                 ← Engine sound samples
-│   │   ├── tires/                  ← Tire screech samples
-│   │   ├── ui/                     ← Menu sounds
-│   │   └── sfx/                    ← Collision, ambient
-│   └── fonts/                      ← UI fonts
-│
-├── public/                         ← Static files served as-is
-│   └── index.html
-│
+├── index.html                      ← Entry HTML with loading screen
 ├── package.json
 ├── tsconfig.json
 ├── vite.config.ts
@@ -161,26 +126,25 @@ OCBP Racer/
 
 ### 5.1 Frame Flow
 ```
-1. Poll input devices
-2. Read gamepad state → unified input axes
-3. Step physics (fixed timestep, may run 0-2 times)
-   a. Apply car forces (throttle, steering, brake)
+1. Poll input devices (keyboard/gamepad)
+2. Step physics (fixed timestep 1/120s, accumulator pattern)
+   a. Apply car forces (throttle, steering, brake, reverse)
    b. Step Rapier world
    c. Read back positions/rotations
-4. Update game systems
-   a. Update AI decisions
-   b. Update camera target
-   c. Update audio parameters
-   d. Update UI values
-5. Interpolate visual positions (render alpha)
-6. Render Three.js scene
-7. Draw UI overlay
+3. Update game systems
+   a. AI decisions + car updates
+   b. Camera target update
+   c. UI HUD values
+   d. Particle emission
+4. Render Three.js scene
+5. Draw UI overlay
 ```
 
-### 5.2 Interpolation
-- Physics state: `previousState + alpha * (currentState - previousState)`
-- Alpha = accumulated time / fixed timestep
-- Ensures smooth rendering between physics ticks
+### 5.2 Physics Accumulator
+- Game loop accumulates delta time
+- Physics steps run at 120 Hz (fixed timestep)
+- Multiple physics steps per frame if needed
+- Frame time capped at 0.1s to prevent spiral of death
 
 ## 6. Build Configuration
 
@@ -188,7 +152,6 @@ OCBP Racer/
 - Dev server with HMR
 - Static asset handling
 - TypeScript compilation
-- GLTF model loading via plugin
 
 ### 6.2 Production
 - Tree shaking
@@ -211,25 +174,30 @@ OCBP Racer/
 ## 8. Error Handling
 
 - Graceful WebGL2 fallback message
+- NaN guard in CarController (resets position/velocity)
 - Physics simulation continues on audio failure
-- Asset load failures show placeholder
-- Gamepad disconnect handled mid-race
-- Uncaught errors logged to console (dev mode)
+- Gamepad disconnect handled (falls back to keyboard)
+- Fatal error display on init failure
+- Uncaught errors logged to console
 
 ## 9. Testing Strategy
 
-### 9.1 Unit Tests
-- Physics math (tire model, force calculations)
-- Spline interpolation
-- Input mapping
-- State machine transitions
+### 9.1 Test Harness
+- Automated test suite: `src/test-harness.ts`
+- 35 tests across 10 phases
+- Accessible at `http://localhost:3000?test`
+- Tests run in browser with visual results overlay
+- Click results to start game (if all pass)
 
-### 9.2 Integration Tests
-- Car spawns and drives
-- Track loads and has collision
-- Audio plays on trigger
-
-### 9.3 Manual Testing
-- Feel of each car (qualitative)
-- Visual quality checks
-- Performance profiling on target hardware
+### 9.2 Test Categories
+- Phase 0: Project setup (imports, configs)
+- Phase 1: Core rendering (WebGL, scene, lights)
+- Phase 2: Car physics (Rapier init, acceleration, braking, steering)
+- Phase 3: Chase camera (creation, following)
+- Phase 4: Track (creation, spline, checkpoints, building)
+- Phase 5: Input system (creation, defaults)
+- Phase 6: Car roster (configs, mesh creation)
+- Phase 7: Audio system (creation)
+- Phase 8: AI opponents (creation, input generation)
+- Phase 9: UI state machine (transitions, storage)
+- Phase 10: Integration (car on track, 4 cars on track)

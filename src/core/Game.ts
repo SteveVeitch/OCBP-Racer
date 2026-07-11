@@ -7,7 +7,11 @@ import { PhysicsWorld } from '../physics/PhysicsWorld'
 import { CarController } from '../physics/CarController'
 import { CameraController } from '../rendering/CameraController'
 import { ParticleSystem } from '../rendering/ParticleSystem'
+import { WeatherParticleSystem } from '../rendering/WeatherParticleSystem'
 import { Track } from '../track/Track'
+import { TRACKS, getTrackById, getTrackTimeOfDay, getTrackWeather } from '../track/TrackDefinitions'
+import { EnvironmentManager } from '../environment/EnvironmentManager'
+import { combineModifiers } from '../environment/EnvironmentModifiers'
 import { StateMachine, RaceResults } from './StateMachine'
 import { UIManager } from '../ui/UIManager'
 import { AudioManager } from '../audio/AudioManager'
@@ -55,6 +59,9 @@ export class Game {
   private aiControllers: AIController[] = []
   private aiCars: CarController[] = []
   private particles!: ParticleSystem
+  private weatherParticles!: WeatherParticleSystem
+  private environment!: EnvironmentManager
+  private selectedTrackId: string = TRACKS[0].id
 
   private raceData: RaceData = {
     startTime: 0,
@@ -105,15 +112,22 @@ export class Game {
       log('Physics initialized OK')
 
       log('Creating track...')
-      this.track = new Track()
+      this.selectedTrackId = this.state.getSelectedTrack()
+      const trackDef = getTrackById(this.selectedTrackId)
+      this.track = new Track(trackDef)
       this.track.build(this.scene, this.physics.getWorld())
       log('Track built OK')
 
-      log('Setting up lighting...')
-      this.setupLighting()
+      log('Setting up environment...')
+      this.environment = new EnvironmentManager(this.scene)
+      this.applyEnvironment()
+      log('Environment OK')
 
-      log('Adding track environment...')
-      this.addTrackEnvironment()
+      log('Setting up lighting...')
+      this.addStreetLights()
+
+      log('Adding track decorations...')
+      this.addTrackDecorations()
 
       log('Setting up camera controller...')
       this.cameraController = new CameraController(this.camera)
@@ -129,9 +143,13 @@ export class Game {
       log('Setting up particle system...')
       this.particles = new ParticleSystem(this.scene)
 
+      log('Setting up weather particles...')
+      this.weatherParticles = new WeatherParticleSystem(this.scene)
+
       log('Setting up UI...')
       this.ui.init({
         onCarSelected: (id) => this.state.setSelectedCar(id),
+        onTrackSelected: (id) => this.setTrack(id),
         onRaceStart: () => this.startRace(),
         onRestart: () => this.restartRace(),
         onBackToMenu: () => this.returnToMenu(),
@@ -177,7 +195,7 @@ export class Game {
   private setupScene(): void {
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0x0d1520)
-    this.scene.fog = new THREE.FogExp2(0x0d1520, 0.006)
+    this.scene.fog = new THREE.Fog(0x0a0a15, 40, 160)
     this.clock = new THREE.Clock()
   }
 
@@ -231,29 +249,13 @@ export class Game {
     }
   }
 
-  private setupLighting(): void {
-    const ambient = new THREE.AmbientLight(0x6688aa, 1.2)
-    this.scene.add(ambient)
-
-    const hemisphere = new THREE.HemisphereLight(0x8899bb, 0x445566, 0.8)
-    this.scene.add(hemisphere)
-
-    const directional = new THREE.DirectionalLight(0x99aacc, 1.5)
-    directional.position.set(50, 80, 30)
-    directional.castShadow = true
-    directional.shadow.mapSize.width = 2048
-    directional.shadow.mapSize.height = 2048
-    directional.shadow.camera.near = 0.5
-    directional.shadow.camera.far = 300
-    directional.shadow.camera.left = -80
-    directional.shadow.camera.right = 80
-    directional.shadow.camera.top = 80
-    directional.shadow.camera.bottom = -80
-    this.scene.add(directional)
-
+  private addStreetLights(): void {
     const spline = this.track.getSpline()
-    for (let i = 0; i < 20; i++) {
-      const t = i / 20
+    const def = this.track.getDefinition()
+    const count = def.streetLightDensity
+
+    for (let i = 0; i < count; i++) {
+      const t = i / count
       const point = spline.getPoint(t)
       const right = spline.getRightVector(t)
 
@@ -292,59 +294,34 @@ export class Game {
     }
   }
 
-  private addTrackEnvironment(): void {
-    const buildingGeometry = new THREE.BoxGeometry(1, 1, 1)
-    const buildingMaterial = new THREE.MeshStandardMaterial({
-      color: 0x1a1a2e,
-      roughness: 0.9,
-      metalness: 0.1
-    })
+  private addTrackDecorations(): void {
+    const def = this.track.getDefinition()
+    const center = this.track.getCenter()
+    const radius = this.track.getRadius()
+    this.environment.addDecorations(def.terrain, center, radius)
+  }
 
-    const spline = this.track.getSpline()
-    for (let i = 0; i < 25; i++) {
-      const t = Math.random()
-      const point = spline.getPoint(t)
-      const right = spline.getRightVector(t)
-      const side = Math.random() > 0.5 ? 1 : -1
+  private applyEnvironment(): void {
+    const def = getTrackById(this.selectedTrackId)
+    if (!def) return
+    const timeOfDay = getTrackTimeOfDay(def)
+    const weatherOverride = this.state.getSettings().weatherOverride
+    const weather = getTrackWeather(def, weatherOverride)
+    this.environment.applyTimeOfDay(timeOfDay)
+    this.environment.applyWeather(weather)
+    const mods = combineModifiers(
+      weather.gripMultiplier,
+      weather.dragMultiplier,
+      weather.brakingMultiplier,
+      weather.steerMultiplier
+    )
+    this.car?.setEnvironmentModifiers(mods)
+    this.aiCars.forEach(car => car.setEnvironmentModifiers(mods))
+    this.weatherParticles?.setIntensity(weather.rainIntensity)
+  }
 
-      const width = 5 + Math.random() * 10
-      const height = 8 + Math.random() * 20
-      const depth = 5 + Math.random() * 10
-
-      const building = new THREE.Mesh(buildingGeometry, buildingMaterial.clone())
-      building.scale.set(width, height, depth)
-      building.position.set(
-        point.x + right.x * side * (15 + Math.random() * 15),
-        height / 2,
-        point.z + right.z * side * (15 + Math.random() * 15)
-      )
-      building.castShadow = true
-      building.receiveShadow = true
-      this.scene.add(building)
-
-      if (Math.random() > 0.5) {
-        const windowRows = Math.floor(height / 3)
-        const windowCols = Math.floor(width / 3)
-        for (let r = 0; r < windowRows; r++) {
-          for (let c = 0; c < windowCols; c++) {
-            if (Math.random() > 0.6) continue
-            const windowGeometry = new THREE.PlaneGeometry(1, 1.5)
-            const windowMaterial = new THREE.MeshStandardMaterial({
-              color: 0xffdd88,
-              emissive: 0xffdd88,
-              emissiveIntensity: 0.5
-            })
-            const windowMesh = new THREE.Mesh(windowGeometry, windowMaterial)
-            windowMesh.position.set(
-              building.position.x + (c - windowCols / 2) * 2.5,
-              2 + r * 3,
-              building.position.z + side * depth / 2 + 0.1
-            )
-            this.scene.add(windowMesh)
-          }
-        }
-      }
-    }
+  setTrack(trackId: string): void {
+    this.selectedTrackId = trackId
   }
 
   private createGround(): void {
@@ -364,6 +341,19 @@ export class Game {
   private startRace(): void {
     this.clearRaceEntities()
 
+    const trackDef = getTrackById(this.selectedTrackId)
+    if (trackDef && trackDef.id !== this.track.getDefinition().id) {
+      this.track.cleanup(this.scene, this.physics.getWorld())
+      this.environment.clearDecorations()
+      this.track = new Track(trackDef)
+      this.track.build(this.scene, this.physics.getWorld())
+      this.addStreetLights()
+      this.addTrackDecorations()
+      this.applyEnvironment()
+    } else {
+      this.applyEnvironment()
+    }
+
     const carId = this.state.getSelectedCar()
     this.car = this.physics.createCarWithFactory(carId, this.scene)
     const startPos = this.track.getStartPosition(0)
@@ -371,6 +361,15 @@ export class Game {
     this.car.setPosition(new THREE.Vector3(startPos.x, 0.5, startPos.z))
     this.car.setLookAt(startRot)
     this.car.resetPhysics()
+    const resolvedDef = trackDef || TRACKS[0]
+    const weather = getTrackWeather(resolvedDef, this.state.getSettings().weatherOverride)
+    const mods = combineModifiers(
+      weather.gripMultiplier,
+      weather.dragMultiplier,
+      weather.brakingMultiplier,
+      weather.steerMultiplier
+    )
+    this.car.setEnvironmentModifiers(mods)
     this.cameraController.reset()
     const behindDir = new THREE.Vector3(0, 0, -1).applyAxisAngle(
       new THREE.Vector3(0, 1, 0), startRot
@@ -396,6 +395,7 @@ export class Game {
       allCars.push(aiCar)
 
       const aiController = new AIController(aiCar, this.track.getSpline(), 0.3 + i * 0.2, allCars)
+      aiCar.setEnvironmentModifiers(mods)
       this.aiCars.push(aiCar)
       this.aiControllers.push(aiController)
     }
@@ -486,6 +486,7 @@ export class Game {
       this.updateRaceLogic()
       this.updateHUD()
       this.updateParticles()
+      this.updateWeatherParticles()
       this.updateAudio()
     }
 
@@ -672,6 +673,12 @@ export class Game {
     this.particles.update(1 / 60)
   }
 
+  private updateWeatherParticles(): void {
+    if (this.weatherParticles && this.car) {
+      this.weatherParticles.update(1 / 60, this.car.getPosition())
+    }
+  }
+
   private updateAudio(): void {
     if (!this.car) return
 
@@ -735,6 +742,8 @@ export class Game {
     this.running = false
     this.clearRaceEntities()
     this.particles.dispose()
+    this.weatherParticles?.dispose()
+    this.environment?.dispose()
     this.physics.dispose()
     this.audio.dispose()
     this.renderer.dispose()

@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import RAPIER from '@dimforge/rapier3d-compat'
 import { InputState } from '../input/InputManager'
+import { EnvironmentModifiers } from '../environment/EnvironmentModifiers'
 
 export interface CarConfig {
   mass: number
@@ -52,6 +53,12 @@ export class CarController {
   private wheelFR!: THREE.Group
   private wheelRL!: THREE.Group
   private wheelRR!: THREE.Group
+  private envModifiers: EnvironmentModifiers = {
+    gripMultiplier: 1.0,
+    dragMultiplier: 1.0,
+    brakingMultiplier: 1.0,
+    steerMultiplier: 1.0
+  }
 
   constructor(body: RAPIER.RigidBody, mesh: THREE.Group, config?: Partial<CarConfig>) {
     this.body = body
@@ -141,7 +148,7 @@ export class CarController {
     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(quat)
 
     const sign = this.lateralVelocity > 0 ? -1 : 1
-    const force = sign * gripCoeff * speed * GRIP_FORCE_FACTOR
+    const force = sign * gripCoeff * speed * GRIP_FORCE_FACTOR * this.envModifiers.gripMultiplier
 
     this.body.applyImpulse(
       { x: right.x * force, y: 0, z: right.z * force },
@@ -168,7 +175,7 @@ export class CarController {
 
     const speed = this.getSpeed() / 3.6
     const speedFactor = Math.min(speed / 3, 1)
-    const turnRate = this.currentSteer * speedFactor * this.config.steerSpeed
+    const turnRate = this.currentSteer * speedFactor * this.config.steerSpeed * this.envModifiers.steerMultiplier
 
     const newAngle = currentAngle + turnRate * dt
     const newQuat = new THREE.Quaternion()
@@ -221,7 +228,7 @@ export class CarController {
 
     if (forwardSpeed > 1.0) {
       const velDir = new THREE.Vector3(velocity.x, 0, velocity.z).normalize()
-      const brakeForce = input * this.config.brakeForce
+      const brakeForce = input * this.config.brakeForce * this.envModifiers.brakingMultiplier
       this.body.applyImpulse(
         { x: -velDir.x * brakeForce, y: 0, z: -velDir.z * brakeForce },
         true
@@ -243,7 +250,7 @@ export class CarController {
     const speed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
 
     if (speed > 0.1) {
-      const dragMagnitude = this.config.dragCoeff * speed * 0.01
+      const dragMagnitude = this.config.dragCoeff * speed * 0.01 * this.envModifiers.dragMultiplier
       this.body.applyImpulse(
         {
           x: -velocity.x * dragMagnitude,
@@ -389,5 +396,13 @@ export class CarController {
 
   getBody(): RAPIER.RigidBody {
     return this.body
+  }
+
+  setEnvironmentModifiers(mods: EnvironmentModifiers): void {
+    this.envModifiers = { ...mods }
+  }
+
+  getEnvironmentModifiers(): EnvironmentModifiers {
+    return { ...this.envModifiers }
   }
 }

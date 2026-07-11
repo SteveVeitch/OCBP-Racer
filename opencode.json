@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "username": "Steve Veitch",
+  "instructions": ["specs/00-GAME-DESIGN-DOCUMENT.md"],
+  "references": {
+    "specs": {
+      "path": "./specs",
+      "description": "OCBP Racer SDD specifications — use when implementing features to check acceptance criteria and design decisions"
+    }
+  }
+}

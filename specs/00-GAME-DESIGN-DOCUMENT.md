@@ -25,7 +25,8 @@ Select Car → Select Track → Race → See Results → Repeat
 
 ### 3.2 Progression (MVP)
 - Select from 4 available cars
-- Race on 1 track
+- Race on 5 tracks with distinct themes and difficulty
+- Override weather conditions per race
 - Beat your best time
 - No unlock system in MVP
 

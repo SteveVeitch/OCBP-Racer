@@ -21,13 +21,15 @@ export interface GameSettings {
   engineVolume: number
   steerSensitivity: number
   graphicsQuality: 'low' | 'medium' | 'high'
+  weatherOverride: string
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
   masterVolume: 1.0,
   engineVolume: 0.6,
   steerSensitivity: 1.0,
-  graphicsQuality: 'high'
+  graphicsQuality: 'high',
+  weatherOverride: 'auto'
 }
 
 function loadSettings(): GameSettings {

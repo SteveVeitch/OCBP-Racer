@@ -4,11 +4,15 @@ import { PhysicsWorld } from './physics/PhysicsWorld'
 import { CarController } from './physics/CarController'
 import { CameraController } from './rendering/CameraController'
 import { Track } from './track/Track'
+import { TRACKS } from './track/TrackDefinitions'
 import { StateMachine } from './core/StateMachine'
 import { CARS, getCarById } from './cars/CarConfigs'
 import { CarFactory } from './cars/CarFactory'
 import { AIController } from './ai/AIController'
 import { AudioManager } from './audio/AudioManager'
+import { TimeOfDayPresets } from './environment/TimeOfDayPresets'
+import { WeatherPresets } from './environment/WeatherPresets'
+import { combineModifiers } from './environment/EnvironmentModifiers'
 
 interface TestResult {
   name: string
@@ -200,24 +204,24 @@ export async function runTestHarness(): Promise<void> {
   // ── Phase 4: Track ──
   console.log('\n-- Phase 4: Track --')
   test('Track creates', () => {
-    const track = new Track()
+    const track = new Track(TRACKS[0])
     assert(track !== null, 'Track not created')
     assert(track.getSpline() !== undefined, 'Spline not created')
   })
   test('Track spline is closed loop', () => {
-    const track = new Track()
+    const track = new Track(TRACKS[0])
     const spline = track.getSpline()
     const p0 = spline.getPoint(0)
     const p1 = spline.getPoint(0.5)
     assert(p0.distanceTo(p1) > 10, 'Spline points too close — not a proper loop')
   })
   test('Track has checkpoints', () => {
-    const track = new Track()
+    const track = new Track(TRACKS[0])
     const pos = track.getStartPosition(0)
     assert(pos !== undefined, 'No start position')
   })
   test('Track lap counting works', () => {
-    const track = new Track()
+    const track = new Track(TRACKS[0])
     assert(track.getLapCount() === 3, `Expected 3 laps, got ${track.getLapCount()}`)
     assert(track.getCurrentLap() === 0, `Expected lap 0, got ${track.getCurrentLap()}`)
   })
@@ -225,7 +229,7 @@ export async function runTestHarness(): Promise<void> {
     const pw = new PhysicsWorld()
     await pw.init()
     const scene = new THREE.Scene()
-    const track = new Track()
+    const track = new Track(TRACKS[0])
     const beforeCount = scene.children.length
     track.build(scene, pw.getWorld())
     assert(scene.children.length > beforeCount, 'Track didn\'t add meshes to scene')
@@ -293,7 +297,7 @@ export async function runTestHarness(): Promise<void> {
     const pw = new PhysicsWorld()
     await pw.init()
     const scene = new THREE.Scene()
-    const track = new Track()
+    const track = new Track(TRACKS[0])
     const factory = new CarFactory(pw.getWorld())
     const car = factory.createCar(CARS[1], scene)
     const ai = new AIController(car, track.getSpline())
@@ -305,7 +309,7 @@ export async function runTestHarness(): Promise<void> {
     const pw = new PhysicsWorld()
     await pw.init()
     const scene = new THREE.Scene()
-    const track = new Track()
+    const track = new Track(TRACKS[0])
     const factory = new CarFactory(pw.getWorld())
     const car = factory.createCar(CARS[1], scene)
     const startPos = track.getStartPosition(1)
@@ -348,7 +352,7 @@ export async function runTestHarness(): Promise<void> {
     const pw = new PhysicsWorld()
     await pw.init()
     const scene = new THREE.Scene()
-    const track = new Track()
+    const track = new Track(TRACKS[0])
     track.build(scene, pw.getWorld())
 
     const factory = new CarFactory(pw.getWorld())
@@ -375,7 +379,7 @@ export async function runTestHarness(): Promise<void> {
     const pw = new PhysicsWorld()
     await pw.init()
     const scene = new THREE.Scene()
-    const track = new Track()
+    const track = new Track(TRACKS[0])
     track.build(scene, pw.getWorld())
 
     const factory = new CarFactory(pw.getWorld())
@@ -397,6 +401,125 @@ export async function runTestHarness(): Promise<void> {
 
     const speeds = cars.map(c => c.getSpeed())
     assert(speeds.every(s => s > 0), `Some cars didn't move: ${speeds}`)
+    pw.dispose()
+  })
+
+  // ── Phase 11: Track Definitions ──
+  console.log('\n-- Phase 11: Track Definitions --')
+  test('5 tracks defined', () => {
+    assert(TRACKS.length === 5, `Expected 5 tracks, got ${TRACKS.length}`)
+  })
+  test('All tracks have required fields', () => {
+    TRACKS.forEach(t => {
+      assert(t.id.length > 0, `${t.id} missing id`)
+      assert(t.name.length > 0, `${t.id} missing name`)
+      assert(t.controlPoints.length >= 10, `${t.id} has <10 control points`)
+      assert(t.distanceKm > 0, `${t.id} distanceKm <= 0`)
+      assert(t.checkpointCount >= 6, `${t.id} has <6 checkpoints`)
+    })
+  })
+  test('Track difficulties range from Easy to Expert', () => {
+    const diffs = TRACKS.map(t => t.difficulty)
+    assert(diffs.includes('Easy'), 'No Easy track')
+    assert(diffs.includes('Medium'), 'No Medium track')
+    assert(diffs.includes('Hard'), 'No Hard track')
+    assert(diffs.includes('Expert'), 'No Expert track')
+  })
+  test('Track IDs are unique', () => {
+    const ids = TRACKS.map(t => t.id)
+    assert(new Set(ids).size === ids.length, 'Duplicate track IDs')
+  })
+  test('All tracks create valid splines', () => {
+    TRACKS.forEach(t => {
+      const track = new Track(t)
+      const spline = track.getSpline()
+      const p0 = spline.getPoint(0)
+      const p1 = spline.getPoint(0.5)
+      assert(p0.distanceTo(p1) > 5, `${t.id}: spline points too close`)
+    })
+  })
+  await testAsync('All tracks build into scene', async () => {
+    const pw = new PhysicsWorld()
+    await pw.init()
+    const scene = new THREE.Scene()
+    for (const t of TRACKS) {
+      const track = new Track(t)
+      const before = scene.children.length
+      track.build(scene, pw.getWorld())
+      assert(scene.children.length > before, `${t.id} didn't add meshes`)
+    }
+    pw.dispose()
+  })
+
+  // ── Phase 12: Time of Day ──
+  console.log('\n-- Phase 12: Time of Day --')
+  test('4 time-of-day presets exist', () => {
+    assert(Object.keys(TimeOfDayPresets).length === 4, 'Expected 4 presets')
+    assert('dawn' in TimeOfDayPresets, 'Missing dawn')
+    assert('day' in TimeOfDayPresets, 'Missing day')
+    assert('dusk' in TimeOfDayPresets, 'Missing dusk')
+    assert('night' in TimeOfDayPresets, 'Missing night')
+  })
+  test('Time-of-day presets have valid values', () => {
+    Object.values(TimeOfDayPresets).forEach(p => {
+      assert(p.ambientIntensity >= 0 && p.ambientIntensity <= 2, `${p.id}: bad ambientIntensity`)
+      assert(p.fogNear > 0, `${p.id}: fogNear <= 0`)
+      assert(p.fogFar > p.fogNear, `${p.id}: fogFar <= fogNear`)
+      assert(typeof p.temperatureCelsius === 'number', `${p.id}: missing temperature`)
+    })
+  })
+
+  // ── Phase 13: Weather System ──
+  console.log('\n-- Phase 13: Weather System --')
+  test('4 weather presets exist', () => {
+    assert(Object.keys(WeatherPresets).length === 4, 'Expected 4 presets')
+    assert('clear' in WeatherPresets, 'Missing clear')
+    assert('rain' in WeatherPresets, 'Missing rain')
+    assert('fog' in WeatherPresets, 'Missing fog')
+    assert('storm' in WeatherPresets, 'Missing storm')
+  })
+  test('Clear weather has no modifiers', () => {
+    const w = WeatherPresets.clear
+    assert(w.gripMultiplier === 1.0, 'Clear grip != 1.0')
+    assert(w.dragMultiplier === 1.0, 'Clear drag != 1.0')
+    assert(w.brakingMultiplier === 1.0, 'Clear braking != 1.0')
+    assert(w.rainIntensity === 0, 'Clear has rain')
+  })
+  test('Storm reduces grip below rain', () => {
+    assert(WeatherPresets.storm.gripMultiplier < WeatherPresets.rain.gripMultiplier,
+      'Storm should be slipperier than rain')
+  })
+  test('Environment modifiers combine correctly', () => {
+    const mods = combineModifiers(0.8, 1.2, 0.9, 0.85)
+    assert(mods.gripMultiplier === 0.8, `grip: ${mods.gripMultiplier}`)
+    assert(mods.dragMultiplier === 1.2, `drag: ${mods.dragMultiplier}`)
+    assert(mods.brakingMultiplier === 0.9, `braking: ${mods.brakingMultiplier}`)
+    assert(mods.steerMultiplier === 0.85, `steer: ${mods.steerMultiplier}`)
+  })
+  test('Weather reduces car acceleration in simulation', async () => {
+    const pw = new PhysicsWorld()
+    await pw.init()
+    const scene = new THREE.Scene()
+    const factory = new CarFactory(pw.getWorld())
+
+    const carDry = factory.createCar(CARS[0], scene)
+    const carWet = factory.createCar(CARS[0], scene)
+
+    const dryMods = combineModifiers(1.0, 1.0, 1.0, 1.0)
+    const wetMods = combineModifiers(0.72, 1.25, 0.85, 0.8)
+    carDry.setEnvironmentModifiers(dryMods)
+    carWet.setEnvironmentModifiers(wetMods)
+
+    for (let i = 0; i < 180; i++) {
+      const input = { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false }
+      carDry.update(1 / 60, input)
+      carWet.update(1 / 60, input)
+      pw.step(1 / 60)
+    }
+
+    const drySpeed = carDry.getSpeed()
+    const wetSpeed = carWet.getSpeed()
+    assert(wetSpeed < drySpeed, `Wet should be slower: dry=${drySpeed.toFixed(1)}, wet=${wetSpeed.toFixed(1)}`)
     pw.dispose()
   })
 

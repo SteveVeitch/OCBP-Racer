@@ -1,15 +1,18 @@
 import { StateMachine } from '../core/StateMachine'
 import { CARS } from '../cars/CarConfigs'
+import { TRACKS } from '../track/TrackDefinitions'
 
 export class UIManager {
   private container!: HTMLDivElement
   private state: StateMachine
   private onCarSelected?: (id: string) => void
+  private onTrackSelected?: (id: string) => void
   private onRaceStart?: () => void
   private onRestart?: () => void
   private onBackToMenu?: () => void
   private onSettingsChanged?: () => void
   private selectedCarIndex = 0
+  private selectedTrackIndex = 0
 
   constructor(state: StateMachine) {
     this.state = state
@@ -17,12 +20,14 @@ export class UIManager {
 
   init(callbacks: {
     onCarSelected?: (id: string) => void
+    onTrackSelected?: (id: string) => void
     onRaceStart?: () => void
     onRestart?: () => void
     onBackToMenu?: () => void
     onSettingsChanged?: () => void
   }): void {
     this.onCarSelected = callbacks.onCarSelected
+    this.onTrackSelected = callbacks.onTrackSelected
     this.onRaceStart = callbacks.onRaceStart
     this.onRestart = callbacks.onRestart
     this.onBackToMenu = callbacks.onBackToMenu
@@ -810,9 +815,7 @@ export class UIManager {
     overlay.className = 'ui-overlay'
 
     const container = document.createElement('div')
-    container.style.display = 'flex'
-    container.style.flexDirection = 'column'
-    container.style.alignItems = 'center'
+    container.style.cssText = 'display:flex;flex-direction:column;align-items:center;width:100%;max-width:1200px;padding:20px;'
 
     const title = document.createElement('div')
     title.className = 'menu-title'
@@ -820,30 +823,110 @@ export class UIManager {
     title.style.marginBottom = '10px'
     title.textContent = 'SELECT TRACK'
 
-    const trackInfo = document.createElement('div')
-    trackInfo.className = 'track-info'
-    trackInfo.innerHTML = `
-      <div class="track-name">Midnight Circuit</div>
-      <div class="track-details">1.8 km &bull; 3 Laps &bull; Urban Night</div>
-    `
+    const trackGrid = document.createElement('div')
+    trackGrid.style.cssText = 'display:grid;grid-template-columns:repeat(3,280px);gap:16px;margin:20px 0;justify-content:center;'
+
+    const difficultyColors: Record<string, string> = {
+      'Easy': '#00ff88',
+      'Medium': '#ffcc00',
+      'Hard': '#ff8844',
+      'Expert': '#ff3366'
+    }
+
+    const terrainIcons: Record<string, string> = {
+      'urban': '\u{1F3D9}',
+      'coastal': '\u{1F3A4}',
+      'mountain': '\u{26F0}',
+      'industrial': '\u{1F3ED}'
+    }
+
+    TRACKS.forEach((track, index) => {
+      const card = document.createElement('div')
+      card.style.cssText = `
+        padding:16px;background:var(--bg-dark);border:2px solid var(--border);
+        cursor:pointer;transition:all 0.2s ease;text-align:center;
+        ${index === this.selectedTrackIndex ? 'border-color:var(--primary);background:rgba(0,255,136,0.08);box-shadow:0 0 20px rgba(0,255,136,0.2);' : ''}
+      `
+      card.onmouseenter = () => {
+        if (index !== this.selectedTrackIndex) card.style.borderColor = 'rgba(255,255,255,0.3)'
+      }
+      card.onmouseleave = () => {
+        if (index !== this.selectedTrackIndex) card.style.borderColor = 'var(--border)'
+      }
+      card.onclick = () => {
+        this.selectedTrackIndex = index
+        this.state.setSelectedTrack(track.id)
+        this.onTrackSelected?.(track.id)
+        this.showScreen('TRACK_SELECT')
+      }
+
+      const terrainIcon = document.createElement('div')
+      terrainIcon.style.cssText = 'font-size:28px;margin-bottom:4px;'
+      terrainIcon.textContent = terrainIcons[track.terrain] || ''
+
+      const name = document.createElement('div')
+      name.style.cssText = 'font-family:Rajdhani,sans-serif;font-size:18px;font-weight:700;color:var(--text);margin-bottom:2px;'
+      name.textContent = track.name
+
+      const diffBadge = document.createElement('div')
+      diffBadge.style.cssText = `font-size:11px;color:${difficultyColors[track.difficulty]};text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;`
+      diffBadge.textContent = track.difficulty
+
+      const stats = document.createElement('div')
+      stats.style.cssText = 'font-size:11px;color:var(--text-dim);line-height:1.6;'
+      stats.innerHTML = `${track.distanceKm} km &bull; ${track.terrain}<br>${track.defaultTimeOfDay}`
+
+      card.appendChild(terrainIcon)
+      card.appendChild(name)
+      card.appendChild(diffBadge)
+      card.appendChild(stats)
+      trackGrid.appendChild(card)
+    })
+
+    const weatherGroup = document.createElement('div')
+    weatherGroup.style.cssText = 'margin:12px 0;text-align:center;'
+    const weatherLabel = document.createElement('div')
+    weatherLabel.style.cssText = 'font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;'
+    weatherLabel.textContent = 'Weather Override'
+    const weatherOptions = document.createElement('div')
+    weatherOptions.className = 'settings-options'
+    weatherOptions.style.justifyContent = 'center'
+    const weatherChoices = ['auto', 'clear', 'rain', 'fog', 'storm']
+    const currentWeather = this.state.getSettings().weatherOverride
+    weatherChoices.forEach(w => {
+      const btn = document.createElement('button')
+      btn.className = `settings-option ${currentWeather === w ? 'active' : ''}`
+      btn.style.minWidth = '80px'
+      btn.textContent = w.charAt(0).toUpperCase() + w.slice(1)
+      btn.onclick = () => {
+        this.state.updateSettings({ weatherOverride: w })
+        this.onSettingsChanged?.()
+        weatherOptions.querySelectorAll('.settings-option').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+      }
+      weatherOptions.appendChild(btn)
+    })
+    weatherGroup.appendChild(weatherLabel)
+    weatherGroup.appendChild(weatherOptions)
+
+    const buttons = document.createElement('div')
+    buttons.style.cssText = 'display:flex;gap:16px;margin-top:16px;'
 
     const backBtn = this.createButton('Back')
     backBtn.onclick = () => this.state.transition('CAR_SELECT')
 
     const startBtn = this.createButton('Start Race', 'primary')
     startBtn.onclick = () => {
+      this.state.setSelectedTrack(TRACKS[this.selectedTrackIndex].id)
       this.onRaceStart?.()
     }
 
-    const buttons = document.createElement('div')
-    buttons.style.display = 'flex'
-    buttons.style.gap = '16px'
-    buttons.style.marginTop = '30px'
     buttons.appendChild(backBtn)
     buttons.appendChild(startBtn)
 
     container.appendChild(title)
-    container.appendChild(trackInfo)
+    container.appendChild(trackGrid)
+    container.appendChild(weatherGroup)
     container.appendChild(buttons)
     overlay.appendChild(container)
     parent.appendChild(overlay)

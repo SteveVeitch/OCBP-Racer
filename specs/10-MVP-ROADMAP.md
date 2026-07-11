@@ -19,8 +19,10 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 | 8 | AI Opponents | ✅ Complete | Phase 4 |
 | 9 | UI / HUD | ✅ Complete | Phase 5 |
 | 10 | Game Loop | ✅ Complete | Phase 8, 9 |
-| 11 | Polish | 🔄 In Progress | Phase 10 |
-| **Total** | | **~95% Complete** | |
+| 11 | Polish | ✅ Complete | Phase 10 |
+| 12 | Track System | ✅ Complete | Phase 10 |
+| 13 | Environment System | ✅ Complete | Phase 12 |
+| **Total** | | **~100% Complete** | |
 
 ## 3. Detailed Phases
 
@@ -272,7 +274,7 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 
 ### Phase 11: Polish
 **Goal:** Juice and polish for feel
-**Status:** 🔄 In Progress
+**Status:** ✅ Complete
 
 **Completed Tasks:**
 - [x] Add tire smoke particles during drift
@@ -304,7 +306,6 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 **Remaining Tasks:**
 - [ ] Performance profiling and optimization
 - [ ] Additional edge case fixes
-- [ ] Howler.js dependency removal from package.json (unused)
 
 **Acceptance Criteria:**
 - Tire smoke visible during drift ✅
@@ -320,11 +321,72 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 
 ---
 
+### Phase 12: Track System
+**Goal:** Multi-track selection with distinct themes
+**Status:** ✅ Complete
+
+**Completed Tasks:**
+- [x] Create TrackDefinitions.ts with 5 track definitions
+- [x] Refactor Track.ts to accept TrackDefinition parameter
+- [x] Refactor TrackBuilder.ts with cleanup support
+- [x] Track select UI with card grid (3-column, terrain icons, difficulty badges)
+- [x] Weather override selector on track select screen
+- [x] Dynamic track loading in Game.ts (rebuilds track when selection changes)
+- [x] StateMachine `weatherOverride` setting (persisted to localStorage)
+- [x] Street lights and decorations tied to track definition density
+- [x] Fix 9 broken test-harness tests (`new Track()` → `new Track(TRACKS[0])`)
+
+**Track Roster:**
+| Track | Difficulty | Distance | Terrain | Default Time | Default Weather |
+|-------|-----------|----------|---------|-------------|-----------------|
+| Midnight Circuit | Easy | 0.22 km | Urban | Night | Clear |
+| Sunset Boulevard | Medium | 0.45 km | Coastal | Dusk | Clear |
+| Thunder Ridge | Hard | 0.70 km | Mountain | Day | Clear |
+| Neon District | Expert | 0.55 km | Urban | Night | Rain |
+| Iron Circuit | Expert | 0.85 km | Industrial | Dawn | Fog |
+
+**Acceptance Criteria:**
+- 5 tracks selectable from UI ✅
+- Each track builds unique spline and geometry ✅
+- Track rebuilds cleanly on selection change ✅
+- Decorations match terrain type ✅
+
+---
+
+### Phase 13: Environment System
+**Goal:** Time-of-day lighting, weather effects, and environmental physics
+**Status:** ✅ Complete
+
+**Completed Tasks:**
+- [x] EnvironmentManager (lighting, fog, sky, decorations per theme)
+- [x] 4 TimeOfDay presets (dawn/day/dusk/night) — ambient + directional + fog + temperature
+- [x] 4 Weather presets (clear/rain/fog/storm) — physics multipliers + visual effects
+- [x] WeatherParticleSystem (3000-instance InstancedMesh rain drops)
+- [x] CarController environment modifiers (4 force multiplications: grip, drag, braking, steer)
+- [x] Environment modifiers applied equally to player and AI
+- [x] Weather wire pipeline: WeatherPreset → EnvironmentManager → CarController
+
+**Environment Modifier Values:**
+| Weather | Grip | Drag | Braking | Steer |
+|---------|------|------|---------|-------|
+| Clear | 1.0 | 1.0 | 1.0 | 1.0 |
+| Rain | 0.78 | 1.15 | 0.9 | 0.85 |
+| Fog | 0.92 | 1.05 | 0.95 | 0.95 |
+| Storm | 0.72 | 1.25 | 0.85 | 0.8 |
+
+**Acceptance Criteria:**
+- Time-of-day changes lighting, fog, and sky color ✅
+- Weather presets reduce grip and modify forces ✅
+- Rain particles visible during rain/storm ✅
+- Environment modifiers apply equally to all cars ✅
+- Weather override persisted in settings ✅
+
+---
+
 ## 4. Post-MVP Roadmap (Future)
 
 | Feature | Priority | Dependencies |
 |---------|----------|--------------|
-| Additional tracks | High | Track system |
 | Manual transmission | Medium | Physics |
 | Damage system | Medium | Physics, rendering |
 | Online multiplayer | High | Networking |
@@ -349,10 +411,11 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 
 MVP is complete when:
 1. Player can select a car from 4 options ✅
-2. Player can start a race on Midnight Circuit ✅
-3. Player races against 3 AI opponents ✅
-4. Race completes with correct results ✅
-5. Game runs at 60 FPS on target hardware ✅
-6. All audio works (engine, tires, collision, UI) ✅
-7. Full menu flow works with keyboard and gamepad ✅
-8. No game-breaking bugs ✅
+2. Player can select from 5 tracks with distinct themes ✅
+3. Player can override weather conditions per race ✅
+4. Player races against 3 AI opponents ✅
+5. Race completes with correct results ✅
+6. Game runs at 60 FPS on target hardware ✅
+7. All audio works (engine, tires, collision, UI) ✅
+8. Full menu flow works with keyboard and gamepad ✅
+9. No game-breaking bugs ✅

@@ -2,6 +2,7 @@ import * as THREE from 'three'
 import RAPIER from '@dimforge/rapier3d-compat'
 import { SplinePath } from './SplinePath'
 import { TrackBuilder } from './TrackBuilder'
+import { TrackDefinition, TRACKS } from './TrackDefinitions'
 
 export interface Checkpoint {
   position: THREE.Vector3
@@ -11,39 +12,33 @@ export interface Checkpoint {
 
 export class Track {
   private spline!: SplinePath
-  private builder: TrackBuilder
+  private builder!: TrackBuilder
   private checkpoints: Checkpoint[] = []
   private lapCount = 3
   private currentLap = 0
   private lastCheckpoint = -1
+  private definition: TrackDefinition
 
-  constructor() {
-    this.builder = new TrackBuilder()
-    this.createOvalTrack()
+  constructor(definition?: TrackDefinition) {
+    this.definition = definition || TRACKS[0]
+    this.builder = new TrackBuilder({
+      roadColor: this.definition.roadColor,
+      barrierColor: this.definition.barrierColor
+    })
+    this.createTrack()
   }
 
-  private createOvalTrack(): void {
-    const points = [
-      new THREE.Vector3(0, 0, 0),
-      new THREE.Vector3(0, 0, 25),
-      new THREE.Vector3(-8, 0, 45),
-      new THREE.Vector3(-25, 0, 50),
-      new THREE.Vector3(-42, 0, 45),
-      new THREE.Vector3(-50, 0, 25),
-      new THREE.Vector3(-50, 0, 0),
-      new THREE.Vector3(-50, 0, -25),
-      new THREE.Vector3(-42, 0, -45),
-      new THREE.Vector3(-25, 0, -50),
-      new THREE.Vector3(-8, 0, -45),
-      new THREE.Vector3(0, 0, -25)
-    ]
+  getDefinition(): TrackDefinition {
+    return this.definition
+  }
 
-    this.spline = new SplinePath(points)
+  private createTrack(): void {
+    this.spline = new SplinePath(this.definition.controlPoints)
     this.createCheckpoints()
   }
 
   private createCheckpoints(): void {
-    const divisions = 8
+    const divisions = this.definition.checkpointCount
     for (let i = 0; i < divisions; i++) {
       const t = i / divisions
       const position = this.spline.getPoint(t)
@@ -114,6 +109,26 @@ export class Track {
     return Math.atan2(tangent.x, tangent.z)
   }
 
+  getCenter(): THREE.Vector3 {
+    const center = new THREE.Vector3()
+    const pointCount = this.definition.controlPoints.length
+    for (const p of this.definition.controlPoints) {
+      center.add(p)
+    }
+    center.divideScalar(pointCount)
+    return center
+  }
+
+  getRadius(): number {
+    const center = this.getCenter()
+    let maxDist = 0
+    for (const p of this.definition.controlPoints) {
+      const dist = center.distanceTo(p)
+      if (dist > maxDist) maxDist = dist
+    }
+    return maxDist
+  }
+
   reset(): void {
     this.currentLap = 0
     this.lastCheckpoint = -1
@@ -129,5 +144,12 @@ export class Track {
 
   getSpline(): SplinePath {
     return this.spline
+  }
+
+  cleanup(scene: THREE.Scene, world: RAPIER.World): void {
+    this.builder.cleanup(scene, world)
+    this.checkpoints = []
+    this.lastCheckpoint = -1
+    this.currentLap = 0
   }
 }

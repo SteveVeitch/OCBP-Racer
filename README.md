@@ -24,7 +24,7 @@ Run the automated test suite:
 http://localhost:3000?test
 ```
 
-35 tests validate all game systems. Click the results overlay to start the game.
+47 tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 
@@ -70,17 +70,24 @@ Each car has distinct handling tuned through 12 parameters: mass, engine force, 
 | Speed | ████████░░ | █████████░ | █████████░ | ██████████ |
 | Drift | ███████░░░ | █████░░░░░ | ██████████ | ██████░░░░ |
 
-## The Track
+## The Tracks
 
-**Midnight Circuit** — An urban night oval circuit with city lighting and building silhouettes.
+| Track | Difficulty | Distance | Terrain | Setting |
+|-------|-----------|----------|---------|---------|
+| **Midnight Circuit** | Easy | 0.22 km | Urban | Night, Clear |
+| **Sunset Boulevard** | Medium | 0.45 km | Coastal | Dusk, Clear |
+| **Thunder Ridge** | Hard | 0.70 km | Mountain | Day, Clear |
+| **Neon District** | Expert | 0.55 km | Urban | Night, Rain |
+| **Iron Circuit** | Expert | 0.85 km | Industrial | Dawn, Fog |
 
-- Closed oval layout (~220m)
-- 3 laps per race
-- 8 checkpoints for lap detection
-- Barriers along both sides
-- 20 street lights with warm orange glow
-- 25 buildings with lit windows
-- Wrong-way detection (ignores reversing)
+Each track has distinct terrain-themed decorations (buildings, trees, rocks, industrial structures), street light density, and default weather/time-of-day conditions. Weather can be overridden per race.
+
+### Weather & Environment
+
+- **4 weather presets**: Clear, Rain, Fog, Storm — each modifies grip, drag, braking, and steering
+- **4 time-of-day presets**: Dawn, Day, Dusk, Night — each sets ambient/directional lighting, fog, and sky color
+- **Rain particles**: Up to 3000 instanced rain drops during rain/storm
+- Environmental modifiers apply equally to player and AI for fair racing
 
 ## Technical Architecture
 
@@ -101,6 +108,7 @@ The game uses an arcade-realistic physics model:
 - **Linear drag** opposes motion (`dragCoeff × speed × 0.01`)
 - **Downforce** increases grip at speed
 - **Grip/slip model** — triangle curve from slip angle to grip coefficient, replaces auto-correct
+- **Environmental physics** — weather modifiers multiply grip, drag, braking, and steering forces
 - **Body roll** — mesh tilts ±5° in corners based on lateral velocity
 - **Wheel animation** — spin with speed, front wheels steer
 - **Reverse gear** with intuitive steering reversal
@@ -131,12 +139,16 @@ interface CarConfig {
 
 - Night urban aesthetic with exponential fog
 - ACES Filmic tone mapping (exposure 1.4)
-- Ambient + hemisphere + directional lighting
-- 20 street lights (point lights, warm orange)
+- Ambient + hemisphere + directional lighting (dynamic via EnvironmentManager)
+- 4 time-of-day presets (dawn/day/dusk/night) — ambient color, directional angle, fog, sky
+- 4 weather presets (clear/rain/fog/storm) — fog density, visibility
+- 20+ street lights per track (point lights, warm orange)
 - Car headlights (spot lights, intensity 8)
 - Car taillights (point lights, red)
 - **Bloom post-processing** (UnrealBloomPass) — makes emissive materials glow
 - **Camera wall collision** — raycast prevents camera clipping through barriers
+- **Rain particles** — 3000-instance InstancedMesh during rain/storm
+- Terrain-themed decorations (buildings, trees, rocks, industrial structures)
 - Tire smoke particles during drift
 - Body roll and wheel animation
 - PBR materials (metalness/roughness workflow)
@@ -196,7 +208,7 @@ OCBP Racer/
 ├── specs/                      # 12 SDD specification documents
 ├── src/
 │   ├── main.ts                 # Entry point
-│   ├── test-harness.ts         # 35 automated tests
+│   ├── test-harness.ts         # 47 automated tests
 │   ├── core/
 │   │   ├── Game.ts             # Main game loop + race logic
 │   │   └── StateMachine.ts     # Game state transitions
@@ -204,10 +216,11 @@ OCBP Racer/
 │   │   └── InputManager.ts     # Keyboard + gamepad input
 │   ├── physics/
 │   │   ├── PhysicsWorld.ts     # Rapier.js WASM wrapper
-│   │   └── CarController.ts    # Car physics, grip/slip, throttle ramp, wheel anim
+│   │   └── CarController.ts    # Car physics, grip/slip, env modifiers
 │   ├── rendering/
 │   │   ├── CameraController.ts # Chase cam with spring follow + wall collision
-│   │   └── ParticleSystem.ts   # Tire smoke particles
+│   │   ├── ParticleSystem.ts   # Tire smoke particles
+│   │   └── WeatherParticleSystem.ts  # Rain particles (InstancedMesh)
 │   ├── audio/
 │   │   └── AudioManager.ts     # Web Audio API procedural synthesis
 │   ├── cars/
@@ -215,8 +228,14 @@ OCBP Racer/
 │   │   └── CarFactory.ts       # Car mesh + body creation
 │   ├── track/
 │   │   ├── Track.ts            # Track logic + checkpoints
-│   │   ├── TrackBuilder.ts     # Procedural road + barriers
+│   │   ├── TrackBuilder.ts     # Procedural road + barriers + cleanup
+│   │   ├── TrackDefinitions.ts # 5 track definitions with control points
 │   │   └── SplinePath.ts       # Catmull-Rom spline
+│   ├── environment/
+│   │   ├── EnvironmentManager.ts     # Lighting, fog, sky, decorations
+│   │   ├── TimeOfDayPresets.ts       # 4 presets (dawn/day/dusk/night)
+│   │   ├── WeatherPresets.ts         # 4 presets (clear/rain/fog/storm)
+│   │   └── EnvironmentModifiers.ts   # Physics multiplier structs
 │   ├── ai/
 │   │   └── AIController.ts     # AI 3-state behavior (STARTING/RACING/RECOVERING)
 │   └── ui/

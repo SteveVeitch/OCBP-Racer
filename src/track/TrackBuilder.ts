@@ -20,6 +20,8 @@ const DEFAULT_CONFIG: TrackConfig = {
 
 export class TrackBuilder {
   private config: TrackConfig
+  private sceneMeshes: THREE.Mesh[] = []
+  private rigidBodies: RAPIER.RigidBody[] = []
 
   constructor(config?: Partial<TrackConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config }
@@ -33,11 +35,40 @@ export class TrackBuilder {
   ): void {
     const roadMesh = this.createRoadMesh(spline, divisions)
     scene.add(roadMesh)
+    this.sceneMeshes.push(roadMesh)
 
     const barrierMeshes = this.createBarriers(spline, divisions)
-    barrierMeshes.forEach((mesh) => scene.add(mesh))
+    barrierMeshes.forEach((mesh) => {
+      scene.add(mesh)
+      this.sceneMeshes.push(mesh)
+    })
 
     this.createBarrierCollision(spline, world, divisions)
+  }
+
+  getRoadMaterial(): THREE.MeshStandardMaterial | null {
+    if (this.sceneMeshes.length > 0) {
+      const mat = this.sceneMeshes[0].material
+      if (mat instanceof THREE.MeshStandardMaterial) return mat
+    }
+    return null
+  }
+
+  cleanup(scene: THREE.Scene, world: RAPIER.World): void {
+    for (const mesh of this.sceneMeshes) {
+      scene.remove(mesh)
+      mesh.geometry.dispose()
+      if (Array.isArray(mesh.material)) {
+        mesh.material.forEach(m => m.dispose())
+      } else {
+        mesh.material.dispose()
+      }
+    }
+    this.sceneMeshes = []
+    for (const body of this.rigidBodies) {
+      world.removeRigidBody(body)
+    }
+    this.rigidBodies = []
   }
 
   private createRoadMesh(
@@ -162,6 +193,7 @@ export class TrackBuilder {
     for (let side = -1; side <= 1; side += 2) {
       const bodyDesc = RAPIER.RigidBodyDesc.fixed()
       const body = world.createRigidBody(bodyDesc)
+      this.rigidBodies.push(body)
 
       for (let i = 0; i < divisions; i += step) {
         const t = i / divisions

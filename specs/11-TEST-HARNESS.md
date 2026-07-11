@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The test harness is an automated in-browser test suite that validates all game systems. It runs 35 tests across 10 phases, covering project setup through full integration.
+The test harness is an automated in-browser test suite that validates all game systems. It runs 47 tests across 14 phases, covering project setup through full integration.
 
 ## 2. Accessing the Test Harness
 
@@ -158,7 +158,34 @@ interface TestResult {
 | 34 | Full integration: car on track | Async | Creates world + track + car, runs 300 steps, checks speed > 0 and position changed |
 | 35 | Full integration: 4 cars on track | Async | Creates 4 cars, runs 60 steps, checks all speeds > 0 |
 
-**Total: 35 tests**
+### Phase 11: Track Definitions (6 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 36 | 5 tracks defined | Sync | Checks TRACKS.length === 5 |
+| 37 | All tracks have required fields | Sync | Verifies id, name, controlPoints (>=10), distanceKm, checkpointCount (>=6) |
+| 38 | Track difficulties range from Easy to Expert | Sync | Checks all four difficulty levels present |
+| 39 | Track IDs are unique | Sync | Checks no duplicate IDs |
+| 40 | All tracks create valid splines | Sync | Creates Track for each definition, verifies spline points not too close |
+| 41 | All tracks build into scene | Async | Builds each track into scene, checks meshes added |
+
+### Phase 12: Time of Day (2 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 42 | 4 time-of-day presets exist | Sync | Verifies dawn, day, dusk, night presets with valid ambientIntensity, fogNear/Far, temperature |
+| 43 | Time-of-day presets have valid values | Sync | Checks ambientIntensity [0-2], fogNear > 0, fogFar > fogNear, temperatureCelsius is number |
+
+### Phase 13: Weather System (4 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 44 | 4 weather presets exist | Sync | Verifies clear, rain, fog, storm presets |
+| 45 | Clear weather has no modifiers | Sync | Checks grip/drag/braking = 1.0, rainIntensity = 0 |
+| 46 | Storm reduces grip below rain | Sync | Checks storm.gripMultiplier < rain.gripMultiplier |
+| 47 | Environment modifiers combine correctly | Sync | Checks combineModifiers returns correct values |
+
+**Total: 47 tests**
 
 ## 5. Test Dependencies
 

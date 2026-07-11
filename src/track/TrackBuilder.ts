@@ -18,6 +18,162 @@ const DEFAULT_CONFIG: TrackConfig = {
   barrierColor: 0x888888
 }
 
+function createAsphaltTexture(): THREE.CanvasTexture {
+  const size = 512
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+
+  ctx.fillStyle = '#2a2a2a'
+  ctx.fillRect(0, 0, size, size)
+
+  const imageData = ctx.getImageData(0, 0, size, size)
+  const data = imageData.data
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = (Math.random() - 0.5) * 25
+    data[i] = Math.max(0, Math.min(255, data[i] + noise))
+    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise))
+    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise))
+  }
+  ctx.putImageData(imageData, 0, 0)
+
+  const edgeWidth = size * 0.06
+  ctx.fillStyle = '#cccccc'
+  ctx.fillRect(0, 0, size, edgeWidth)
+  ctx.fillRect(0, size - edgeWidth, size, edgeWidth)
+
+  const centerX = size / 2
+  const dashLen = size * 0.08
+  const gapLen = size * 0.06
+  ctx.fillStyle = '#ddcc44'
+  for (let y = 0; y < size; y += dashLen + gapLen) {
+    ctx.fillRect(centerX - 2, y, 4, dashLen)
+  }
+
+  for (let y = 0; y < size; y += 2) {
+    const row = Math.floor(y / 4)
+    const isRumble = row % 2 === 0
+    if (isRumble) {
+      ctx.fillStyle = 'rgba(255,255,255,0.06)'
+      ctx.fillRect(0, y, edgeWidth * 0.6, 2)
+      ctx.fillRect(size - edgeWidth * 0.6, y, edgeWidth * 0.6, 2)
+    }
+  }
+
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.wrapS = THREE.RepeatWrapping
+  tex.wrapT = THREE.RepeatWrapping
+  tex.repeat.set(1, 20)
+  tex.anisotropy = 8
+  return tex
+}
+
+function createBarrierMaterial(): THREE.MeshStandardMaterial {
+  const size = 128
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')!
+
+  ctx.fillStyle = '#666666'
+  ctx.fillRect(0, 0, size, size)
+
+  const imageData = ctx.getImageData(0, 0, size, size)
+  const data = imageData.data
+  for (let i = 0; i < data.length; i += 4) {
+    const noise = (Math.random() - 0.5) * 15
+    data[i] = Math.max(0, Math.min(255, data[i] + noise))
+    data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + noise))
+    data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + noise))
+  }
+  ctx.putImageData(imageData, 0, 0)
+
+  const stripeH = size * 0.15
+  ctx.fillStyle = '#cc2222'
+  ctx.fillRect(0, 0, size, stripeH)
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, stripeH, size, stripeH)
+
+  const tex = new THREE.CanvasTexture(canvas)
+  tex.wrapS = THREE.RepeatWrapping
+  tex.wrapT = THREE.RepeatWrapping
+
+  return new THREE.MeshStandardMaterial({
+    map: tex,
+    roughness: 0.7,
+    metalness: 0.4
+  })
+}
+
+function createGuardrailGeometry(
+  spline: SplinePath,
+  divisions: number,
+  side: number,
+  halfWidth: number
+): THREE.BufferGeometry {
+  const railHeight = 0.75
+
+  const vertices: number[] = []
+  const normals: number[] = []
+  const uvs: number[] = []
+  const indices: number[] = []
+
+  const bottomY = 0.0
+  const midY = railHeight * 0.45
+  const topY = railHeight
+  const flangeW = 0.06
+  const webW = 0.03
+
+  for (let i = 0; i <= divisions; i++) {
+    const t = i / divisions
+    const point = spline.getPoint(t)
+    const right = spline.getRightVector(t)
+    const offset = side * halfWidth
+
+    const cx = point.x + right.x * offset
+    const cz = point.z + right.z * offset
+
+    const wDir = new THREE.Vector3(right.x * side, 0, right.z * side)
+
+    const bx = cx - wDir.x * flangeW
+    const bz = cz - wDir.z * flangeW
+    vertices.push(bx, bottomY, bz)
+    normals.push(-wDir.x * side, 0, -wDir.z * side)
+    uvs.push(0, t * 20)
+
+    const tx = cx + wDir.x * flangeW
+    const tz = cz + wDir.z * flangeW
+    vertices.push(tx, topY, tz)
+    normals.push(wDir.x * side, 0, wDir.z * side)
+    uvs.push(1, t * 20)
+
+    const mx1 = cx - wDir.x * webW
+    const mz1 = cz - wDir.z * webW
+    vertices.push(mx1, midY, mz1)
+    normals.push(0, 0, side)
+    uvs.push(0.5, t * 20)
+
+    if (i < divisions) {
+      const base = i * 3
+      indices.push(base, base + 3, base + 1)
+      indices.push(base + 1, base + 3, base + 4)
+      indices.push(base, base + 2, base + 3)
+      indices.push(base + 2, base + 5, base + 3)
+      indices.push(base + 1, base + 4, base + 2)
+      indices.push(base + 2, base + 4, base + 5)
+    }
+  }
+
+  const geom = new THREE.BufferGeometry()
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+  geom.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3))
+  geom.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
+  geom.setIndex(indices)
+  geom.computeVertexNormals()
+  return geom
+}
+
 export class TrackBuilder {
   private config: TrackConfig
   private sceneMeshes: THREE.Mesh[] = []
@@ -37,11 +193,16 @@ export class TrackBuilder {
     scene.add(roadMesh)
     this.sceneMeshes.push(roadMesh)
 
-    const barrierMeshes = this.createBarriers(spline, divisions)
-    barrierMeshes.forEach((mesh) => {
+    const barrierMat = createBarrierMaterial()
+    const halfWidth = this.config.roadWidth / 2 + this.config.barrierOffset
+    for (const side of [-1, 1]) {
+      const geom = createGuardrailGeometry(spline, divisions, side, halfWidth)
+      const mesh = new THREE.Mesh(geom, barrierMat)
+      mesh.castShadow = true
+      mesh.receiveShadow = true
       scene.add(mesh)
       this.sceneMeshes.push(mesh)
-    })
+    }
 
     this.createBarrierCollision(spline, world, divisions)
   }
@@ -59,7 +220,13 @@ export class TrackBuilder {
       scene.remove(mesh)
       mesh.geometry.dispose()
       if (Array.isArray(mesh.material)) {
-        mesh.material.forEach(m => m.dispose())
+        mesh.material.forEach(m => {
+          if (m instanceof THREE.MeshStandardMaterial && m.map) m.map.dispose()
+          m.dispose()
+        })
+      } else if (mesh.material instanceof THREE.MeshStandardMaterial && mesh.material.map) {
+        mesh.material.map.dispose()
+        mesh.material.dispose()
       } else {
         mesh.material.dispose()
       }
@@ -112,74 +279,17 @@ export class TrackBuilder {
     geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2))
     geometry.setIndex(indices)
 
+    const asphaltTex = createAsphaltTexture()
     const material = new THREE.MeshStandardMaterial({
+      map: asphaltTex,
       color: this.config.roadColor,
-      roughness: 0.9,
+      roughness: 0.85,
       metalness: 0.0
     })
 
     const mesh = new THREE.Mesh(geometry, material)
     mesh.receiveShadow = true
     return mesh
-  }
-
-  private createBarriers(
-    spline: SplinePath,
-    divisions: number
-  ): THREE.Mesh[] {
-    const meshes: THREE.Mesh[] = []
-    const halfWidth = this.config.roadWidth / 2 + this.config.barrierOffset
-
-    for (let side = -1; side <= 1; side += 2) {
-      const geometry = new THREE.BufferGeometry()
-      const vertices: number[] = []
-      const normals: number[] = []
-      const indices: number[] = []
-
-      for (let i = 0; i <= divisions; i++) {
-        const t = i / divisions
-        const point = spline.getPoint(t)
-        const right = spline.getRightVector(t)
-
-        const barrierPoint = point.clone().add(
-          right.clone().multiplyScalar(side * halfWidth)
-        )
-
-        vertices.push(barrierPoint.x, 0, barrierPoint.z)
-        vertices.push(barrierPoint.x, this.config.barrierHeight, barrierPoint.z)
-
-        normals.push(0, 0, side)
-        normals.push(0, 0, side)
-
-        if (i < divisions) {
-          const base = i * 2
-          if (side === -1) {
-            indices.push(base, base + 2, base + 1)
-            indices.push(base + 1, base + 2, base + 3)
-          } else {
-            indices.push(base, base + 1, base + 2)
-            indices.push(base + 1, base + 3, base + 2)
-          }
-        }
-      }
-
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
-      geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3))
-      geometry.setIndex(indices)
-
-      const material = new THREE.MeshStandardMaterial({
-        color: this.config.barrierColor,
-        roughness: 0.8,
-        metalness: 0.2
-      })
-
-      const mesh = new THREE.Mesh(geometry, material)
-      mesh.castShadow = true
-      mesh.receiveShadow = true
-      meshes.push(mesh)
-    }
-
-    return meshes
   }
 
   private createBarrierCollision(
@@ -190,7 +300,7 @@ export class TrackBuilder {
     const halfWidth = this.config.roadWidth / 2 + this.config.barrierOffset
     const step = Math.floor(divisions / 20)
 
-    for (let side = -1; side <= 1; side += 2) {
+    for (const side of [-1, 1]) {
       const bodyDesc = RAPIER.RigidBodyDesc.fixed()
       const body = world.createRigidBody(bodyDesc)
       this.rigidBodies.push(body)

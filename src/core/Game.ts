@@ -100,9 +100,6 @@ export class Game {
       log('Setting up camera...')
       this.setupCamera()
 
-      log('Creating ground...')
-      this.createGround()
-
       log('Setting up input...')
       this.input = new InputManager()
 
@@ -322,20 +319,6 @@ export class Game {
 
   setTrack(trackId: string): void {
     this.selectedTrackId = trackId
-  }
-
-  private createGround(): void {
-    const geometry = new THREE.PlaneGeometry(200, 200)
-    const material = new THREE.MeshStandardMaterial({
-      color: 0x111111,
-      roughness: 0.9,
-      metalness: 0.0
-    })
-    const ground = new THREE.Mesh(geometry, material)
-    ground.rotation.x = -Math.PI / 2
-    ground.position.y = 0
-    ground.receiveShadow = true
-    this.scene.add(ground)
   }
 
   private startRace(): void {

@@ -352,7 +352,7 @@ export class Game {
   private applyEnvironment(): void {
     const def = getTrackById(this.selectedTrackId)
     if (!def) return
-    const timeOfDay = getTrackTimeOfDay(def)
+    const timeOfDay = getTrackTimeOfDay(def, this.state.getSettings().todOverride)
     const weatherOverride = this.state.getSettings().weatherOverride
     const weather = getTrackWeather(def, weatherOverride)
     this.environment.applyTimeOfDay(timeOfDay)

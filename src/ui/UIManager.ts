@@ -1100,6 +1100,32 @@ export class UIManager {
       trackGrid.appendChild(card)
     })
 
+    const todGroup = document.createElement('div')
+    todGroup.style.cssText = 'margin:12px 0;text-align:center;'
+    const todLabel = document.createElement('div')
+    todLabel.style.cssText = 'font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;'
+    todLabel.textContent = 'Time of Day'
+    const todOptions = document.createElement('div')
+    todOptions.className = 'settings-options'
+    todOptions.style.justifyContent = 'center'
+    const todChoices = ['auto', 'dawn', 'day', 'dusk', 'night']
+    const currentTod = this.state.getSettings().todOverride
+    todChoices.forEach(t => {
+      const btn = document.createElement('button')
+      btn.className = `settings-option ${currentTod === t ? 'active' : ''}`
+      btn.style.minWidth = '80px'
+      btn.textContent = t.charAt(0).toUpperCase() + t.slice(1)
+      btn.onclick = () => {
+        this.state.updateSettings({ todOverride: t })
+        this.onSettingsChanged?.()
+        todOptions.querySelectorAll('.settings-option').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+      }
+      todOptions.appendChild(btn)
+    })
+    todGroup.appendChild(todLabel)
+    todGroup.appendChild(todOptions)
+
     const weatherGroup = document.createElement('div')
     weatherGroup.style.cssText = 'margin:12px 0;text-align:center;'
     const weatherLabel = document.createElement('div')
@@ -1143,6 +1169,7 @@ export class UIManager {
 
     container.appendChild(title)
     container.appendChild(trackGrid)
+    container.appendChild(todGroup)
     container.appendChild(weatherGroup)
     container.appendChild(buttons)
     overlay.appendChild(container)

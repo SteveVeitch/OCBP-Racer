@@ -29,6 +29,7 @@ export interface GameSettings {
   steerSensitivity: number
   graphicsQuality: 'low' | 'medium' | 'high'
   weatherOverride: string
+  todOverride: string
   demoEnabled: boolean
   cameraDefault: 'chase' | 'windscreen' | 'hood' | 'bumper'
   fogEnabled: boolean
@@ -40,6 +41,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   steerSensitivity: 1.0,
   graphicsQuality: 'high',
   weatherOverride: 'auto',
+  todOverride: 'auto',
   demoEnabled: true,
   cameraDefault: 'chase',
   fogEnabled: true

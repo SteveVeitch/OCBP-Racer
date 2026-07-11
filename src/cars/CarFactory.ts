@@ -180,8 +180,7 @@ export class CarFactory {
       paint: new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.85 }),
       dark: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8, metalness: 0.2 }),
       glass: new THREE.MeshStandardMaterial({
-        color: 0x223344, roughness: 0.05, metalness: 0.9,
-        transparent: true, opacity: 0.7,
+        color: 0x111822, roughness: 0.1, metalness: 0.9,
       }),
       grille: new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.6, metalness: 0.4 }),
       chrome: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.15, metalness: 0.95 }),

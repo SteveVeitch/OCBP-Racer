@@ -170,6 +170,7 @@ export class Game {
         onTrackSelected: (id) => this.setTrack(id),
         onRaceStart: () => this.startRace(),
         onRestart: () => this.restartRace(),
+        onResume: () => this.resumeRace(),
         onBackToMenu: () => this.returnToMenu(),
         onSettingsChanged: () => this.applySettings(),
         onRebindAction: (action, cb) => this.input.startListening(action, cb),
@@ -478,11 +479,17 @@ export class Game {
 
   private restartRace(): void {
     if (this.transitionCooldown > 0) return
-    this.transitionCooldown = 0.3
 
     this.clearRaceEntities()
     this.ui.hideAll()
+    this.paused = false
     this.startRace()
+  }
+
+  private resumeRace(): void {
+    this.paused = false
+    this.ui.hidePause()
+    this.audio.resume()
   }
 
   private returnToMenu(): void {

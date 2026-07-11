@@ -11,6 +11,7 @@ export class UIManager {
   private onTrackSelected?: (id: string) => void
   private onRaceStart?: () => void
   private onRestart?: () => void
+  private onResume?: () => void
   private onBackToMenu?: () => void
   private onSettingsChanged?: () => void
   private onRebindAction?: (action: keyof KeyBindings, callback: (action: keyof KeyBindings, keys: string[]) => void) => void
@@ -28,6 +29,7 @@ export class UIManager {
     onTrackSelected?: (id: string) => void
     onRaceStart?: () => void
     onRestart?: () => void
+    onResume?: () => void
     onBackToMenu?: () => void
     onSettingsChanged?: () => void
     onRebindAction?: (action: keyof KeyBindings, callback: (action: keyof KeyBindings, keys: string[]) => void) => void
@@ -38,6 +40,7 @@ export class UIManager {
     this.onTrackSelected = callbacks.onTrackSelected
     this.onRaceStart = callbacks.onRaceStart
     this.onRestart = callbacks.onRestart
+    this.onResume = callbacks.onResume
     this.onBackToMenu = callbacks.onBackToMenu
     this.onSettingsChanged = callbacks.onSettingsChanged
     this.onRebindAction = callbacks.onRebindAction
@@ -1536,7 +1539,7 @@ export class UIManager {
       title.textContent = 'PAUSED'
 
       const resumeBtn = this.createButton('Resume', 'primary')
-      resumeBtn.onclick = () => this.state.transition('RACING')
+      resumeBtn.onclick = () => this.onResume?.()
 
       const settingsBtn = this.createButton('Settings')
       settingsBtn.onclick = () => this.state.transition('SETTINGS')

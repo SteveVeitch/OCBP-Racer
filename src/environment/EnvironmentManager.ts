@@ -11,6 +11,7 @@ export class EnvironmentManager {
   private fogStartFar = 160
   private weatherFogAdd = 0
   private weatherVisibility = 1.0
+  private fogColor: THREE.Color = new THREE.Color(0x0a0a15)
   private decorations: THREE.Object3D[] = []
 
   constructor(scene: THREE.Scene) {
@@ -36,6 +37,7 @@ export class EnvironmentManager {
   applyTimeOfDay(preset: TimeOfDayPreset): void {
     this.fogStartNear = preset.fogNear
     this.fogStartFar = preset.fogFar
+    this.fogColor = preset.fogColor.clone()
     this.ambientLight.color.copy(preset.ambientColor)
     this.ambientLight.intensity = preset.ambientIntensity
     this.directionalLight.color.copy(preset.directionalColor)
@@ -60,6 +62,7 @@ export class EnvironmentManager {
     const near = Math.max(10, this.fogStartNear - this.weatherFogAdd)
     const far = Math.max(30, this.fogStartFar * this.weatherVisibility)
     if (this.scene.fog instanceof THREE.Fog) {
+      this.scene.fog.color.copy(this.fogColor)
       this.scene.fog.near = near
       this.scene.fog.far = far
     }

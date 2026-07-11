@@ -447,6 +447,7 @@ export class UIManager {
         justify-content: center;
         z-index: 150;
         flex-direction: column;
+        pointer-events: auto;
       }
 
       .pause-overlay.active {

@@ -9,12 +9,18 @@ export type GameState =
   | 'RESULTS'
   | 'SETTINGS'
   | 'DEMO'
+  | 'LEADERBOARD'
 
 export interface RaceResults {
   position: number
+  points: number
   totalTime: number
   bestLapTime: number
   lapTimes: number[]
+  wallHits: number
+  topSpeed: number
+  carId: string
+  trackId: string
 }
 
 export interface GameSettings {

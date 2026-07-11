@@ -13,6 +13,7 @@ import { AudioManager } from './audio/AudioManager'
 import { TimeOfDayPresets } from './environment/TimeOfDayPresets'
 import { WeatherPresets } from './environment/WeatherPresets'
 import { combineModifiers } from './environment/EnvironmentModifiers'
+import { addLeaderboardEntry, getTrackLeaderboard, getOverallLeaderboard, clearLeaderboard } from './ui/LeaderboardManager'
 
 interface TestResult {
   name: string
@@ -363,7 +364,7 @@ export async function runTestHarness(): Promise<void> {
   })
   test('StateMachine stores race results', () => {
     const sm = new StateMachine()
-    sm.setRaceResults({ position: 1, totalTime: 60, bestLapTime: 20, lapTimes: [20, 20, 20] })
+    sm.setRaceResults({ position: 1, points: 10, totalTime: 60, bestLapTime: 20, lapTimes: [20, 20, 20], wallHits: 0, topSpeed: 200, carId: 'rossini-488', trackId: 'midnight-circuit' })
     const r = sm.getRaceResults()
     assert(r !== null && r.position === 1, 'Results not stored')
   })
@@ -577,6 +578,69 @@ export async function runTestHarness(): Promise<void> {
     assert('windscreen' in configs, 'Missing windscreen')
     assert('hood' in configs, 'Missing hood')
     assert('bumper' in configs, 'Missing bumper')
+  })
+
+  // ── Phase 16: Scoring + Leaderboard ──
+  console.log('\n-- Phase 16: Scoring + Leaderboard --')
+  test('RaceResults includes scoring fields', () => {
+    const sm = new StateMachine()
+    sm.setRaceResults({
+      position: 1, points: 10, totalTime: 90, bestLapTime: 28,
+      lapTimes: [28, 30, 32], wallHits: 2, topSpeed: 245,
+      carId: 'rossini-488', trackId: 'midnight-circuit'
+    })
+    const r = sm.getRaceResults()
+    assert(r !== null, 'Results null')
+    assert(r!.points === 10, `Points: ${r!.points}`)
+    assert(r!.wallHits === 2, `Wall hits: ${r!.wallHits}`)
+    assert(r!.topSpeed === 245, `Top speed: ${r!.topSpeed}`)
+    assert(r!.carId === 'rossini-488', `Car: ${r!.carId}`)
+    assert(r!.trackId === 'midnight-circuit', `Track: ${r!.trackId}`)
+  })
+  test('LEADERBOARD state exists', () => {
+    const sm = new StateMachine()
+    sm.transition('LEADERBOARD')
+    assert(sm.getCurrent() === 'LEADERBOARD', `State: ${sm.getCurrent()}`)
+  })
+  test('Leaderboard add + retrieve per-track', () => {
+    clearLeaderboard()
+    addLeaderboardEntry({
+      carId: 'rossini-488', trackId: 'midnight-circuit',
+      totalTime: 90, bestLapTime: 28, wallHits: 1, topSpeed: 230,
+      date: '2026-01-01'
+    })
+    const entries = getTrackLeaderboard('midnight-circuit')
+    assert(entries.length === 1, `Track entries: ${entries.length}`)
+    assert(entries[0].totalTime === 90, `Time: ${entries[0].totalTime}`)
+  })
+  test('Leaderboard overall aggregates', () => {
+    clearLeaderboard()
+    addLeaderboardEntry({
+      carId: 'rossini-488', trackId: 'midnight-circuit',
+      totalTime: 90, bestLapTime: 28, wallHits: 0, topSpeed: 230, date: '2026-01-01'
+    })
+    addLeaderboardEntry({
+      carId: 'weissach-gt3', trackId: 'sunset-boulevard',
+      totalTime: 100, bestLapTime: 30, wallHits: 2, topSpeed: 220, date: '2026-01-01'
+    })
+    const overall = getOverallLeaderboard()
+    assert(overall.length === 2, `Overall: ${overall.length}`)
+    assert(overall[0].totalTime <= overall[1].totalTime, 'Not sorted')
+  })
+  test('Leaderboard sorts by time ascending', () => {
+    clearLeaderboard()
+    addLeaderboardEntry({
+      carId: 'kaiju-gt-r', trackId: 'midnight-circuit',
+      totalTime: 110, bestLapTime: 35, wallHits: 3, topSpeed: 210, date: '2026-01-01'
+    })
+    addLeaderboardEntry({
+      carId: 'rossini-488', trackId: 'midnight-circuit',
+      totalTime: 85, bestLapTime: 26, wallHits: 0, topSpeed: 240, date: '2026-01-01'
+    })
+    const entries = getTrackLeaderboard('midnight-circuit')
+    assert(entries[0].totalTime === 85, `First: ${entries[0].totalTime}`)
+    assert(entries[1].totalTime === 110, `Second: ${entries[1].totalTime}`)
+    clearLeaderboard()
   })
 
   // ── Summary ──

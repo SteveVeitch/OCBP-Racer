@@ -19,6 +19,8 @@ import { UIManager } from '../ui/UIManager'
 import { AudioManager } from '../audio/AudioManager'
 import { AIController } from '../ai/AIController'
 import { CARS, getCarById } from '../cars/CarConfigs'
+import { MiniMap } from '../rendering/MiniMap'
+import { addLeaderboardEntry } from '../ui/LeaderboardManager'
 
 interface RaceData {
   startTime: number
@@ -29,6 +31,9 @@ interface RaceData {
   position: number
   finished: boolean
   wrongWay: boolean
+  wallHits: number
+  topSpeed: number
+  lastSpeed: number
 }
 
 function log(msg: string): void {
@@ -76,7 +81,10 @@ export class Game {
     bestLapTime: 0,
     position: 1,
     finished: false,
-    wrongWay: false
+    wrongWay: false,
+    wallHits: 0,
+    topSpeed: 0,
+    lastSpeed: 0
   }
 
   private countdownTimer = 0
@@ -94,6 +102,7 @@ export class Game {
   private isDemo = false
   private lastActivityTime = 0
   private static readonly DEMO_IDLE_TIMEOUT = 180
+  private miniMap: MiniMap | null = null
 
   constructor() {
     this.state = new StateMachine()
@@ -439,12 +448,22 @@ export class Game {
       bestLapTime: 0,
       position: 1,
       finished: false,
-      wrongWay: false
+      wrongWay: false,
+      wallHits: 0,
+      topSpeed: 0,
+      lastSpeed: 0
     }
 
     this.countdownStep = -1
     this.countdownTimer = 0
     this.raceActive = true
+
+    if (this.miniMap) {
+      this.miniMap.dispose()
+    }
+    this.miniMap = new MiniMap()
+    this.miniMap.setTrack(this.track.getSpline())
+
     try {
       this.audio.stopRaceAudio()
       this.audio.startRaceAudio(getCarById(carId).engine)
@@ -477,6 +496,10 @@ export class Game {
   }
 
   private clearRaceEntities(): void {
+    if (this.miniMap) {
+      this.miniMap.dispose()
+      this.miniMap = null
+    }
     if (this.car) {
       this.scene.remove(this.car.getMesh())
       this.car.disposeMesh()
@@ -543,6 +566,7 @@ export class Game {
 
       this.updateRaceLogic()
       this.updateHUD()
+      this.updateMiniMap()
       this.updateParticles()
       this.updateWeatherParticles()
       this.updateAudio()
@@ -651,6 +675,17 @@ export class Game {
 
     const carPos = this.car.getPosition()
     const carVel = this.car.getVelocity()
+    const currentSpeed = this.car.getSpeed()
+
+    if (currentSpeed > this.raceData.topSpeed) {
+      this.raceData.topSpeed = currentSpeed
+    }
+
+    const speedDelta = this.raceData.lastSpeed - currentSpeed
+    if (this.raceData.lastSpeed > 5 && speedDelta > 15) {
+      this.raceData.wallHits++
+    }
+    this.raceData.lastSpeed = currentSpeed
 
     const result = this.track.checkCheckpoints(carPos)
     if (result.lapComplete) {
@@ -717,14 +752,40 @@ export class Game {
     this.raceData.finished = true
     this.raceActive = false
 
+    if (this.miniMap) {
+      this.miniMap.dispose()
+      this.miniMap = null
+    }
+
+    const POINTS_TABLE = [10, 7, 5, 2]
+    const points = POINTS_TABLE[this.raceData.position - 1] || 0
+    const carId = this.state.getSelectedCar()
+    const trackId = this.state.getSelectedTrack()
+
     const results: RaceResults = {
       position: this.raceData.position,
+      points,
       totalTime: this.raceData.totalTime,
       bestLapTime: this.raceData.bestLapTime,
-      lapTimes: this.raceData.lapTimes
+      lapTimes: this.raceData.lapTimes,
+      wallHits: this.raceData.wallHits,
+      topSpeed: this.raceData.topSpeed,
+      carId,
+      trackId
     }
 
     this.state.setRaceResults(results)
+
+    addLeaderboardEntry({
+      carId,
+      trackId,
+      totalTime: this.raceData.totalTime,
+      bestLapTime: this.raceData.bestLapTime,
+      wallHits: this.raceData.wallHits,
+      topSpeed: this.raceData.topSpeed,
+      date: new Date().toISOString()
+    })
+
     this.audio.playRaceComplete()
     this.audio.stopRaceAudio()
     this.state.transition('RESULTS')
@@ -742,6 +803,12 @@ export class Game {
       wrongWay: this.raceData.wrongWay,
       rpm: this.car.getRPM()
     })
+  }
+
+  private updateMiniMap(): void {
+    if (!this.miniMap || !this.car) return
+    const aiPositions = this.aiCars.map(c => c.getPosition())
+    this.miniMap.update(this.car.getPosition(), aiPositions)
   }
 
   private updateParticles(): void {

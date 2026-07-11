@@ -1,6 +1,7 @@
 import { StateMachine } from '../core/StateMachine'
 import { CARS } from '../cars/CarConfigs'
 import { TRACKS } from '../track/TrackDefinitions'
+import { getTrackLeaderboard, getOverallLeaderboard, type LeaderboardEntry } from './LeaderboardManager'
 
 export class UIManager {
   private container!: HTMLDivElement
@@ -778,6 +779,7 @@ export class UIManager {
     this.state.on('PAUSED', () => this.showPause())
     this.state.on('RESULTS', () => this.showResults())
     this.state.on('DEMO', () => this.showDemoHUDFromState())
+    this.state.on('LEADERBOARD', () => this.showScreen('LEADERBOARD'))
   }
 
   private showScreen(name: string): void {
@@ -798,6 +800,9 @@ export class UIManager {
         break
       case 'SETTINGS':
         this.buildSettings(screen)
+        break
+      case 'LEADERBOARD':
+        this.buildLeaderboard(screen)
         break
     }
 
@@ -822,6 +827,9 @@ export class UIManager {
     const settingsBtn = this.createButton('Settings')
     settingsBtn.onclick = () => this.state.transition('SETTINGS')
 
+    const leaderboardBtn = this.createButton('Leaderboard')
+    leaderboardBtn.onclick = () => this.state.transition('LEADERBOARD')
+
     const version = document.createElement('div')
     version.className = 'version-text'
     version.textContent = 'v0.1.0 MVP'
@@ -830,8 +838,91 @@ export class UIManager {
     overlay.appendChild(subtitle)
     overlay.appendChild(startBtn)
     overlay.appendChild(settingsBtn)
+    overlay.appendChild(leaderboardBtn)
     overlay.appendChild(version)
     parent.appendChild(overlay)
+  }
+
+  private buildLeaderboard(parent: HTMLElement): void {
+    const overlay = document.createElement('div')
+    overlay.className = 'ui-overlay'
+
+    const title = document.createElement('div')
+    title.className = 'menu-title'
+    title.style.fontSize = '42px'
+    title.style.marginBottom = '20px'
+    title.textContent = 'LEADERBOARD'
+
+    const tabRow = document.createElement('div')
+    tabRow.style.cssText = 'display:flex;gap:8px;justify-content:center;margin-bottom:20px'
+
+    const content = document.createElement('div')
+    content.style.cssText = 'max-height:500px;overflow-y:auto;width:100%'
+
+    const renderEntries = (entries: LeaderboardEntry[]) => {
+      content.innerHTML = ''
+      if (entries.length === 0) {
+        const empty = document.createElement('div')
+        empty.style.cssText = 'text-align:center;color:var(--text-dim);padding:40px;font-size:18px'
+        empty.textContent = 'No entries yet'
+        content.appendChild(empty)
+        return
+      }
+
+      const header = document.createElement('div')
+      header.style.cssText = 'display:grid;grid-template-columns:40px 1fr 100px 100px 80px 80px;gap:8px;padding:8px 12px;color:var(--text-dim);font-size:12px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border)'
+      header.innerHTML = '<span>#</span><span>Car</span><span>Time</span><span>Best Lap</span><span>Walls</span><span>Speed</span>'
+      content.appendChild(header)
+
+      entries.forEach((entry, i) => {
+        const carDef = CARS.find(c => c.id === entry.carId)
+        const row = document.createElement('div')
+        row.style.cssText = `display:grid;grid-template-columns:40px 1fr 100px 100px 80px 80px;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);${i === 0 ? 'color:var(--accent)' : ''}`
+        row.innerHTML = `
+          <span>${i + 1}</span>
+          <span>${carDef?.name ?? entry.carId}</span>
+          <span style="font-family:'Courier New',monospace">${this.formatTime(entry.totalTime)}</span>
+          <span style="font-family:'Courier New',monospace">${this.formatTime(entry.bestLapTime)}</span>
+          <span style="color:${entry.wallHits === 0 ? 'var(--primary)' : 'var(--secondary)'}">${entry.wallHits === 0 ? 'Clean' : entry.wallHits}</span>
+          <span style="font-family:'Courier New',monospace">${Math.round(entry.topSpeed)}</span>
+        `
+        content.appendChild(row)
+      })
+    }
+
+    const overallBtn = this.createButton('Overall', 'primary')
+    overallBtn.onclick = () => {
+      tabRow.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('primary'))
+      overallBtn.classList.add('primary')
+      renderEntries(getOverallLeaderboard())
+    }
+
+    tabRow.appendChild(overallBtn)
+
+    TRACKS.forEach(track => {
+      const btn = this.createButton(track.name.substring(0, 10))
+      btn.onclick = () => {
+        tabRow.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('primary'))
+        btn.classList.add('primary')
+        renderEntries(getTrackLeaderboard(track.id))
+      }
+      tabRow.appendChild(btn)
+    })
+
+    const buttons = document.createElement('div')
+    buttons.className = 'results-buttons'
+    buttons.style.marginTop = '20px'
+    const backBtn = this.createButton('Back', 'primary')
+    backBtn.onclick = () => this.state.transition('MENU')
+    buttons.appendChild(backBtn)
+
+    overlay.appendChild(title)
+    overlay.appendChild(tabRow)
+    overlay.appendChild(content)
+    overlay.appendChild(buttons)
+    parent.appendChild(overlay)
+
+    renderEntries(getOverallLeaderboard())
   }
 
   private buildCarSelect(parent: HTMLElement): void {
@@ -1386,6 +1477,43 @@ export class UIManager {
     pos.className = 'results-position'
     pos.innerHTML = `${results.position}<span class="results-position-suffix">${this.getOrdinalSuffix(results.position)}</span>`
 
+    const pointsEl = document.createElement('div')
+    pointsEl.className = 'results-time'
+    pointsEl.style.fontSize = '24px'
+    pointsEl.style.color = results.points > 0 ? 'var(--primary)' : 'var(--text-dim)'
+    pointsEl.textContent = results.points > 0 ? `+${results.points} pts` : '0 pts'
+
+    const statsRow = document.createElement('div')
+    statsRow.style.cssText = 'display:flex;gap:40px;justify-content:center;margin:20px 0'
+
+    const wallStat = document.createElement('div')
+    wallStat.style.cssText = 'text-align:center'
+    const wallLabel = document.createElement('div')
+    wallLabel.className = 'results-label'
+    wallLabel.textContent = 'Wall Hits'
+    const wallValue = document.createElement('div')
+    wallValue.className = 'results-time'
+    wallValue.style.fontSize = '28px'
+    wallValue.style.color = results.wallHits === 0 ? 'var(--primary)' : results.wallHits <= 2 ? 'var(--accent)' : 'var(--secondary)'
+    wallValue.textContent = results.wallHits === 0 ? 'Clean!' : results.wallHits.toString()
+    wallStat.appendChild(wallLabel)
+    wallStat.appendChild(wallValue)
+
+    const speedStat = document.createElement('div')
+    speedStat.style.cssText = 'text-align:center'
+    const speedLabel = document.createElement('div')
+    speedLabel.className = 'results-label'
+    speedLabel.textContent = 'Top Speed'
+    const speedValue = document.createElement('div')
+    speedValue.className = 'results-time'
+    speedValue.style.fontSize = '28px'
+    speedValue.textContent = `${Math.round(results.topSpeed)} km/h`
+    speedStat.appendChild(speedLabel)
+    speedStat.appendChild(speedValue)
+
+    statsRow.appendChild(wallStat)
+    statsRow.appendChild(speedStat)
+
     const timeLabel = document.createElement('div')
     timeLabel.className = 'results-label'
     timeLabel.textContent = 'Total Time'
@@ -1419,6 +1547,8 @@ export class UIManager {
     buttons.appendChild(menuBtn)
 
     container.appendChild(pos)
+    container.appendChild(pointsEl)
+    container.appendChild(statsRow)
     container.appendChild(timeLabel)
     container.appendChild(time)
     container.appendChild(bestLabel)

@@ -923,7 +923,7 @@ export async function runTestHarness(): Promise<void> {
       }
       .th-grid {
         display:grid;
-        grid-template-columns:1fr 1fr 1fr;
+        grid-template-columns:1fr 1fr 1fr 1fr 1fr;
         gap:8px;margin-bottom:10px;
       }
       .th-phase {

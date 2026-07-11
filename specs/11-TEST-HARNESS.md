@@ -111,12 +111,12 @@ The overlay is a flexbox-centered container with a CSS grid inside for phase col
 - **No internal scroll:** Grid fits entirely within the viewport — no `overflow-y`
 
 ### 4.3 Grid Implementation
-Fixed 3-column layout. 16 phase cards arranged in 3 columns × 6 rows, fitting on one screen without scroll.
+Fixed 5-column layout. 16 phase cards arranged in 5 columns × 4 rows, fitting on one screen without scroll.
 
 ```css
 .th-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
   gap: 8px;
 }
 .th-phase {
@@ -143,7 +143,7 @@ Fixed 3-column layout. 16 phase cards arranged in 3 columns × 6 rows, fitting o
 - Summary: 14px, bold, letter-spacing 2px
 
 ### 4.5 Layout
-- Fixed 3-column grid — all 16 phases visible at once, no scrolling required
+- Fixed 5-column grid — all 16 phases visible at once, no scrolling required
 - Container width: 95vw, centered on screen
 - Phase cards compact: 6px/8px padding, 10px font
 

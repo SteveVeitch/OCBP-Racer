@@ -337,8 +337,8 @@ export async function runTestHarness(): Promise<void> {
     const turboCar = factory.createCar(getCarById('rossini-488'), scene)
     const naCar = factory.createCar(getCarById('weissach-gt3'), scene)
 
+    const input = { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false, cameraSwitch: false }
     for (let i = 0; i < 60; i++) {
-      const input = { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false, cameraSwitch: false }
       turboCar.update(1 / 60, input)
       naCar.update(1 / 60, input)
       pw.step(1 / 60)
@@ -346,8 +346,9 @@ export async function runTestHarness(): Promise<void> {
 
     const turboBoost = turboCar.getBoostLevel()
     const naBoost = naCar.getBoostLevel()
-    assert(turboBoost > 0, `Turbo car should have boost > 0 after 1s: ${turboBoost}`)
-    assert(naBoost === 0, `NA car should have boost 0: ${naBoost}`)
+    assert(turboBoost > 0, `Turbo car should have boost > 0: ${turboBoost}`)
+    assert(turboBoost <= 1, `Turbo boost out of range: ${turboBoost}`)
+    assert(naBoost === 1, `NA car should have instant full boost: ${naBoost}`)
     pw.dispose()
   })
 

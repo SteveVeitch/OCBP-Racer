@@ -1371,8 +1371,9 @@ export class UIManager {
     const backBtn = this.createButton('Back', 'primary')
     backBtn.onclick = () => {
       const prev = this.state.getPrevious()
-      if (prev === 'PAUSED') {
+      if (prev === 'PAUSED' || prev === 'RACING' || prev === 'COUNTDOWN') {
         this.state.transition('RACING')
+        requestAnimationFrame(() => this.showPause())
       } else {
         this.state.transition('MENU')
       }

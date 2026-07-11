@@ -473,11 +473,18 @@ export async function runTestHarness(): Promise<void> {
     car.setLookAt(track.getStartRotation())
     const ai = new AIController(car, track.getSpline())
 
-    // Force car far off track to trigger recovery
+    // Let AI get through STARTING phase (3s = 180 frames)
+    for (let i = 0; i < 200; i++) {
+      ai.update(1 / 60)
+      pw.step(1 / 60)
+    }
+
+    // Now teleport car far off track to trigger RECOVERING
     car.setPosition(new THREE.Vector3(500, 0.5, 500))
+    car.resetPhysics()
 
     // Run enough updates to exceed RECOVERY_TIMEOUT (5s at 1/60 steps = 300 frames)
-    for (let i = 0; i < 310; i++) {
+    for (let i = 0; i < 320; i++) {
       ai.update(1 / 60)
       pw.step(1 / 60)
     }

@@ -3,6 +3,131 @@ import RAPIER from '@dimforge/rapier3d-compat'
 import { CarController, CarConfig } from '../physics/CarController'
 import { CarDefinition } from './CarConfigs'
 
+interface BoxSpec {
+  w: number; h: number; d: number
+  x: number; y: number; z: number
+  mat: 'paint' | 'dark' | 'glass' | 'grille' | 'chrome' | 'headlight' | 'taillight'
+  shadow?: boolean
+}
+
+interface WheelSpec {
+  frontZ: number; rearZ: number
+  x: number; y: number
+}
+
+interface CarMeshProfile {
+  body: BoxSpec[]
+  extras: BoxSpec[]
+  wheels: { left: WheelSpec; right: WheelSpec }
+}
+
+const PROFILES: Record<string, CarMeshProfile> = {
+  'rossini-488': {
+    body: [
+      { w: 1.9, h: 0.40, d: 4.3, x: 0, y: 0.32, z: 0, mat: 'paint', shadow: true },
+      { w: 1.7, h: 0.12, d: 1.3, x: 0, y: 0.58, z: 1.3, mat: 'paint', shadow: true },
+      { w: 1.4, h: 0.45, d: 1.2, x: 0, y: 0.75, z: 0.2, mat: 'glass', shadow: true },
+      { w: 1.3, h: 0.06, d: 0.9, x: 0, y: 1.00, z: 0, mat: 'paint', shadow: true },
+      { w: 1.8, h: 0.15, d: 0.8, x: 0, y: 0.58, z: -1.2, mat: 'paint', shadow: true },
+      { w: 1.9, h: 0.25, d: 0.12, x: 0, y: 0.25, z: 2.15, mat: 'grille' },
+      { w: 1.8, h: 0.25, d: 0.10, x: 0, y: 0.25, z: -2.15, mat: 'dark' },
+    ],
+    extras: [
+      { w: 1.9, h: 0.04, d: 0.25, x: 0, y: 0.12, z: 2.2, mat: 'dark' },
+      { w: 1.7, h: 0.08, d: 0.3, x: 0, y: 0.12, z: -2.2, mat: 'dark' },
+      { w: 0.1, h: 0.15, d: 0.6, x: -0.95, y: 0.35, z: -0.3, mat: 'dark' },
+      { w: 0.1, h: 0.15, d: 0.6, x: 0.95, y: 0.35, z: -0.3, mat: 'dark' },
+    ],
+    wheels: {
+      left: { x: 0.95, y: 0.32, frontZ: 1.30, rearZ: 1.25 },
+      right: { x: 0.95, y: 0.32, frontZ: 1.30, rearZ: 1.25 },
+    },
+  },
+
+  'weissach-gt3': {
+    body: [
+      { w: 1.85, h: 0.42, d: 4.2, x: 0, y: 0.33, z: 0, mat: 'paint', shadow: true },
+      { w: 1.6, h: 0.14, d: 1.4, x: 0, y: 0.60, z: 1.2, mat: 'paint', shadow: true },
+      { w: 1.45, h: 0.50, d: 1.3, x: 0, y: 0.79, z: 0.1, mat: 'glass', shadow: true },
+      { w: 1.35, h: 0.06, d: 1.0, x: 0, y: 1.07, z: 0, mat: 'paint', shadow: true },
+      { w: 1.7, h: 0.20, d: 0.9, x: 0, y: 0.64, z: -1.1, mat: 'paint', shadow: true },
+      { w: 1.85, h: 0.28, d: 0.12, x: 0, y: 0.26, z: 2.1, mat: 'grille' },
+      { w: 1.75, h: 0.28, d: 0.10, x: 0, y: 0.26, z: -2.1, mat: 'dark' },
+    ],
+    extras: [
+      { w: 1.8, h: 0.05, d: 0.2, x: 0, y: 0.12, z: 2.1, mat: 'dark' },
+      { w: 1.6, h: 0.04, d: 0.3, x: 0, y: 0.55, z: -1.8, mat: 'dark', shadow: true },
+      { w: 0.06, h: 0.20, d: 0.06, x: -0.6, y: 0.44, z: -1.8, mat: 'dark' },
+      { w: 0.06, h: 0.20, d: 0.06, x: 0.6, y: 0.44, z: -1.8, mat: 'dark' },
+      { w: 0.15, h: 0.03, d: 0.3, x: -0.9, y: 0.18, z: 2.0, mat: 'dark' },
+      { w: 0.15, h: 0.03, d: 0.3, x: 0.9, y: 0.18, z: 2.0, mat: 'dark' },
+    ],
+    wheels: {
+      left: { x: 0.92, y: 0.32, frontZ: 1.25, rearZ: 1.20 },
+      right: { x: 0.92, y: 0.32, frontZ: 1.25, rearZ: 1.20 },
+    },
+  },
+
+  'kaiju-gt-r': {
+    body: [
+      { w: 2.0, h: 0.42, d: 4.4, x: 0, y: 0.33, z: 0, mat: 'paint', shadow: true },
+      { w: 1.7, h: 0.13, d: 1.3, x: 0, y: 0.60, z: 1.3, mat: 'paint', shadow: true },
+      { w: 1.5, h: 0.48, d: 1.3, x: 0, y: 0.78, z: 0.15, mat: 'glass', shadow: true },
+      { w: 1.4, h: 0.06, d: 1.0, x: 0, y: 1.05, z: 0, mat: 'paint', shadow: true },
+      { w: 1.7, h: 0.12, d: 0.9, x: 0, y: 0.60, z: -1.2, mat: 'paint', shadow: true },
+      { w: 2.0, h: 0.30, d: 0.15, x: 0, y: 0.26, z: 2.2, mat: 'grille' },
+      { w: 1.9, h: 0.30, d: 0.12, x: 0, y: 0.26, z: -2.2, mat: 'dark' },
+    ],
+    extras: [
+      { w: 1.7, h: 0.05, d: 0.35, x: 0, y: 0.50, z: -1.9, mat: 'dark', shadow: true },
+      { w: 0.06, h: 0.22, d: 0.06, x: -0.65, y: 0.39, z: -1.9, mat: 'dark' },
+      { w: 0.06, h: 0.22, d: 0.06, x: 0.65, y: 0.39, z: -1.9, mat: 'dark' },
+      { w: 0.12, h: 0.30, d: 1.0, x: -1.0, y: 0.33, z: 0.5, mat: 'paint', shadow: true },
+      { w: 0.12, h: 0.30, d: 1.0, x: 1.0, y: 0.33, z: 0.5, mat: 'paint', shadow: true },
+      { w: 0.12, h: 0.30, d: 1.0, x: -1.0, y: 0.33, z: -0.5, mat: 'paint', shadow: true },
+      { w: 0.12, h: 0.30, d: 1.0, x: 1.0, y: 0.33, z: -0.5, mat: 'paint', shadow: true },
+      { w: 0.08, h: 0.10, d: 3.0, x: -1.0, y: 0.18, z: 0, mat: 'dark' },
+      { w: 0.08, h: 0.10, d: 3.0, x: 1.0, y: 0.18, z: 0, mat: 'dark' },
+    ],
+    wheels: {
+      left: { x: 1.0, y: 0.32, frontZ: 1.35, rearZ: 1.30 },
+      right: { x: 1.0, y: 0.32, frontZ: 1.35, rearZ: 1.30 },
+    },
+  },
+
+  'stingray-z06': {
+    body: [
+      { w: 1.88, h: 0.38, d: 4.2, x: 0, y: 0.31, z: 0, mat: 'paint', shadow: true },
+      { w: 1.65, h: 0.11, d: 1.2, x: 0, y: 0.56, z: 1.3, mat: 'paint', shadow: true },
+      { w: 1.35, h: 0.44, d: 1.15, x: 0, y: 0.72, z: 0.2, mat: 'glass', shadow: true },
+      { w: 1.25, h: 0.06, d: 0.85, x: 0, y: 0.97, z: 0, mat: 'paint', shadow: true },
+      { w: 1.75, h: 0.14, d: 0.85, x: 0, y: 0.57, z: -1.15, mat: 'paint', shadow: true },
+      { w: 1.88, h: 0.24, d: 0.12, x: 0, y: 0.24, z: 2.1, mat: 'grille' },
+      { w: 1.75, h: 0.24, d: 0.10, x: 0, y: 0.24, z: -2.1, mat: 'dark' },
+    ],
+    extras: [
+      { w: 1.85, h: 0.04, d: 0.22, x: 0, y: 0.11, z: 2.15, mat: 'dark' },
+      { w: 1.65, h: 0.08, d: 0.28, x: 0, y: 0.11, z: -2.15, mat: 'dark' },
+      { w: 0.12, h: 0.18, d: 0.7, x: -0.94, y: 0.35, z: -0.2, mat: 'dark' },
+      { w: 0.12, h: 0.18, d: 0.7, x: 0.94, y: 0.35, z: -0.2, mat: 'dark' },
+    ],
+    wheels: {
+      left: { x: 0.94, y: 0.32, frontZ: 1.28, rearZ: 1.22 },
+      right: { x: 0.94, y: 0.32, frontZ: 1.28, rearZ: 1.22 },
+    },
+  },
+}
+
+const _box = new THREE.BoxGeometry(1, 1, 1)
+
+function addBox(group: THREE.Group, spec: BoxSpec, mats: Record<string, THREE.Material>): void {
+  const mesh = new THREE.Mesh(_box, mats[spec.mat])
+  mesh.scale.set(spec.w, spec.h, spec.d)
+  mesh.position.set(spec.x, spec.y, spec.z)
+  if (spec.shadow) mesh.castShadow = true
+  group.add(mesh)
+}
+
 export class CarFactory {
   private world: RAPIER.World
 
@@ -35,121 +160,101 @@ export class CarFactory {
 
   private createCarMesh(definition: CarDefinition): THREE.Group {
     const group = new THREE.Group()
-    const color = definition.color
+    const profile = PROFILES[definition.id]
+    if (!profile) return group
 
-    const paintMat = new THREE.MeshStandardMaterial({
-      color,
-      roughness: 0.25,
-      metalness: 0.85
-    })
-    const darkMat = new THREE.MeshStandardMaterial({
-      color: 0x111111,
-      roughness: 0.8,
-      metalness: 0.2
-    })
-    const glassMat = new THREE.MeshStandardMaterial({
-      color: 0x223344,
-      roughness: 0.05,
-      metalness: 0.9,
-      transparent: true,
-      opacity: 0.7
-    })
-    const headlightMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      emissive: 0xffffcc,
-      emissiveIntensity: 1.5,
-      roughness: 0.1,
-      metalness: 0.5
-    })
-    const taillightMat = new THREE.MeshStandardMaterial({
-      color: 0xff0000,
-      emissive: 0xff2200,
-      emissiveIntensity: 1.0,
-      roughness: 0.2,
-      metalness: 0.3
-    })
-    const grilleMat = new THREE.MeshStandardMaterial({
-      color: 0x0a0a0a,
-      roughness: 0.6,
-      metalness: 0.4
-    })
+    const mats = this.createMaterials(definition.color)
 
-    const lowerBody = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.45, 4.2), paintMat)
-    lowerBody.position.y = 0.35
-    lowerBody.castShadow = true
-    group.add(lowerBody)
+    for (const spec of profile.body) addBox(group, spec, mats)
+    for (const spec of profile.extras) addBox(group, spec, mats)
 
-    const hood = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.15, 1.2), paintMat)
-    hood.position.set(0, 0.65, 1.2)
-    hood.castShadow = true
-    group.add(hood)
+    this.addLights(group, profile.body, mats)
+    this.addWheels(group, profile, mats)
+    this.addQuadExhausts(group, definition.id, mats)
 
-    const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.5, 1.4), glassMat)
-    cabin.position.set(0, 0.95, 0.1)
-    cabin.castShadow = true
-    group.add(cabin)
+    return group
+  }
 
-    const roof = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 1.0), paintMat)
-    roof.position.set(0, 1.23, 0.0)
-    roof.castShadow = true
-    group.add(roof)
+  private createMaterials(color: number): Record<string, THREE.Material> {
+    return {
+      paint: new THREE.MeshStandardMaterial({ color, roughness: 0.25, metalness: 0.85 }),
+      dark: new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8, metalness: 0.2 }),
+      glass: new THREE.MeshStandardMaterial({
+        color: 0x223344, roughness: 0.05, metalness: 0.9,
+        transparent: true, opacity: 0.7,
+      }),
+      grille: new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.6, metalness: 0.4 }),
+      chrome: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.15, metalness: 0.95 }),
+      headlight: new THREE.MeshStandardMaterial({
+        color: 0xffffff, emissive: 0xffffcc, emissiveIntensity: 1.5,
+        roughness: 0.1, metalness: 0.5,
+      }),
+      taillight: new THREE.MeshStandardMaterial({
+        color: 0xff0000, emissive: 0xff2200, emissiveIntensity: 1.0,
+        roughness: 0.2, metalness: 0.3,
+      }),
+    }
+  }
 
-    const rearDeck = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.1, 1.0), paintMat)
-    rearDeck.position.set(0, 0.65, -1.1)
-    rearDeck.castShadow = true
-    group.add(rearDeck)
+  private addLights(group: THREE.Group, body: BoxSpec[], mats: Record<string, THREE.Material>): void {
+    const frontBumper = body.find(b => b.mat === 'grille')
+    const rearBumper = body.find(b => b.z < -2.0)
+    if (!frontBumper || !rearBumper) return
 
-    const frontBumper = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.3, 0.15), grilleMat)
-    frontBumper.position.set(0, 0.25, 2.1)
-    group.add(frontBumper)
+    const fx = frontBumper.w * 0.29
+    const fy = frontBumper.y + frontBumper.h * 0.5
+    const fz = frontBumper.z + frontBumper.d * 0.5 + 0.02
+    const rx = rearBumper.w * 0.33
+    const ry = rearBumper.y + rearBumper.h * 0.2
+    const rz = rearBumper.z - rearBumper.d * 0.5 - 0.02
 
-    const rearBumper = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.3, 0.1), darkMat)
-    rearBumper.position.set(0, 0.25, -2.1)
-    group.add(rearBumper)
+    addBox(group, { w: 0.3, h: 0.12, d: 0.08, x: -fx, y: fy, z: fz, mat: 'headlight' }, mats)
+    addBox(group, { w: 0.3, h: 0.12, d: 0.08, x: fx, y: fy, z: fz, mat: 'headlight' }, mats)
+    addBox(group, { w: 0.25, h: 0.1, d: 0.06, x: -rx, y: ry, z: rz, mat: 'taillight' }, mats)
+    addBox(group, { w: 0.25, h: 0.1, d: 0.06, x: rx, y: ry, z: rz, mat: 'taillight' }, mats)
 
-    const frontSpoiler = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 0.2), darkMat)
-    frontSpoiler.position.set(0, 0.12, 2.1)
-    group.add(frontSpoiler)
+    const hlL = new THREE.SpotLight(0xffeedd, 8, 30, 0.4, 0.5, 1.5)
+    hlL.position.set(-fx, fy, fz)
+    hlL.target.position.set(-fx, 0, 15)
+    group.add(hlL)
+    group.add(hlL.target)
 
-    const leftHeadlight = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.08), headlightMat)
-    leftHeadlight.position.set(-0.55, 0.45, 2.12)
-    group.add(leftHeadlight)
+    const hlR = new THREE.SpotLight(0xffeedd, 8, 30, 0.4, 0.5, 1.5)
+    hlR.position.set(fx, fy, fz)
+    hlR.target.position.set(fx, 0, 15)
+    group.add(hlR)
+    group.add(hlR.target)
 
-    const rightHeadlight = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.08), headlightMat)
-    rightHeadlight.position.set(0.55, 0.45, 2.12)
-    group.add(rightHeadlight)
+    const tlL = new THREE.PointLight(0xff2200, 1.5, 8)
+    tlL.position.set(-rx, ry, rz)
+    group.add(tlL)
 
-    const leftTaillight = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.1, 0.06), taillightMat)
-    leftTaillight.position.set(-0.6, 0.5, -2.12)
-    group.add(leftTaillight)
+    const tlR = new THREE.PointLight(0xff2200, 1.5, 8)
+    tlR.position.set(rx, ry, rz)
+    group.add(tlR)
+  }
 
-    const rightTaillight = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.1, 0.06), taillightMat)
-    rightTaillight.position.set(0.6, 0.5, -2.12)
-    group.add(rightTaillight)
+  private addWheels(group: THREE.Group, profile: CarMeshProfile, mats: Record<string, THREE.Material>): void {
+    const tireGeo = new THREE.CylinderGeometry(0.32, 0.32, 0.22, 16)
+    const rimGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.24, 8)
 
-    const wheelGeometry = new THREE.CylinderGeometry(0.32, 0.32, 0.22, 16)
-    const rimGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.24, 8)
-    const rimMat = new THREE.MeshStandardMaterial({
-      color: 0x888888,
-      roughness: 0.2,
-      metalness: 0.9
-    })
-
-    const wheelPositions = [
-      { x: -0.95, y: 0.32, z: 1.25 },
-      { x: 0.95, y: 0.32, z: 1.25 },
-      { x: -0.95, y: 0.32, z: -1.2 },
-      { x: 0.95, y: 0.32, z: -1.2 }
+    const wl = profile.wheels.left
+    const wr = profile.wheels.right
+    const positions = [
+      { x: -wl.x, y: wl.y, z: wl.frontZ },
+      { x: wr.x, y: wr.y, z: wr.frontZ },
+      { x: -wl.x, y: wl.y, z: -wl.rearZ },
+      { x: wr.x, y: wr.y, z: -wr.rearZ },
     ]
 
-    wheelPositions.forEach((pos) => {
+    positions.forEach(pos => {
       const wheelGroup = new THREE.Group()
 
-      const tire = new THREE.Mesh(wheelGeometry, darkMat)
+      const tire = new THREE.Mesh(tireGeo, mats.dark)
       tire.rotation.z = Math.PI / 2
       wheelGroup.add(tire)
 
-      const rim = new THREE.Mesh(rimGeometry, rimMat)
+      const rim = new THREE.Mesh(rimGeo, mats.chrome)
       rim.rotation.z = Math.PI / 2
       wheelGroup.add(rim)
 
@@ -157,27 +262,24 @@ export class CarFactory {
       wheelGroup.castShadow = true
       group.add(wheelGroup)
     })
+  }
 
-    const headlightL = new THREE.SpotLight(0xffeedd, 8, 30, 0.4, 0.5, 1.5)
-    headlightL.position.set(-0.55, 0.45, 2.15)
-    headlightL.target.position.set(-0.55, 0, 15)
-    group.add(headlightL)
-    group.add(headlightL.target)
+  private addQuadExhausts(group: THREE.Group, carId: string, mats: Record<string, THREE.Material>): void {
+    if (carId !== 'kaiju-gt-r') return
 
-    const headlightR = new THREE.SpotLight(0xffeedd, 8, 30, 0.4, 0.5, 1.5)
-    headlightR.position.set(0.55, 0.45, 2.15)
-    headlightR.target.position.set(0.55, 0, 15)
-    group.add(headlightR)
-    group.add(headlightR.target)
+    const cylGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.1, 8)
+    const offsets = [
+      { x: -0.4, y: 0.55 },
+      { x: -0.15, y: 0.55 },
+      { x: 0.15, y: 0.55 },
+      { x: 0.4, y: 0.55 },
+    ]
 
-    const tailLightL = new THREE.PointLight(0xff2200, 1.5, 8)
-    tailLightL.position.set(-0.6, 0.5, -2.15)
-    group.add(tailLightL)
-
-    const tailLightR = new THREE.PointLight(0xff2200, 1.5, 8)
-    tailLightR.position.set(0.6, 0.5, -2.15)
-    group.add(tailLightR)
-
-    return group
+    offsets.forEach(({ x, y }) => {
+      const exhaust = new THREE.Mesh(cylGeo, mats.chrome)
+      exhaust.position.set(x, y, -2.2)
+      exhaust.rotation.x = Math.PI / 2
+      group.add(exhaust)
+    })
   }
 }

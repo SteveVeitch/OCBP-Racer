@@ -83,8 +83,8 @@ export const CARS: CarDefinition[] = [
   {
     id: 'kaiju-gt-r',
     name: 'Kaiju GT-R',
-    subtitle: 'The Wild Card',
-    color: 0xcc2200,
+    subtitle: 'The Monster',
+    color: 0x2d1b4e,
     description: 'High power, loose rear, drifts easily. Japanese turbocharged super-GT with twin-turbo V6.',
     engine: {
       type: 'Twin-Turbo V6',

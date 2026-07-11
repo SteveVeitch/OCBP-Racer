@@ -69,11 +69,13 @@ export class AIController {
   private updateStarting(_dt: number, carPos: THREE.Vector3): InputState {
     if (this.raceTimer >= START_DURATION) {
       this.aiState = 'RACING'
-      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false }
+      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false,
+      cameraSwitch: false }
     }
 
     if (this.raceTimer < this.startDelay) {
-      return { throttle: 0, brake: 0, steer: 0, pause: false, confirm: false, back: false }
+      return { throttle: 0, brake: 0, steer: 0, pause: false, confirm: false, back: false,
+      cameraSwitch: false }
     }
 
     const elapsed = this.raceTimer - this.startDelay
@@ -91,7 +93,8 @@ export class AIController {
       steer: steer + avoidance.steerOffset,
       pause: false,
       confirm: false,
-      back: false
+      back: false,
+      cameraSwitch: false
     }
   }
 
@@ -100,7 +103,8 @@ export class AIController {
       this.aiState = 'RECOVERING'
       this.recoveryTimer = 0
       this.recoveryThrottleCutTimer = RECOVERY_THROTTLE_CUT_DURATION
-      return { throttle: 0, brake: 0.5, steer: 0, pause: false, confirm: false, back: false }
+      return { throttle: 0, brake: 0.5, steer: 0, pause: false, confirm: false, back: false,
+      cameraSwitch: false }
     }
 
     const steer = this.calculateSteer(carPos)
@@ -125,7 +129,8 @@ export class AIController {
       steer: steer + avoidance.steerOffset,
       pause: false,
       confirm: false,
-      back: false
+      back: false,
+      cameraSwitch: false
     }
   }
 
@@ -136,7 +141,8 @@ export class AIController {
     if (this.recoveryTimer > RECOVERY_TIMEOUT) {
       this.aiState = 'RACING'
       this.recoveryTimer = 0
-      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false }
+      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false,
+      cameraSwitch: false }
     }
 
     const throttle = this.recoveryThrottleCutTimer > 0 ? 0 : 0.3
@@ -154,7 +160,8 @@ export class AIController {
     if (this.canRejoin(carPos)) {
       this.aiState = 'RACING'
       this.recoveryTimer = 0
-      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false }
+      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false,
+      cameraSwitch: false }
     }
 
     return {
@@ -163,7 +170,8 @@ export class AIController {
       steer,
       pause: false,
       confirm: false,
-      back: false
+      back: false,
+      cameraSwitch: false
     }
   }
 

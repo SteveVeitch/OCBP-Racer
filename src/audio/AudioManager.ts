@@ -1,3 +1,5 @@
+import { EngineDefinition } from '../cars/CarConfigs'
+
 export class AudioManager {
   private ctx: AudioContext | null = null
   private masterGain: GainNode | null = null
@@ -11,10 +13,17 @@ export class AudioManager {
   private windGain: GainNode | null = null
   private windFilter: BiquadFilterNode | null = null
   private windSource: AudioBufferSourceNode | null = null
+  private turboWhistleGain: GainNode | null = null
+  private turboWhistleOsc: OscillatorNode | null = null
+  private turboWhistleFilter: BiquadFilterNode | null = null
   private masterVolume = 1.0
   private engineVolume = 0.6
   private initialized = false
   private stopTimeout: ReturnType<typeof setTimeout> | null = null
+
+  private currentEngine: EngineDefinition | null = null
+  private prevThrottle = 0
+  private lastPopTime = 0
 
   async init(): Promise<void> {
     try {
@@ -39,13 +48,15 @@ export class AudioManager {
     return this.initialized
   }
 
-  private initEngine(): void {
+  private initEngine(engine?: EngineDefinition): void {
     if (!this.ctx || !this.masterGain) return
 
     if (this.engineOsc) {
       try { this.engineOsc.stop() } catch { /* already stopped */ }
       try { this.engineOsc2?.stop() } catch { /* already stopped */ }
     }
+
+    this.currentEngine = engine ?? null
 
     this.engineGain = this.ctx.createGain()
     this.engineGain.gain.value = 0
@@ -59,20 +70,39 @@ export class AudioManager {
 
     this.engineOsc = this.ctx.createOscillator()
     this.engineOsc.type = 'sawtooth'
-    this.engineOsc.frequency.value = 80
+    this.engineOsc.frequency.value = engine?.baseFrequency ?? 40
     this.engineOsc.connect(this.engineFilter)
     this.engineOsc.start()
 
     this.engineOsc2 = this.ctx.createOscillator()
     this.engineOsc2.type = 'square'
-    this.engineOsc2.frequency.value = 40
+    this.engineOsc2.frequency.value = (engine?.baseFrequency ?? 40) * 0.5
 
     const gain2 = this.ctx.createGain()
     gain2.gain.value = 0.15
-
     this.engineOsc2.connect(gain2)
     gain2.connect(this.engineGain)
     this.engineOsc2.start()
+  }
+
+  private initTurboWhistle(): void {
+    if (!this.ctx || !this.masterGain) return
+
+    this.turboWhistleGain = this.ctx.createGain()
+    this.turboWhistleGain.gain.value = 0
+    this.turboWhistleGain.connect(this.masterGain)
+
+    this.turboWhistleFilter = this.ctx.createBiquadFilter()
+    this.turboWhistleFilter.type = 'bandpass'
+    this.turboWhistleFilter.frequency.value = 4000
+    this.turboWhistleFilter.Q.value = 5
+    this.turboWhistleFilter.connect(this.turboWhistleGain)
+
+    this.turboWhistleOsc = this.ctx.createOscillator()
+    this.turboWhistleOsc.type = 'sine'
+    this.turboWhistleOsc.frequency.value = 3000
+    this.turboWhistleOsc.connect(this.turboWhistleFilter)
+    this.turboWhistleOsc.start()
   }
 
   private initTireScreech(): void {
@@ -139,7 +169,7 @@ export class AudioManager {
     this.windSource.start()
   }
 
-  startRaceAudio(): void {
+  startRaceAudio(engine?: EngineDefinition): void {
     if (!this.ensureContext()) return
 
     if (this.stopTimeout !== null) {
@@ -151,7 +181,8 @@ export class AudioManager {
       this.engineOsc2 = null
     }
 
-    this.initEngine()
+    this.initEngine(engine)
+    this.initTurboWhistle()
     this.initTireScreech()
     this.initWindNoise()
   }
@@ -161,31 +192,25 @@ export class AudioManager {
 
     const now = this.ctx.currentTime
 
-    if (this.engineGain) {
-      this.engineGain.gain.cancelScheduledValues(now)
-      this.engineGain.gain.setValueAtTime(this.engineGain.gain.value, now)
-      this.engineGain.gain.linearRampToValueAtTime(0, now + 0.05)
-    }
-    if (this.screechGain) {
-      this.screechGain.gain.cancelScheduledValues(now)
-      this.screechGain.gain.setValueAtTime(this.screechGain.gain.value, now)
-      this.screechGain.gain.linearRampToValueAtTime(0, now + 0.05)
-    }
-    if (this.windGain) {
-      this.windGain.gain.cancelScheduledValues(now)
-      this.windGain.gain.setValueAtTime(this.windGain.gain.value, now)
-      this.windGain.gain.linearRampToValueAtTime(0, now + 0.05)
+    for (const g of [this.engineGain, this.screechGain, this.windGain, this.turboWhistleGain]) {
+      if (g) {
+        g.gain.cancelScheduledValues(now)
+        g.gain.setValueAtTime(g.gain.value, now)
+        g.gain.linearRampToValueAtTime(0, now + 0.05)
+      }
     }
 
     const localEngineOsc = this.engineOsc
     const localEngineOsc2 = this.engineOsc2
     const localScreech = this.screechSource
     const localWind = this.windSource
+    const localTurbo = this.turboWhistleOsc
 
     this.engineOsc = null
     this.engineOsc2 = null
     this.screechSource = null
     this.windSource = null
+    this.turboWhistleOsc = null
 
     this.stopTimeout = setTimeout(() => {
       this.stopTimeout = null
@@ -193,19 +218,111 @@ export class AudioManager {
       try { localEngineOsc2?.stop() } catch { /* ignore */ }
       try { localScreech?.stop() } catch { /* ignore */ }
       try { localWind?.stop() } catch { /* ignore */ }
+      try { localTurbo?.stop() } catch { /* ignore */ }
     }, 100)
   }
 
-  playEngine(rpm: number, _throttle: number): void {
+  playEngine(rpm: number, _throttle: number, boostLevel: number = 0): void {
     if (!this.ensureContext() || !this.engineOsc || !this.engineOsc2 || !this.engineGain) return
 
-    const freq = 40 + (rpm / 7500) * 160
-    const now = this.ctx!.currentTime
-    this.engineOsc.frequency.setTargetAtTime(freq, now, 0.05)
-    this.engineOsc2.frequency.setTargetAtTime(freq * 0.5, now, 0.05)
+    const engine = this.currentEngine
+    const baseFreq = engine?.baseFrequency ?? 40
+    const maxFreq = engine?.maxFrequency ?? 200
+    const redline = engine?.redline ?? 7500
 
-    const vol = 0.05 + (rpm / 7500) * this.engineVolume
+    const rpmRatio = Math.min(rpm / redline, 1)
+    const freq = baseFreq + rpmRatio * (maxFreq - baseFreq)
+
+    let wobble = 0
+    if (rpmRatio > 0.92) {
+      const overRev = (rpmRatio - 0.92) / 0.08
+      wobble = Math.sin(rpm * 0.05) * overRev * 8
+    }
+
+    const now = this.ctx!.currentTime
+    this.engineOsc.frequency.setTargetAtTime(freq + wobble, now, 0.05)
+    this.engineOsc2.frequency.setTargetAtTime((freq + wobble) * 0.5, now, 0.05)
+
+    const vol = 0.05 + rpmRatio * this.engineVolume
     this.engineGain.gain.setTargetAtTime(vol, now, 0.05)
+
+    const filterFreq = 600 + rpmRatio * 1400
+    this.engineFilter!.frequency.setTargetAtTime(filterFreq, now, 0.05)
+
+    if (this.turboWhistleGain && this.turboWhistleOsc && this.turboWhistleFilter) {
+      const turboVol = boostLevel * 0.12 * this.engineVolume
+      this.turboWhistleGain.gain.setTargetAtTime(turboVol, now, 0.08)
+      const turboFreq = 3000 + boostLevel * 5000
+      this.turboWhistleOsc.frequency.setTargetAtTime(turboFreq, now, 0.1)
+      this.turboWhistleFilter.frequency.setTargetAtTime(turboFreq, now, 0.1)
+    }
+
+    if (boostLevel > 0.3 && this.prevThrottle <= 0) {
+      this.playTurboFlutter()
+    }
+
+    if (this.prevThrottle > 0 && _throttle <= 0 && rpmRatio > 0.4) {
+      const now2 = performance.now() / 1000
+      if (now2 - this.lastPopTime > 0.15) {
+        this.playExhaustPop()
+        this.lastPopTime = now2
+      }
+    }
+
+    this.prevThrottle = _throttle
+  }
+
+  private playTurboFlutter(): void {
+    if (!this.ensureContext()) return
+
+    const now = this.ctx!.currentTime
+    const osc = this.ctx!.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(2500, now)
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.12)
+
+    const gain = this.ctx!.createGain()
+    gain.gain.setValueAtTime(0.08 * this.engineVolume, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15)
+
+    const filter = this.ctx!.createBiquadFilter()
+    filter.type = 'bandpass'
+    filter.frequency.value = 1800
+    filter.Q.value = 3
+
+    osc.connect(filter)
+    filter.connect(gain)
+    gain.connect(this.masterGain!)
+    osc.start()
+    osc.stop(now + 0.2)
+  }
+
+  private playExhaustPop(): void {
+    if (!this.ensureContext()) return
+
+    const now = this.ctx!.currentTime
+    const popCount = 1 + Math.floor(Math.random() * 2)
+
+    for (let i = 0; i < popCount; i++) {
+      const delay = i * 0.04
+      const osc = this.ctx!.createOscillator()
+      osc.type = 'square'
+      osc.frequency.value = 200 + Math.random() * 300
+
+      const gain = this.ctx!.createGain()
+      gain.gain.setValueAtTime(0.06 * this.engineVolume, now + delay)
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.05)
+
+      const filter = this.ctx!.createBiquadFilter()
+      filter.type = 'highpass'
+      filter.frequency.value = 600
+
+      osc.connect(filter)
+      filter.connect(gain)
+      gain.connect(this.masterGain!)
+      osc.start(now + delay)
+      osc.stop(now + delay + 0.08)
+    }
   }
 
   playTireScreech(intensity: number): void {

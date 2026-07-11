@@ -1103,6 +1103,53 @@ export class UIManager {
     graphicsGroup.appendChild(graphicsLabel)
     graphicsGroup.appendChild(graphicsOptions)
 
+    const cameraGroup = document.createElement('div')
+    cameraGroup.className = 'settings-group'
+
+    const cameraLabel = document.createElement('div')
+    cameraLabel.className = 'settings-label'
+    cameraLabel.textContent = 'Camera Default'
+
+    const cameraOptions = document.createElement('div')
+    cameraOptions.className = 'settings-options'
+
+    const cameras: Array<'chase' | 'windscreen' | 'hood' | 'bumper'> = ['chase', 'windscreen', 'hood', 'bumper']
+    const cameraLabels: Record<string, string> = { chase: 'Chase', windscreen: 'Windscreen', hood: 'Hood', bumper: 'Bumper' }
+    cameras.forEach(c => {
+      const btn = document.createElement('button')
+      btn.className = `settings-option ${settings.cameraDefault === c ? 'active' : ''}`
+      btn.textContent = cameraLabels[c]
+      btn.onclick = () => {
+        this.state.updateSettings({ cameraDefault: c })
+        this.onSettingsChanged?.()
+        cameraOptions.querySelectorAll('.settings-option').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+      }
+      cameraOptions.appendChild(btn)
+    })
+
+    cameraGroup.appendChild(cameraLabel)
+    cameraGroup.appendChild(cameraOptions)
+
+    const fogToggle = document.createElement('div')
+    fogToggle.className = 'settings-toggle'
+
+    const fogLabel = document.createElement('div')
+    fogLabel.className = 'settings-toggle-label'
+    fogLabel.textContent = 'Fog'
+
+    const fogBtn = document.createElement('button')
+    fogBtn.className = `settings-toggle-btn ${settings.fogEnabled ? 'active' : ''}`
+    fogBtn.onclick = () => {
+      const newVal = !this.state.getSettings().fogEnabled
+      this.state.updateSettings({ fogEnabled: newVal })
+      this.onSettingsChanged?.()
+      fogBtn.classList.toggle('active', newVal)
+    }
+
+    fogToggle.appendChild(fogLabel)
+    fogToggle.appendChild(fogBtn)
+
     const demoToggle = document.createElement('div')
     demoToggle.className = 'settings-toggle'
 
@@ -1142,6 +1189,8 @@ export class UIManager {
     panel.appendChild(engineGroup)
     panel.appendChild(steerGroup)
     panel.appendChild(graphicsGroup)
+    panel.appendChild(cameraGroup)
+    panel.appendChild(fogToggle)
     panel.appendChild(demoToggle)
     panel.appendChild(buttons)
     overlay.appendChild(panel)

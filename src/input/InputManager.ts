@@ -5,6 +5,7 @@ export interface InputState {
   pause: boolean
   confirm: boolean
   back: boolean
+  cameraSwitch: boolean
 }
 
 export class InputManager {
@@ -17,7 +18,7 @@ export class InputManager {
   private static readonly GAME_KEYS = new Set([
     'KeyW', 'KeyA', 'KeyS', 'KeyD',
     'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
-    'Escape', 'Enter', 'Space', 'Backspace'
+    'Escape', 'Enter', 'Space', 'Backspace', 'KeyC'
   ])
 
   constructor() {
@@ -70,7 +71,8 @@ export class InputManager {
       steer: this.getKeyboardSteer(),
       pause: this.keys.has('Escape'),
       confirm: this.keys.has('Enter') || this.keys.has('Space'),
-      back: this.keys.has('Escape') || this.keys.has('Backspace')
+      back: this.keys.has('Escape') || this.keys.has('Backspace'),
+      cameraSwitch: this.keys.has('KeyC')
     }
   }
 
@@ -96,7 +98,8 @@ export class InputManager {
       steer: -this.applySteerCurve(leftStickX),
       pause: gamepad.buttons[9]?.pressed ?? false,
       confirm: gamepad.buttons[0]?.pressed ?? false,
-      back: gamepad.buttons[1]?.pressed ?? false
+      back: gamepad.buttons[1]?.pressed ?? false,
+      cameraSwitch: gamepad.buttons[3]?.pressed ?? false
     }
   }
 

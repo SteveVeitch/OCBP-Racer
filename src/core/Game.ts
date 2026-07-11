@@ -18,7 +18,7 @@ import { StateMachine, RaceResults } from './StateMachine'
 import { UIManager } from '../ui/UIManager'
 import { AudioManager } from '../audio/AudioManager'
 import { AIController } from '../ai/AIController'
-import { CARS } from '../cars/CarConfigs'
+import { CARS, getCarById } from '../cars/CarConfigs'
 
 interface RaceData {
   startTime: number
@@ -88,6 +88,7 @@ export class Game {
   private lastFrameDt = 1 / 60
 
   private pausePressed = false
+  private cameraSwitchPressed = false
   private transitionCooldown = 0
 
   private isDemo = false
@@ -397,6 +398,8 @@ export class Game {
     )
     this.car.setEnvironmentModifiers(mods)
     this.cameraController.reset()
+    const defaultCamera = this.state.getSettings().cameraDefault
+    this.cameraController.setView(defaultCamera)
     const behindDir = new THREE.Vector3(0, 0, -1).applyAxisAngle(
       new THREE.Vector3(0, 1, 0), startRot
     )
@@ -444,7 +447,7 @@ export class Game {
     this.raceActive = true
     try {
       this.audio.stopRaceAudio()
-      this.audio.startRaceAudio()
+      this.audio.startRaceAudio(getCarById(carId).engine)
     } catch (err) {
       logError('Audio init failed (non-fatal):', err)
     }
@@ -512,6 +515,7 @@ export class Game {
     }
 
     this.handlePauseInput()
+    this.handleCameraSwitch()
 
     const currentState = this.state.getCurrent()
 
@@ -577,6 +581,22 @@ export class Game {
       }
     } else if (!inputState.pause) {
       this.pausePressed = false
+    }
+  }
+
+  private handleCameraSwitch(): void {
+    if (this.isDemo) return
+
+    const inputState = this.input.getState()
+    const currentState = this.state.getCurrent()
+
+    if (inputState.cameraSwitch && !this.cameraSwitchPressed) {
+      this.cameraSwitchPressed = true
+      if (currentState === 'RACING' || currentState === 'COUNTDOWN') {
+        this.cameraController.cycleView()
+      }
+    } else if (!inputState.cameraSwitch) {
+      this.cameraSwitchPressed = false
     }
   }
 
@@ -749,8 +769,9 @@ export class Game {
     const speed = this.car.getSpeed()
     const slipAngle = this.car.getSlipAngle()
     const gripCoeff = this.car.getGripCoefficient()
+    const boostLevel = this.car.getBoostLevel()
 
-    this.audio.playEngine(rpm, 0)
+    this.audio.playEngine(rpm, 0, boostLevel)
 
     if (slipAngle > 5 && gripCoeff < this.car.getConfig().peakGrip * 0.8) {
       const screechIntensity = Math.min(1, (slipAngle - 5) / 15)
@@ -809,6 +830,9 @@ export class Game {
     this.audio.setEngineVolume(settings.engineVolume)
     this.input?.setSteerSensitivity(settings.steerSensitivity)
     this.applyGraphicsQuality()
+    if (this.scene) {
+      this.scene.fog = settings.fogEnabled ? new THREE.Fog(0x0a0a15, 40, 160) : null
+    }
   }
 
   private setupActivityListeners(): void {
@@ -883,7 +907,7 @@ export class Game {
 
     try {
       this.audio.stopRaceAudio()
-      this.audio.startRaceAudio()
+      this.audio.startRaceAudio(carDef.engine)
     } catch (err) {
       logError('Audio init failed (non-fatal):', err)
     }
@@ -916,7 +940,7 @@ export class Game {
     if (this.aiCars.length === 0) return
     const aiCar = this.aiCars[0]
 
-    this.audio.playEngine(aiCar.getRPM(), 0)
+    this.audio.playEngine(aiCar.getRPM(), 0, aiCar.getBoostLevel())
 
     const slipAngle = aiCar.getSlipAngle()
     const gripCoeff = aiCar.getGripCoefficient()

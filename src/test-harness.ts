@@ -125,7 +125,8 @@ export async function runTestHarness(): Promise<void> {
     const car = factory.createCar(CARS[0], scene)
 
     for (let i = 0; i < 60; i++) {
-      car.update(1 / 60, { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false })
+      car.update(1 / 60, { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false,
+      cameraSwitch: false })
       pw.step(1 / 60)
     }
 
@@ -141,13 +142,15 @@ export async function runTestHarness(): Promise<void> {
     const car = factory.createCar(CARS[0], scene)
 
     for (let i = 0; i < 60; i++) {
-      car.update(1 / 60, { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false })
+      car.update(1 / 60, { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false,
+      cameraSwitch: false })
       pw.step(1 / 60)
     }
     const midSpeed = car.getSpeed()
 
     for (let i = 0; i < 120; i++) {
-      car.update(1 / 60, { throttle: 0, brake: 1, steer: 0, pause: false, confirm: false, back: false })
+      car.update(1 / 60, { throttle: 0, brake: 1, steer: 0, pause: false, confirm: false, back: false,
+      cameraSwitch: false })
       pw.step(1 / 60)
     }
     const afterBrake = car.getSpeed()
@@ -163,7 +166,8 @@ export async function runTestHarness(): Promise<void> {
     car.setLookAt(0)
 
     for (let i = 0; i < 120; i++) {
-      car.update(1 / 60, { throttle: 0.5, brake: 0, steer: 1, pause: false, confirm: false, back: false })
+      car.update(1 / 60, { throttle: 0.5, brake: 0, steer: 1, pause: false, confirm: false, back: false,
+      cameraSwitch: false })
       pw.step(1 / 60)
     }
 
@@ -380,7 +384,8 @@ export async function runTestHarness(): Promise<void> {
     car.setLookAt(track.getStartRotation())
 
     for (let i = 0; i < 300; i++) {
-      car.update(1 / 60, { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false })
+      car.update(1 / 60, { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false,
+      cameraSwitch: false })
       pw.step(1 / 60)
     }
 
@@ -412,7 +417,8 @@ export async function runTestHarness(): Promise<void> {
 
     for (let i = 0; i < 60; i++) {
       cars.forEach(car => {
-        car.update(1 / 60, { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false })
+        car.update(1 / 60, { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false,
+      cameraSwitch: false })
       })
       pw.step(1 / 60)
     }
@@ -529,7 +535,8 @@ export async function runTestHarness(): Promise<void> {
     carWet.setEnvironmentModifiers(wetMods)
 
     for (let i = 0; i < 180; i++) {
-      const input = { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false }
+      const input = { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false,
+      cameraSwitch: false }
       carDry.update(1 / 60, input)
       carWet.update(1 / 60, input)
       pw.step(1 / 60)
@@ -539,6 +546,37 @@ export async function runTestHarness(): Promise<void> {
     const wetSpeed = carWet.getSpeed()
     assert(wetSpeed < drySpeed, `Wet should be slower: dry=${drySpeed.toFixed(1)}, wet=${wetSpeed.toFixed(1)}`)
     pw.dispose()
+  })
+
+  // ── Phase 15: Camera Views ──
+  console.log('\n-- Phase 15: Camera Views --')
+  test('CameraController creates with chase view', () => {
+    const cam = new CameraController(new THREE.PerspectiveCamera())
+    assert(cam.getView() === 'chase', `Default view: ${cam.getView()}`)
+  })
+  test('cycleView cycles through all 4 views', () => {
+    const cam = new CameraController(new THREE.PerspectiveCamera())
+    const views: string[] = []
+    for (let i = 0; i < 4; i++) {
+      views.push(cam.cycleView())
+    }
+    assert(views[0] === 'windscreen', `After 1: ${views[0]}`)
+    assert(views[1] === 'hood', `After 2: ${views[1]}`)
+    assert(views[2] === 'bumper', `After 3: ${views[2]}`)
+    assert(views[3] === 'chase', `After 4: ${views[3]}`)
+  })
+  test('setView changes to specific view', () => {
+    const cam = new CameraController(new THREE.PerspectiveCamera())
+    cam.setView('hood')
+    assert(cam.getView() === 'hood', `View after set: ${cam.getView()}`)
+  })
+  test('getViewConfigs returns all 4 views', () => {
+    const cam = new CameraController(new THREE.PerspectiveCamera())
+    const configs = cam.getViewConfigs()
+    assert('chase' in configs, 'Missing chase')
+    assert('windscreen' in configs, 'Missing windscreen')
+    assert('hood' in configs, 'Missing hood')
+    assert('bumper' in configs, 'Missing bumper')
   })
 
   // ── Summary ──

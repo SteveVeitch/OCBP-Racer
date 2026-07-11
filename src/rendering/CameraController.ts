@@ -1,5 +1,7 @@
 import * as THREE from 'three'
 
+export type CameraView = 'chase' | 'windscreen' | 'hood' | 'bumper'
+
 export interface CameraConfig {
   distance: number
   height: number
@@ -12,23 +14,61 @@ export interface CameraConfig {
   wallCheckRadius: number
 }
 
-const DEFAULT_CONFIG: CameraConfig = {
-  distance: 6.0,
-  height: 2.5,
-  lookAhead: 1.0,
-  springStiffness: 30.0,
-  springDamping: 0.95,
-  rotationLag: 0.08,
-  baseFOV: 60,
-  fovRange: 2,
-  wallCheckRadius: 0.5
+const VIEW_CONFIGS: Record<CameraView, CameraConfig> = {
+  chase: {
+    distance: 6.0,
+    height: 2.5,
+    lookAhead: 1.0,
+    springStiffness: 30.0,
+    springDamping: 0.95,
+    rotationLag: 0.08,
+    baseFOV: 60,
+    fovRange: 2,
+    wallCheckRadius: 0.5
+  },
+  windscreen: {
+    distance: 0.3,
+    height: 1.2,
+    lookAhead: 2.0,
+    springStiffness: 80.0,
+    springDamping: 0.9,
+    rotationLag: 0.02,
+    baseFOV: 80,
+    fovRange: 5,
+    wallCheckRadius: 0.2
+  },
+  hood: {
+    distance: 0.1,
+    height: 0.9,
+    lookAhead: 3.0,
+    springStiffness: 100.0,
+    springDamping: 0.85,
+    rotationLag: 0.01,
+    baseFOV: 72,
+    fovRange: 4,
+    wallCheckRadius: 0.1
+  },
+  bumper: {
+    distance: 0.0,
+    height: 0.35,
+    lookAhead: 4.0,
+    springStiffness: 120.0,
+    springDamping: 0.8,
+    rotationLag: 0.005,
+    baseFOV: 85,
+    fovRange: 8,
+    wallCheckRadius: 0.0
+  }
 }
+
+const VIEW_ORDER: CameraView[] = ['chase', 'windscreen', 'hood', 'bumper']
 
 const raycaster = new THREE.Raycaster()
 
 export class CameraController {
   private camera: THREE.PerspectiveCamera
   private config: CameraConfig
+  private currentView: CameraView
 
   private velocity = new THREE.Vector3()
   private currentFOV: number
@@ -36,12 +76,42 @@ export class CameraController {
 
   constructor(camera: THREE.PerspectiveCamera, config?: Partial<CameraConfig>) {
     this.camera = camera
-    this.config = { ...DEFAULT_CONFIG, ...config }
+    this.currentView = 'chase'
+    this.config = { ...VIEW_CONFIGS.chase, ...config }
     this.currentFOV = this.config.baseFOV
   }
 
   setWallObjects(objects: THREE.Object3D[]): void {
     this.wallObjects = objects
+  }
+
+  cycleView(): CameraView {
+    const idx = VIEW_ORDER.indexOf(this.currentView)
+    this.currentView = VIEW_ORDER[(idx + 1) % VIEW_ORDER.length]
+    this.config = VIEW_CONFIGS[this.currentView]
+    this.velocity.set(0, 0, 0)
+    this.currentFOV = this.config.baseFOV
+    this.camera.fov = this.currentFOV
+    this.camera.updateProjectionMatrix()
+    return this.currentView
+  }
+
+  setView(view: CameraView): void {
+    if (this.currentView === view) return
+    this.currentView = view
+    this.config = VIEW_CONFIGS[view]
+    this.velocity.set(0, 0, 0)
+    this.currentFOV = this.config.baseFOV
+    this.camera.fov = this.currentFOV
+    this.camera.updateProjectionMatrix()
+  }
+
+  getView(): CameraView {
+    return this.currentView
+  }
+
+  getViewConfigs(): Record<CameraView, CameraConfig> {
+    return VIEW_CONFIGS
   }
 
   update(
@@ -53,7 +123,11 @@ export class CameraController {
     dt: number
   ): void {
     const targetPosition = this.calculateTargetPosition(carPosition, carQuaternion)
-    this.resolveWallCollision(carPosition, targetPosition)
+
+    if (this.currentView === 'chase') {
+      this.resolveWallCollision(carPosition, targetPosition)
+    }
+
     this.springFollow(targetPosition, dt)
     this.updateLookAt(carPosition, carQuaternion)
     this.updateFOV(speed, maxSpeed)

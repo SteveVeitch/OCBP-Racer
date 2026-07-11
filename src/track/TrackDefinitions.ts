@@ -193,6 +193,41 @@ export const TRACKS: TrackDefinition[] = [
     checkpointCount: 14,
     buildingDensity: 18,
     streetLightDensity: 14
+  },
+  {
+    id: 'typhoon-pass',
+    name: 'Typhoon Pass',
+    difficulty: 'Hard',
+    distanceKm: 0.65,
+    terrain: 'mountain',
+    defaultTimeOfDay: 'day',
+    defaultWeather: 'rain',
+    controlPoints: [
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(5, 0.5, 30),
+      new THREE.Vector3(15, 1.5, 55),
+      new THREE.Vector3(30, 2.5, 75),
+      new THREE.Vector3(50, 2.0, 85),
+      new THREE.Vector3(65, 1.0, 80),
+      new THREE.Vector3(75, 0.0, 65),
+      new THREE.Vector3(80, 0.5, 45),
+      new THREE.Vector3(70, 1.0, 25),
+      new THREE.Vector3(55, 1.5, 10),
+      new THREE.Vector3(40, 2.5, -5),
+      new THREE.Vector3(25, 3.0, -15),
+      new THREE.Vector3(10, 2.0, -30),
+      new THREE.Vector3(-5, 1.0, -45),
+      new THREE.Vector3(-15, 0.0, -55),
+      new THREE.Vector3(-20, 0.5, -40),
+      new THREE.Vector3(-15, 0.3, -20),
+      new THREE.Vector3(-5, 0.1, -5)
+    ],
+    roadColor: 0x3a3a3a,
+    roadColorWet: 0x2a2a3a,
+    barrierColor: 0x777777,
+    checkpointCount: 12,
+    buildingDensity: 0,
+    streetLightDensity: 0
   }
 ]
 

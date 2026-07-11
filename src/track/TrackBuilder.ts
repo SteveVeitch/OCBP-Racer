@@ -278,11 +278,16 @@ export class TrackBuilder {
       _scratchVec.copy(point).addScaledVector(right, -halfWidth)
       _scratchVec2.copy(point).addScaledVector(right, halfWidth)
 
-      vertices.push(_scratchVec.x, 0.01, _scratchVec.z)
-      vertices.push(_scratchVec2.x, 0.01, _scratchVec2.z)
+      vertices.push(_scratchVec.x, point.y + 0.01, _scratchVec.z)
+      vertices.push(_scratchVec2.x, point.y + 0.01, _scratchVec2.z)
 
-      normals.push(0, 1, 0)
-      normals.push(0, 1, 0)
+      const n = new THREE.Vector3().crossVectors(
+        new THREE.Vector3().subVectors(_scratchVec2, _scratchVec),
+        new THREE.Vector3(0, 1, 0)
+      ).normalize()
+
+      normals.push(n.x, n.y, n.z)
+      normals.push(n.x, n.y, n.z)
 
       uvs.push(0, t * 20)
       uvs.push(1, t * 20)
@@ -344,7 +349,7 @@ export class TrackBuilder {
         const angle = Math.atan2(_scratchVec4.x, _scratchVec4.z)
 
         const colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.5, length / 2)
-        colliderDesc.setTranslation(_scratchVec3.x, 0.5, _scratchVec3.z)
+        colliderDesc.setTranslation(_scratchVec3.x, _scratchVec3.y + 0.5, _scratchVec3.z)
         _scratchQuat.setFromAxisAngle(_axisY, angle)
         colliderDesc.setRotation(_scratchQuat)
         world.createCollider(colliderDesc, body)

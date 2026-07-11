@@ -146,6 +146,23 @@ export class Track {
     return this.spline
   }
 
+  getRoadHeight(position: THREE.Vector3): number {
+    let closestT = 0
+    let closestDist = Infinity
+    for (let i = 0; i < 50; i++) {
+      const t = i / 50
+      const point = this.spline.getPoint(t)
+      const dx = position.x - point.x
+      const dz = position.z - point.z
+      const dist = dx * dx + dz * dz
+      if (dist < closestDist) {
+        closestDist = dist
+        closestT = t
+      }
+    }
+    return this.spline.getPoint(closestT).y
+  }
+
   cleanup(scene: THREE.Scene, world: RAPIER.World): void {
     this.builder.cleanup(scene, world)
     this.checkpoints = []

@@ -65,6 +65,7 @@ export class CarController {
   private wheelSpin = 0
   private throttleLevel = 0
   private boostLevel = 0
+  private roadHeight = 0
 
   private wheelFL!: THREE.Group
   private wheelFR!: THREE.Group
@@ -299,13 +300,14 @@ export class CarController {
   private enforceGround(): void {
     const pos = this.body.translation()
     if (isNaN(pos.x) || isNaN(pos.y) || isNaN(pos.z)) {
-      this.body.setTranslation({ x: 0, y: 0.5, z: 0 }, true)
+      this.body.setTranslation({ x: 0, y: this.roadHeight + 0.5, z: 0 }, true)
       this.body.setLinvel({ x: 0, y: 0, z: 0 }, true)
       this.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
       return
     }
-    if (pos.y < 0.5) {
-      this.body.setTranslation({ x: pos.x, y: 0.5, z: pos.z }, true)
+    const minY = this.roadHeight + 0.5
+    if (pos.y < minY) {
+      this.body.setTranslation({ x: pos.x, y: minY, z: pos.z }, true)
     }
     const vel = this.body.linvel()
     if (Math.abs(vel.y) > 1e-4) {
@@ -446,6 +448,10 @@ export class CarController {
       brakingMultiplier: safe(mods.brakingMultiplier, 1.0),
       steerMultiplier: safe(mods.steerMultiplier, 1.0)
     }
+  }
+
+  setRoadHeight(h: number): void {
+    this.roadHeight = h
   }
 
   getEnvironmentModifiers(): EnvironmentModifiers {

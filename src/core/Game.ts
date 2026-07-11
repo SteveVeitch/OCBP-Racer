@@ -656,6 +656,8 @@ export class Game {
   private updatePhysics(dt: number): void {
     const inputState = this.input.getState()
     if (!this.isDemo) {
+      const roadH = this.track.getRoadHeight(this.car.getPosition())
+      this.car.setRoadHeight(roadH)
       this.car.update(dt, inputState)
     }
 
@@ -664,6 +666,8 @@ export class Game {
       aiInput.pause = false
       aiInput.confirm = false
       aiInput.back = false
+      const aiRoadH = this.track.getRoadHeight(ai.getCar().getPosition())
+      ai.getCar().setRoadHeight(aiRoadH)
       ai.getCar().update(dt, aiInput)
     })
 
@@ -1000,6 +1004,8 @@ export class Game {
       aiInput.pause = false
       aiInput.confirm = false
       aiInput.back = false
+      const aiRoadH = this.track.getRoadHeight(ai.getCar().getPosition())
+      ai.getCar().setRoadHeight(aiRoadH)
       ai.getCar().update(dt, aiInput)
     })
 

@@ -431,8 +431,8 @@ export async function runTestHarness(): Promise<void> {
 
   // ── Phase 11: Track Definitions ──
   console.log('\n-- Phase 11: Track Definitions --')
-  test('5 tracks defined', () => {
-    assert(TRACKS.length === 5, `Expected 5 tracks, got ${TRACKS.length}`)
+  test('6 tracks defined', () => {
+    assert(TRACKS.length === 6, `Expected 6 tracks, got ${TRACKS.length}`)
   })
   test('All tracks have required fields', () => {
     TRACKS.forEach(t => {
@@ -442,6 +442,12 @@ export async function runTestHarness(): Promise<void> {
       assert(t.distanceKm > 0, `${t.id} distanceKm <= 0`)
       assert(t.checkpointCount >= 6, `${t.id} has <6 checkpoints`)
     })
+  })
+  test('Typhoon Pass has elevation in control points', () => {
+    const tp = TRACKS.find(t => t.id === 'typhoon-pass')
+    assert(tp !== undefined, 'Typhoon Pass not found')
+    const hasElevation = tp!.controlPoints.some(p => p.y > 0.5)
+    assert(hasElevation, 'Typhoon Pass has no elevation changes')
   })
   test('Track difficulties range from Easy to Expert', () => {
     const diffs = TRACKS.map(t => t.difficulty)

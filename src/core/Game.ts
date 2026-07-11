@@ -12,6 +12,8 @@ import { Track } from '../track/Track'
 import { TRACKS, getTrackById, getTrackTimeOfDay, getTrackWeather } from '../track/TrackDefinitions'
 import { EnvironmentManager } from '../environment/EnvironmentManager'
 import { combineModifiers } from '../environment/EnvironmentModifiers'
+import { TimeOfDayPresets } from '../environment/TimeOfDayPresets'
+import { WeatherPresets } from '../environment/WeatherPresets'
 import { StateMachine, RaceResults } from './StateMachine'
 import { UIManager } from '../ui/UIManager'
 import { AudioManager } from '../audio/AudioManager'
@@ -88,6 +90,10 @@ export class Game {
   private pausePressed = false
   private transitionCooldown = 0
 
+  private isDemo = false
+  private lastActivityTime = 0
+  private static readonly DEMO_IDLE_TIMEOUT = 180
+
   constructor() {
     this.state = new StateMachine()
     this.ui = new UIManager(this.state)
@@ -161,6 +167,8 @@ export class Game {
 
       log('Starting game loop...')
       this.setupAutoPause()
+      this.setupActivityListeners()
+      this.lastActivityTime = performance.now() / 1000
       this.start()
       log('Game started OK — all systems go')
     } catch (err) {
@@ -462,6 +470,7 @@ export class Game {
     this.state.transition('MENU')
     this.paused = false
     this.raceActive = false
+    this.isDemo = false
   }
 
   private clearRaceEntities(): void {
@@ -506,7 +515,19 @@ export class Game {
 
     const currentState = this.state.getCurrent()
 
-    if (currentState === 'COUNTDOWN') {
+    if (currentState === 'DEMO') {
+      this.accumulator += deltaTime
+
+      while (this.accumulator >= this.PHYSICS_TIMESTEP) {
+        this.updateDemoPhysics(this.PHYSICS_TIMESTEP)
+        this.accumulator -= this.PHYSICS_TIMESTEP
+      }
+
+      this.updateParticles()
+      this.updateWeatherParticles()
+      this.updateDemoAudio()
+      this.checkDemoExit()
+    } else if (currentState === 'COUNTDOWN') {
       this.updateCountdown(deltaTime)
     } else if (currentState === 'RACING' && !this.paused) {
       this.accumulator += deltaTime
@@ -525,9 +546,18 @@ export class Game {
 
     this.updateCamera()
     this.render()
+
+    if (currentState === 'MENU' && !this.isDemo && this.state.getSettings().demoEnabled) {
+      const now = performance.now() / 1000
+      if (now - this.lastActivityTime >= Game.DEMO_IDLE_TIMEOUT) {
+        this.startDemo()
+      }
+    }
   }
 
   private handlePauseInput(): void {
+    if (this.isDemo) return
+
     const inputState = this.input.getState()
     const currentState = this.state.getCurrent()
 
@@ -578,7 +608,9 @@ export class Game {
 
   private updatePhysics(dt: number): void {
     const inputState = this.input.getState()
-    this.car.update(dt, inputState)
+    if (!this.isDemo) {
+      this.car.update(dt, inputState)
+    }
 
     this.aiControllers.forEach(ai => {
       const aiInput = ai.update(dt)
@@ -731,6 +763,16 @@ export class Game {
   }
 
   private updateCamera(): void {
+    if (this.isDemo) {
+      if (this.aiCars.length > 0) {
+        const aiCar = this.aiCars[0]
+        this.cameraController.update(
+          aiCar.getPosition(), aiCar.getVelocity(), aiCar.getQuaternion(),
+          aiCar.getSpeed(), aiCar.getMaxSpeed(), this.lastFrameDt
+        )
+      }
+      return
+    }
     if (!this.car) return
 
     const carPosition = this.car.getPosition()
@@ -767,6 +809,125 @@ export class Game {
     this.audio.setEngineVolume(settings.engineVolume)
     this.input?.setSteerSensitivity(settings.steerSensitivity)
     this.applyGraphicsQuality()
+  }
+
+  private setupActivityListeners(): void {
+    const resetTimer = () => {
+      this.lastActivityTime = performance.now() / 1000
+    }
+    window.addEventListener('keydown', resetTimer)
+    window.addEventListener('mousemove', resetTimer)
+    window.addEventListener('mousedown', resetTimer)
+    window.addEventListener('touchstart', resetTimer)
+  }
+
+  private startDemo(): void {
+    if (this.transitionCooldown > 0) return
+    this.transitionCooldown = 0.3
+    this.isDemo = true
+
+    this.clearRaceEntities()
+
+    const carIndex = Math.floor(Math.random() * CARS.length)
+    const trackIndex = Math.floor(Math.random() * TRACKS.length)
+    const weatherKeys: Array<keyof typeof WeatherPresets> = ['clear', 'rain', 'fog', 'storm']
+    const todKeys: Array<keyof typeof TimeOfDayPresets> = ['dawn', 'day', 'dusk', 'night']
+    const randomWeatherKey = weatherKeys[Math.floor(Math.random() * weatherKeys.length)]
+    const randomTodKey = todKeys[Math.floor(Math.random() * todKeys.length)]
+    const randomWeather = WeatherPresets[randomWeatherKey]
+    const randomTod = TimeOfDayPresets[randomTodKey]
+
+    const carDef = CARS[carIndex]
+    const trackDef = TRACKS[trackIndex]
+
+    this.state.setSelectedCar(carDef.id)
+    this.state.setSelectedTrack(trackDef.id)
+
+    if (trackDef.id !== this.track.getDefinition().id) {
+      this.cleanupStreetLights()
+      this.track.cleanup(this.scene, this.physics.getWorld())
+      this.environment.clearDecorations()
+      this.track = new Track(trackDef)
+      this.track.build(this.scene, this.physics.getWorld())
+      this.addStreetLights()
+      this.addTrackDecorations()
+    }
+
+    this.environment.applyTimeOfDay(randomTod)
+    this.environment.applyWeather(randomWeather)
+    const mods = combineModifiers(
+      randomWeather.gripMultiplier,
+      randomWeather.dragMultiplier,
+      randomWeather.brakingMultiplier,
+      randomWeather.steerMultiplier
+    )
+
+    const startRot = this.track.getStartRotation()
+    const aiPos = this.track.getStartPosition(0)
+    const aiCar = this.physics.createCarWithFactory(carDef.id, this.scene)
+    aiCar.setPosition(new THREE.Vector3(aiPos.x, 0.5, aiPos.z))
+    aiCar.setLookAt(startRot)
+    aiCar.resetPhysics()
+    aiCar.setEnvironmentModifiers(mods)
+    this.aiCars = [aiCar]
+    this.aiControllers = [new AIController(aiCar, this.track.getSpline(), 0.3, [aiCar])]
+
+    this.track.reset()
+
+    const behindDir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), startRot)
+    this.camera.position.set(aiPos.x + behindDir.x * 8, aiPos.y + 3, aiPos.z + behindDir.z * 8)
+    this.camera.lookAt(aiPos.x, aiPos.y + 1, aiPos.z)
+    this.cameraController.reset()
+
+    this.raceActive = true
+
+    try {
+      this.audio.stopRaceAudio()
+      this.audio.startRaceAudio()
+    } catch (err) {
+      logError('Audio init failed (non-fatal):', err)
+    }
+
+    this.state.transition('DEMO')
+    this.ui.showDemoHUD(carDef.name, trackDef.name, randomWeather.name, randomTod.name)
+  }
+
+  private checkDemoExit(): void {
+    const inputState = this.input.getState()
+    if (inputState.throttle > 0 || inputState.brake > 0 || Math.abs(inputState.steer) > 0 ||
+        inputState.pause || inputState.confirm || inputState.back) {
+      this.returnToMenu()
+    }
+  }
+
+  private updateDemoPhysics(dt: number): void {
+    this.aiControllers.forEach(ai => {
+      const aiInput = ai.update(dt)
+      aiInput.pause = false
+      aiInput.confirm = false
+      aiInput.back = false
+      ai.getCar().update(dt, aiInput)
+    })
+
+    this.physics.step(dt)
+  }
+
+  private updateDemoAudio(): void {
+    if (this.aiCars.length === 0) return
+    const aiCar = this.aiCars[0]
+
+    this.audio.playEngine(aiCar.getRPM(), 0)
+
+    const slipAngle = aiCar.getSlipAngle()
+    const gripCoeff = aiCar.getGripCoefficient()
+    if (slipAngle > 5 && gripCoeff < aiCar.getConfig().peakGrip * 0.8) {
+      const screechIntensity = Math.min(1, (slipAngle - 5) / 15)
+      this.audio.playTireScreech(screechIntensity)
+    } else {
+      this.audio.playTireScreech(0)
+    }
+
+    this.audio.playWindNoise(aiCar.getSpeed())
   }
 
   dispose(): void {

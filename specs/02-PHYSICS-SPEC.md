@@ -183,6 +183,7 @@ interface CarConfig {
   slipAnglePeak: number // degrees (6-12)
   slipAngleLimit: number // degrees (20-35)
   autoCorrect: number   // DEPRECATED — not used by grip/slip model
+  turboLagTime: number  // seconds (0 for NA cars)
 }
 ```
 
@@ -190,8 +191,8 @@ interface CarConfig {
 
 ### 4.2 Actual Car Parameters
 
-| Parameter | Phantom GT | Viper RS | Inferno SS | AeroVen TT |
-|-----------|-----------|----------|------------|------------|
+| Parameter | Rossini 488 | Weissach GT3 | Kaiju GT-R | Stingray Z06 |
+|-----------|------------|-------------|------------|-------------|
 | **Mass (kg)** | 1550 | 1400 | 1500 | 1250 |
 | **Engine Force (impulse)** | 800 | 850 | 950 | 750 |
 | **Brake Force (impulse)** | 2000 | 2200 | 1900 | 2400 |
@@ -204,6 +205,7 @@ interface CarConfig {
 | **Slip Angle Peak (°)** | 8 | 6 | 12 | 7 |
 | **Slip Angle Limit (°)** | 25 | 20 | 35 | 22 |
 | **Auto-Correct** | 0.4 | 0.6 | 0.2 | 0.5 |
+| **Turbo Lag (s)** | 0.15 | 0.00 | 0.25 | 0.00 |
 
 ### 4.3 RPM Calculation
 

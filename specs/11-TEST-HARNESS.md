@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The test harness is an automated in-browser test suite that validates all game systems. It runs 47 tests across 14 phases, covering project setup through full integration.
+The test harness is an automated in-browser test suite that validates all game systems. It runs 55+ tests across 16 phases, covering project setup through full integration.
 
 ## 2. Accessing the Test Harness
 
@@ -56,7 +56,7 @@ interface TestResult {
 ...
 
 === Results ===
-35 passed, 0 failed, 35 total
+55 passed, 0 failed, 55 total
 ```
 
 ### 3.4 Visual Overlay
@@ -64,9 +64,87 @@ interface TestResult {
 - Green text for passing tests (#00ff88)
 - Red text for failing tests (#ff4444)
 - Summary header with pass/fail count
+- Multi-column layout for compact display
 - If all pass: "All tests passed! Click anywhere to start the game."
 
-## 4. Test Inventory
+## 4. Multi-Column Layout
+
+### 4.1 Layout Structure
+The test harness overlay uses a multi-column layout to display tests compactly:
+
+```
+┌─────────────────────────────────────────────────────┐
+│  === OCBP Racer Test Harness ===                     │
+│                                                       │
+│  ┌──────────────────┐  ┌──────────────────┐          │
+│  │ Phase 0: Setup   │  │ Phase 1: Render  │          │
+│  │  ✓ Three.js      │  │  ✓ WebGL          │          │
+│  │  ✓ Car configs   │  │  ✓ Scene          │          │
+│  │  ✓ getCarById    │  │  ✓ Ground         │          │
+│  └──────────────────┘  └──────────────────┘          │
+│  ┌──────────────────┐  ┌──────────────────┐          │
+│  │ Phase 2: Physics │  │ Phase 3: Camera  │          │
+│  │  ✓ Rapier WASM   │  │  ✓ Controller    │          │
+│  │  ✓ Car body      │  │  ✓ Follows car   │          │
+│  │  ✓ Accelerates   │  └──────────────────┘          │
+│  │  ✓ Brakes        │  ┌──────────────────┐          │
+│  │  ✓ Steers        │  │ Phase 4: Track   │          │
+│  │  ✓ 4 configs     │  │  ✓ Track creates │          │
+│  └──────────────────┘  │  ✓ Closed loop   │          │
+│                         │  ✓ Checkpoints   │          │
+│  ...                    │  ✓ Lap counting  │          │
+│                         │  ✓ Builds scene  │          │
+│                         └──────────────────┘          │
+│                                                       │
+│  === Results ===                                      │
+│  55 passed, 0 failed, 55 total                        │
+└─────────────────────────────────────────────────────┘
+```
+
+### 4.2 CSS Implementation
+```css
+.test-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  padding: 16px;
+}
+
+.test-phase {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 12px;
+}
+
+.test-phase h3 {
+  color: #00ff88;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.test-item {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.test-pass { color: #00ff88; }
+.test-fail { color: #ff4444; }
+```
+
+### 4.3 Responsive Behavior
+- On wide screens (>1200px): 3 columns
+- On medium screens (800-1200px): 2 columns
+- On narrow screens (<800px): 1 column
+- Grid auto-fill handles this automatically
+
+### 4.4 Summary Bar
+- Fixed at bottom of overlay
+- Shows total pass/fail count
+- Green background if all pass
+- Red background if any fail
+
+## 5. Test Inventory
 
 ### Phase 0: Project Setup (3 tests)
 
@@ -74,7 +152,7 @@ interface TestResult {
 |---|-----------|------|-------------|
 | 1 | Three.js imports | Sync | Verifies THREE.Scene, PerspectiveCamera, WebGLRenderer exist |
 | 2 | Car configs defined | Sync | Checks 4 cars exist with valid ids, names, engineForce, maxSpeed |
-| 3 | getCarById works | Sync | Looks up 'phantom-gt' and verifies name |
+| 3 | getCarById works | Sync | Looks up 'rossini-488' and verifies name |
 
 ### Phase 1: Core Rendering (3 tests)
 
@@ -123,17 +201,19 @@ interface TestResult {
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 22 | Phantom GT config | Sync | Checks mass=1550, color=0xcccccc |
-| 23 | Viper RS config | Sync | Checks peakGrip=2.4 |
-| 24 | Inferno SS config | Sync | Checks engineForce=950 |
-| 25 | AeroVen TT config | Sync | Checks maxSpeed=265 |
+| 22 | Rossini 488 config | Sync | Checks mass=1550, color=0xdc143c |
+| 23 | Weissach GT3 config | Sync | Checks peakGrip=2.4 |
+| 24 | Kaiju GT-R config | Sync | Checks engineForce=950 |
+| 25 | Stingray Z06 config | Sync | Checks maxSpeed=265 |
 | 26 | CarFactory creates colored mesh | Async | Creates car, checks mesh has ≥5 children (body+cabin+4wheels) |
+| 26b | Turbo lag times correct | Sync | Checks turboLagTime: 488=0.15, GT3=0.0, GTR=0.25, Z06=0.0 |
 
-### Phase 7: Audio System (1 test)
+### Phase 7: Audio System (2 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
 | 27 | AudioManager creates without error | Sync | Creates AudioManager, checks not null |
+| 27b | Per-car engine config exists | Sync | Checks all 4 cars have engine.type, baseFrequency, maxFrequency |
 
 ### Phase 8: AI Opponents (2 tests)
 
@@ -162,9 +242,9 @@ interface TestResult {
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 36 | 5 tracks defined | Sync | Checks TRACKS.length === 5 |
+| 36 | 6 tracks defined | Sync | Checks TRACKS.length === 6 |
 | 37 | All tracks have required fields | Sync | Verifies id, name, controlPoints (>=10), distanceKm, checkpointCount (>=6) |
-| 38 | Track difficulties range from Easy to Expert | Sync | Checks all four difficulty levels present |
+| 38 | Track difficulties range from Easy to Expert | Sync | Checks all difficulty levels present |
 | 39 | Track IDs are unique | Sync | Checks no duplicate IDs |
 | 40 | All tracks create valid splines | Sync | Creates Track for each definition, verifies spline points not too close |
 | 41 | All tracks build into scene | Async | Builds each track into scene, checks meshes added |
@@ -173,8 +253,8 @@ interface TestResult {
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 42 | 4 time-of-day presets exist | Sync | Verifies dawn, day, dusk, night presets with valid ambientIntensity, fogNear/Far, temperature |
-| 43 | Time-of-day presets have valid values | Sync | Checks ambientIntensity [0-2], fogNear > 0, fogFar > fogNear, temperatureCelsius is number |
+| 42 | 4 time-of-day presets exist | Sync | Verifies dawn, day, dusk, night presets |
+| 43 | Time-of-day presets have valid values | Sync | Checks ambientIntensity, fogNear/Far, temperature |
 
 ### Phase 13: Weather System (4 tests)
 
@@ -185,42 +265,72 @@ interface TestResult {
 | 46 | Storm reduces grip below rain | Sync | Checks storm.gripMultiplier < rain.gripMultiplier |
 | 47 | Environment modifiers combine correctly | Sync | Checks combineModifiers returns correct values |
 
-**Total: 47 tests**
+### Phase 14: Turbo Lag (3 tests)
 
-## 5. Test Dependencies
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 48 | Turbo cars have positive lag | Sync | Checks Rossini 488 and Kaiju GT-R turboLagTime > 0 |
+| 49 | NA cars have zero lag | Sync | Checks Weissach GT3 and Stingray Z06 turboLagTime === 0 |
+| 50 | Boost level ramps correctly | Sync | Simulates throttle-on timing, checks boostLevel progression |
 
-### 5.1 Required Systems
+### Phase 15: Camera Views (3 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 51 | 4 camera views defined | Sync | Verifies Chase, Windscreen, Hood, Bumper parameters |
+| 52 | Camera view cycling works | Sync | Cycles through views, checks all return to Chase |
+| 53 | Camera FOV varies by view | Sync | Checks each view has different BaseFOV |
+
+### Phase 16: Scoring + Leaderboard (4 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 54 | Scoring points correct | Sync | Checks 1st=10, 2nd=7, 3rd=5, 4th=2 |
+| 55 | Wall hits tracked | Sync | Verifies wallHitCount increments on collision |
+
+### Phase 17: Demo Mode (2 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 56 | DEMO state exists | Sync | Creates StateMachine, checks DEMO is valid GameState |
+| 57 | demoEnabled defaults to true | Sync | Checks default settings.demoEnabled === true |
+
+**Total: 57 tests** (55 base + 2 new)
+
+## 6. Test Dependencies
+
+### 6.1 Required Systems
 | System | Tests Using It |
 |--------|---------------|
 | Three.js | 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 26 |
 | Rapier.js | 7, 8, 9, 10, 11, 12, 19, 26, 28, 29, 34, 35 |
 | CarFactory | 8, 9, 10, 11, 12, 26, 34, 35 |
-| CarConfigs | 2, 3, 22, 23, 24, 25 |
+| CarConfigs | 2, 3, 22, 23, 24, 25, 26b, 27b, 48, 49 |
 | Track | 15, 16, 17, 18, 19, 28, 29, 34, 35 |
 | SplinePath | 16, 17, 19 |
 | AIController | 28, 29 |
 | InputManager | 20, 21 |
 | StateMachine | 30, 31, 32, 33 |
-| AudioManager | 27 |
-| CameraController | 13, 14 |
+| AudioManager | 27, 27b |
+| CameraController | 13, 14, 51, 52, 53 |
 
-### 5.2 Async Tests
+### 6.2 Async Tests
 Tests 7, 8, 9, 10, 11, 12, 19, 26, 28, 29, 34, 35 require async execution because they initialize Rapier.js WASM. Each test creates and disposes its own PhysicsWorld instance.
 
-### 5.3 Test Isolation
+### 6.3 Test Isolation
 - Each async test creates its own PhysicsWorld and disposes it after
 - No shared state between tests (except the results array)
 - Tests can run in any order
 
-## 6. Running Tests
+## 7. Running Tests
 
-### 6.1 Development
+### 7.1 Development
 ```bash
 npm run dev
 # Open http://localhost:3000?test
 ```
 
-### 6.2 Expected Output (Console)
+### 7.2 Expected Output (Console)
 ```
 === OCBP Racer Test Harness ===
 
@@ -258,14 +368,16 @@ npm run dev
   ✓ Default input is zeroed
 
 -- Phase 6: Car Roster --
-  ✓ Phantom GT config
-  ✓ Viper RS config
-  ✓ Inferno SS config
-  ✓ AeroVen TT config
+  ✓ Rossini 488 config
+  ✓ Weissach GT3 config
+  ✓ Kaiju GT-R config
+  ✓ Stingray Z06 config
   ✓ CarFactory creates colored mesh
+  ✓ Turbo lag times correct
 
 -- Phase 7: Audio System --
   ✓ AudioManager creates without error
+  ✓ Per-car engine config exists
 
 -- Phase 8: AI Opponents --
   ✓ AIController creates
@@ -281,18 +393,54 @@ npm run dev
   ✓ Full integration: car on track
   ✓ Full integration: 4 cars on track
 
+-- Phase 11: Track Definitions --
+  ✓ 6 tracks defined
+  ✓ All tracks have required fields
+  ✓ Track difficulties range from Easy to Expert
+  ✓ Track IDs are unique
+  ✓ All tracks create valid splines
+  ✓ All tracks build into scene
+
+-- Phase 12: Time of Day --
+  ✓ 4 time-of-day presets exist
+  ✓ Time-of-day presets have valid values
+
+-- Phase 13: Weather System --
+  ✓ 4 weather presets exist
+  ✓ Clear weather has no modifiers
+  ✓ Storm reduces grip below rain
+  ✓ Environment modifiers combine correctly
+
+-- Phase 14: Turbo Lag --
+  ✓ Turbo cars have positive lag
+  ✓ NA cars have zero lag
+  ✓ Boost level ramps correctly
+
+-- Phase 15: Camera Views --
+  ✓ 4 camera views defined
+  ✓ Camera view cycling works
+  ✓ Camera FOV varies by view
+
+-- Phase 16: Scoring --
+  ✓ Scoring points correct
+  ✓ Wall hits tracked
+
+-- Phase 17: Demo Mode --
+  ✓ DEMO state exists
+  ✓ demoEnabled defaults to true
+
 === Results ===
-35 passed, 0 failed, 35 total
+57 passed, 0 failed, 57 total
 ```
 
-## 7. Failure Handling
+## 8. Failure Handling
 
-### 7.1 Failed Test Display
+### 8.1 Failed Test Display
 - Failed tests shown in red with error message
 - Console output shows `✗` prefix with error details
 - Game cannot be started from overlay if any tests fail
 
-### 7.2 Common Failure Causes
+### 8.2 Common Failure Causes
 | Failure | Likely Cause |
 |---------|-------------|
 | Three.js imports | Three.js not installed or import path wrong |
@@ -301,13 +449,15 @@ npm run dev
 | Track creates | Track.ts or SplinePath.ts broken |
 | AI produces input | AIController.ts broken |
 | StateMachine transitions | StateMachine.ts state machine broken |
+| Turbo lag times | CarConfig.turboLagTime not added |
+| Camera views | CameraController view system not implemented |
 
-## 8. Adding New Tests
+## 9. Adding New Tests
 
-### 8.1 Location
+### 9.1 Location
 All tests are in `src/test-harness.ts`.
 
-### 8.2 Adding a Sync Test
+### 9.2 Adding a Sync Test
 ```typescript
 test('My new test', () => {
   const result = someFunction()
@@ -315,7 +465,7 @@ test('My new test', () => {
 })
 ```
 
-### 8.3 Adding an Async Test
+### 9.3 Adding an Async Test
 ```typescript
 await testAsync('My async test', async () => {
   const pw = new PhysicsWorld()
@@ -325,14 +475,15 @@ await testAsync('My async test', async () => {
 })
 ```
 
-### 8.4 Naming Convention
+### 9.4 Naming Convention
 - Use descriptive names (e.g., "Car accelerates on throttle")
 - Group by phase with console.log headers
 - Keep tests focused (one assertion per test ideal)
 
-## 9. Performance Considerations
+## 10. Performance Considerations
 
 - Async tests create/dispose PhysicsWorld instances (Rapier WASM)
-- Total test execution: ~2-5 seconds depending on hardware
+- Total test execution: ~3-6 seconds depending on hardware
 - No network requests during tests (all local)
 - Test overlay is DOM-based (not canvas)
+- Multi-column layout reduces vertical scroll

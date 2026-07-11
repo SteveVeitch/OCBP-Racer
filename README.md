@@ -24,7 +24,7 @@ Run the automated test suite:
 http://localhost:3000?test
 ```
 
-47 tests validate all game systems. Click the results overlay to start the game.
+55+ tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 
@@ -37,12 +37,26 @@ http://localhost:3000?test
 | Steer Left | A / ← | Left Stick ← |
 | Steer Right | D / → | Left Stick → |
 | Pause | Escape | Start |
+| Camera | C | Y |
 | Confirm | Enter / Space | A |
 | Back | Escape / Backspace | B |
+
+All gameplay actions are **rebindable** via the Settings menu.
 
 ### Reverse Gear
 
 Hold **S** (or **LT**) while nearly stopped to reverse. Steering directions remain intuitive (A = left, D = right) even when reversing.
+
+### Camera Views
+
+Press **C** (or **Y**) to cycle through camera views:
+
+| View | Description |
+|------|-------------|
+| Chase | Third-person, spring follow, look-ahead |
+| Windscreen | Interior view, wide FOV |
+| Hood | On-hood, aggressive angle |
+| Bumper | Low, maximum speed sensation |
 
 ### Game Flow
 
@@ -50,21 +64,25 @@ Hold **S** (or **LT**) while nearly stopped to reverse. Steering directions rema
 Main Menu → Car Select → Track Select → Countdown → Race → Results → Repeat
 ```
 
+### Demo / Attract Mode
+
+After 3 minutes of inactivity on the main menu, a demo race begins automatically with a random car, track, weather, and time-of-day. A single AI car drives at a leisurely pace. Press any key to return to the menu. Can be disabled in Settings.
+
 ## The Cars
 
-| Car | Style | Top Speed | Personality |
-|-----|-------|-----------|-------------|
-| **Phantom GT** | Grand Tourer | 235 km/h | Balanced, stable, beginner-friendly |
-| **Viper RS** | Track Sports | 245 km/h | Highest grip, precise, rewards skill |
-| **Inferno SS** | Muscle Exotic | 250 km/h | High power, loose rear, drifts easily |
-| **AeroVen TT** | Hypercar | 265 km/h | Lightest, fastest, agile |
+| Car | Engine | Top Speed | Personality |
+|-----|--------|-----------|-------------|
+| **Rossini 488** | 3.9L TT V8 | 235 km/h | Balanced, stable, beginner-friendly |
+| **Weissach GT3** | 4.0L NA Flat-6 | 245 km/h | Highest grip, precise, rewards skill |
+| **Kaiju GT-R** | 3.8L TT V6 | 250 km/h | High power, loose rear, drifts easily |
+| **Stingray Z06** | 5.5L NA V8 | 265 km/h | Lightest, fastest, agile |
 
-Each car has distinct handling tuned through 12 parameters: mass, engine force, brake force, steering speed, max steer angle, top speed, drag, grip, downforce, slip angles, and auto-correct strength.
+Each car has distinct handling, engine sound, and turbo behavior. Turbocharged cars (Rossini 488, Kaiju GT-R) exhibit throttle lag, while NA cars (Weissach GT3, Stingray Z06) respond instantly.
 
 ### Car Stats
 
-| Stat | Phantom GT | Viper RS | Inferno SS | AeroVen TT |
-|------|-----------|----------|------------|------------|
+| Stat | Rossini 488 | Weissach GT3 | Kaiju GT-R | Stingray Z06 |
+|------|------------|-------------|------------|-------------|
 | Power | ████████░░ | █████████░ | ██████████ | ███████░░░ |
 | Grip | ████████░░ | ██████████ | ██████░░░░ | █████████░ |
 | Speed | ████████░░ | █████████░ | █████████░ | ██████████ |
@@ -79,6 +97,7 @@ Each car has distinct handling tuned through 12 parameters: mass, engine force, 
 | **Thunder Ridge** | Hard | 0.70 km | Mountain | Day, Clear |
 | **Neon District** | Expert | 0.55 km | Urban | Night, Rain |
 | **Iron Circuit** | Expert | 0.85 km | Industrial | Dawn, Fog |
+| **Typhoon Pass** | Hard | 0.65 km | Mountain | Day, Rain |
 
 Each track has distinct terrain-themed decorations (buildings, trees, rocks, industrial structures), street light density, and default weather/time-of-day conditions. Weather can be overridden per race.
 
@@ -88,6 +107,37 @@ Each track has distinct terrain-themed decorations (buildings, trees, rocks, ind
 - **4 time-of-day presets**: Dawn, Day, Dusk, Night — each sets ambient/directional lighting, fog, and sky color
 - **Rain particles**: Up to 3000 instanced rain drops during rain/storm
 - Environmental modifiers apply equally to player and AI for fair racing
+
+## Scoring & Leaderboard
+
+### Race Points
+
+| Position | Points |
+|----------|--------|
+| 1st | 10 |
+| 2nd | 7 |
+| 3rd | 5 |
+| 4th | 2 |
+
+### Cleanest Rating
+- Wall hits tracked per race
+- Fewer wall hits = cleaner race
+- Leaderboard shows best time, wall hits, and top speed per track
+
+## Settings
+
+| Setting | Description |
+|---------|-------------|
+| Master Volume | Overall audio volume |
+| Engine Volume | Engine + procedural sound volume |
+| Steer Sensitivity | Steering response curve |
+| Graphics Quality | Bloom strength + pixel ratio (Low/Med/High) |
+| Fog Toggle | Enable/disable fog (for testing) |
+| Camera Default | Starting camera view |
+| Demo Mode | Enable/disable attract mode (on/off) |
+| Key Bindings | Rebind all gameplay actions |
+
+Settings are persisted to localStorage.
 
 ## Technical Architecture
 
@@ -104,10 +154,11 @@ Each track has distinct terrain-themed decorations (buildings, trees, rocks, ind
 The game uses an arcade-realistic physics model:
 
 - **Engine force** applied as impulse (N·s per step), diminishing with speed
-- **Throttle ramp-up** — 0.4s from 0 to full power (prevents snap)
+- **Turbo lag** — delayed power delivery for turbocharged cars (0.15-0.25s)
+- **Throttle ramp-up** — 2.5/s from 0 to full power (prevents snap)
 - **Linear drag** opposes motion (`dragCoeff × speed × 0.01`)
 - **Downforce** increases grip at speed
-- **Grip/slip model** — triangle curve from slip angle to grip coefficient, replaces auto-correct
+- **Grip/slip model** — triangle curve from slip angle to grip coefficient
 - **Environmental physics** — weather modifiers multiply grip, drag, braking, and steering forces
 - **Body roll** — mesh tilts ±5° in corners based on lateral velocity
 - **Wheel animation** — spin with speed, front wheels steer
@@ -116,38 +167,18 @@ The game uses an arcade-realistic physics model:
 
 Physics runs at a fixed 120 Hz timestep with accumulator pattern.
 
-### Car Physics Parameters
-
-```typescript
-interface CarConfig {
-  mass: number          // kg (1250-1550)
-  engineForce: number   // impulse (750-950)
-  brakeForce: number    // impulse (1900-2400)
-  steerSpeed: number    // rad/s (1.8-2.5)
-  maxSteerAngle: number // radians (0.42-0.48)
-  maxSpeed: number      // km/h (235-265)
-  dragCoeff: number     // linear (1.3-1.6)
-  peakGrip: number      // coefficient (1.6-2.4)
-  downforce: number     // coefficient (0.8-1.8)
-  slipAnglePeak: number // degrees (6-12)
-  slipAngleLimit: number // degrees (20-35)
-  autoCorrect: number   // 0-1 (0.2-0.6)
-}
-```
-
 ### Rendering
 
-- Night urban aesthetic with exponential fog
+- Dynamic time-of-day lighting (dawn/day/dusk/night)
+- Weather effects (rain particles, fog density)
 - ACES Filmic tone mapping (exposure 1.4)
 - Ambient + hemisphere + directional lighting (dynamic via EnvironmentManager)
-- 4 time-of-day presets (dawn/day/dusk/night) — ambient color, directional angle, fog, sky
-- 4 weather presets (clear/rain/fog/storm) — fog density, visibility
 - 20+ street lights per track (point lights, warm orange)
-- Car headlights (spot lights, intensity 8)
+- Car headlights (spot lights, intensity 8) — off on day tracks
 - Car taillights (point lights, red)
-- **Bloom post-processing** (UnrealBloomPass) — makes emissive materials glow
-- **Camera wall collision** — raycast prevents camera clipping through barriers
-- **Rain particles** — 3000-instance InstancedMesh during rain/storm
+- **Bloom post-processing** (UnrealBloomPass)
+- **Camera wall collision** — raycast prevents camera clipping
+- **Rain particles** — 3000-instance InstancedMesh
 - Terrain-themed decorations (buildings, trees, rocks, industrial structures)
 - Tire smoke particles during drift
 - Body roll and wheel animation
@@ -155,21 +186,20 @@ interface CarConfig {
 
 ### Car Mesh
 
-Each car is a procedural sports car built from box geometry:
-- Lower body, hood, cabin (glass), roof, rear deck
-- Bumpers, front spoiler
+Each car is a distinct procedural shape built from box/cylinder/lathe geometry:
+- Unique silhouette per car (not identical boxes with different colors)
 - Headlights and taillights with emissive materials
 - 4 wheels with tire + rim detail
 - Headlight/taillight point lights attached to car group
+- Headlights off on day tracks, on at night/dusk/dawn
 
 ### AI
 
 3 AI opponents with 3-state behavior:
 - **STARTING** — Cautious launch with throttle ramp and 3-second delay
-- **RACING** — Normal racing with corner speed reduction, 5m car avoidance (steer + brake + throttle reduction)
-- **RECOVERING** — Post-crash state, cuts throttle, steers away from obstacles, rejoins when aligned with track
+- **RACING** — Normal racing with corner speed reduction, 5m car avoidance
+- **RECOVERING** — Post-crash state, cuts throttle, steers away from obstacles
 - Racing line tracking via closest spline point
-- Configurable aggressiveness per car (0.3-0.7)
 - Independent lap progress tracking
 
 ### Input
@@ -179,11 +209,17 @@ Each car is a procedural sports car built from box geometry:
 - Steering sensitivity curve: exponent 1.4
 - Hot-plug detection for gamepads
 - Correct steering in reverse (A=left, D=right)
+- **Rebindable controls** — all gameplay actions remappable
+- Window blur handling — clears keys, auto-pauses
 
 ### Audio
 
 - 100% procedural synthesis via Web Audio API — no audio files
-- Engine: sawtooth + square oscillators, frequency mapped to RPM
+- **Per-car engine synthesis** — distinct sound per engine type
+- **Turbo whistle** — boost-linked sine oscillator (2-8kHz)
+- **Turbo flutter** — bandpass noise burst on throttle release
+- **Exhaust pops** — noise bursts on deceleration
+- **RPM wobble** — pitch variation near redline
 - Tire screech: bandpass-filtered white noise, triggered by slip angle
 - Wind: lowpass-filtered white noise, scales with speed
 - Collision: noise burst + sine tone with decay
@@ -194,9 +230,12 @@ Each car is a procedural sports car built from box geometry:
 - HTML/CSS overlay on Three.js canvas
 - Neon green (#00ff88) + hot pink (#ff3366) + gold (#ffcc00) design system
 - Rajdhani font (Google Fonts)
-- Screens: Main Menu, Car Select, Track Select, Countdown, HUD, Pause, Results, Settings
-- **Settings menu** — master volume, engine volume, steer sensitivity, graphics quality (Low/Med/High)
-- **Responsive scaling** — CSS transform scales UI to any resolution (1920×1080 base)
+- Screens: Main Menu, Car Select, Track Select, Countdown, HUD, Pause, Results, Settings, Leaderboard, Demo
+- **Settings menu** — volume, sensitivity, graphics, fog toggle, camera default, key bindings
+- **Leaderboard** — per-track + overall best times, wall hits, top speed
+- **Mini-map** — player + AI positions during race
+- **Scoring** — 10/7/5/2 points per position
+- **Responsive scaling** — CSS transform scales UI to any resolution
 - **Settings persistence** — saved to localStorage
 - Centered flexbox layout
 - Loading screen with CSS spinner
@@ -205,10 +244,10 @@ Each car is a procedural sports car built from box geometry:
 
 ```
 OCBP Racer/
-├── specs/                      # 12 SDD specification documents
+├── specs/                      # SDD specification documents
 ├── src/
 │   ├── main.ts                 # Entry point
-│   ├── test-harness.ts         # 47 automated tests
+│   ├── test-harness.ts         # 55 automated tests
 │   ├── core/
 │   │   ├── Game.ts             # Main game loop + race logic
 │   │   └── StateMachine.ts     # Game state transitions
@@ -216,20 +255,20 @@ OCBP Racer/
 │   │   └── InputManager.ts     # Keyboard + gamepad input
 │   ├── physics/
 │   │   ├── PhysicsWorld.ts     # Rapier.js WASM wrapper
-│   │   └── CarController.ts    # Car physics, grip/slip, env modifiers
+│   │   └── CarController.ts    # Car physics, grip/slip, turbo lag, env modifiers
 │   ├── rendering/
-│   │   ├── CameraController.ts # Chase cam with spring follow + wall collision
+│   │   ├── CameraController.ts # 4 camera views + spring follow + wall collision
 │   │   ├── ParticleSystem.ts   # Tire smoke particles
 │   │   └── WeatherParticleSystem.ts  # Rain particles (InstancedMesh)
 │   ├── audio/
-│   │   └── AudioManager.ts     # Web Audio API procedural synthesis
+│   │   └── AudioManager.ts     # Per-car engine synthesis, turbo, exhaust
 │   ├── cars/
-│   │   ├── CarConfigs.ts       # 4 car definitions
-│   │   └── CarFactory.ts       # Car mesh + body creation
+│   │   ├── CarConfigs.ts       # 4 car definitions with engines
+│   │   └── CarFactory.ts       # Distinct car mesh + body creation
 │   ├── track/
 │   │   ├── Track.ts            # Track logic + checkpoints
 │   │   ├── TrackBuilder.ts     # Procedural road + barriers + cleanup
-│   │   ├── TrackDefinitions.ts # 5 track definitions with control points
+│   │   ├── TrackDefinitions.ts # 6 track definitions with control points
 │   │   └── SplinePath.ts       # Catmull-Rom spline
 │   ├── environment/
 │   │   ├── EnvironmentManager.ts     # Lighting, fog, sky, decorations
@@ -237,9 +276,9 @@ OCBP Racer/
 │   │   ├── WeatherPresets.ts         # 4 presets (clear/rain/fog/storm)
 │   │   └── EnvironmentModifiers.ts   # Physics multiplier structs
 │   ├── ai/
-│   │   └── AIController.ts     # AI 3-state behavior (STARTING/RACING/RECOVERING)
+│   │   └── AIController.ts     # AI 3-state behavior
 │   └── ui/
-│       └── UIManager.ts        # HTML/CSS overlay UI
+│       └── UIManager.ts        # HTML/CSS overlay UI + leaderboard
 ├── index.html
 ├── package.json
 ├── tsconfig.json
@@ -279,12 +318,12 @@ The game is designed using a comprehensive Software Design Document (SDD) system
 | `00-GAME-DESIGN-DOCUMENT.md` | Game overview, vision, core loop |
 | `01-TECHNICAL-ARCHITECTURE.md` | Tech stack, file structure, data flow |
 | `02-PHYSICS-SPEC.md` | Physics model, car forces, grip model |
-| `03-INPUT-SPEC.md` | Input mapping, dead zones, response curves |
-| `04-RENDERING-SPEC.md` | Rendering pipeline, lighting, materials |
-| `05-AUDIO-SPEC.md` | Audio architecture, sound categories |
-| `06-TRACK-SPEC.md` | Track design, checkpoints, wrong-way |
-| `07-CAR-SPEC.md` | Car roster, tuning parameters, mesh |
-| `08-UI-SPEC.md` | UI screens, styling, HUD layout |
+| `03-INPUT-SPEC.md` | Input mapping, rebindable controls, dead zones |
+| `04-RENDERING-SPEC.md` | Rendering pipeline, 4 camera views, materials |
+| `05-AUDIO-SPEC.md` | Per-car engine synthesis, turbo, exhaust pops |
+| `06-TRACK-SPEC.md` | 6 tracks, checkpoints, wrong-way detection |
+| `07-CAR-SPEC.md` | Car roster, engines, turbo lag, procedural meshes |
+| `08-UI-SPEC.md` | UI screens, scoring, leaderboard, settings |
 | `09-ASSET-PIPELINE.md` | Asset workflow, placeholder strategy |
 | `10-MVP-ROADMAP.md` | Build phases, completion status |
 | `11-TEST-HARNESS.md` | Test suite documentation |

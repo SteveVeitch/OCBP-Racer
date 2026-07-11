@@ -2,14 +2,25 @@
 
 ## 1. Track Philosophy
 
-- **Single track for MVP:** "Midnight Circuit"
-- Urban night oval circuit aesthetic
-- Learnable layout that rewards skill
-- Mix of sweepers and straight sections
+- **6 tracks** with distinct themes, difficulty, and environmental conditions
+- Each track has unique terrain-themed decorations and environmental presets
+- Weather can be overridden per race
+- Tracks range from beginner-friendly ovals to expert technical circuits
 
-## 2. Track Design: "Midnight Circuit"
+## 2. Track Roster
 
-### 2.1 Overview
+| # | Track | Difficulty | Distance | Terrain | Default Time | Default Weather | Checkpoints |
+|---|-------|-----------|----------|---------|-------------|-----------------|-------------|
+| 1 | Midnight Circuit | Easy | 0.22 km | Urban | Night | Clear | 8 |
+| 2 | Sunset Boulevard | Medium | 0.45 km | Coastal | Dusk | Clear | 10 |
+| 3 | Thunder Ridge | Hard | 0.70 km | Mountain | Day | Clear | 12 |
+| 4 | Neon District | Expert | 0.55 km | Urban | Night | Rain | 12 |
+| 5 | Iron Circuit | Expert | 0.85 km | Industrial | Dawn | Fog | 14 |
+| 6 | Typhoon Pass | Hard | 0.65 km | Mountain | Day | Rain | 12 |
+
+## 3. Track Design: "Midnight Circuit"
+
+### 3.1 Overview
 ```
 Total Length:     ~220m (closed oval)
 Lap Count:        3 (default)
@@ -19,25 +30,7 @@ Theme:            City street circuit
 Shape:            Oval (rotated +90° from base orientation)
 ```
 
-### 2.2 Layout Shape
-
-```
-              START/FINISH
-                  ↓
-         ╭────────────╮
-    ╭────╯            ╰────╮
-    │                      │
-    │   LEFT STRAIGHT      │
-    │                      │
-    ╰────╮            ╭────╯
-         │   RIGHT       │
-         │  STRAIGHT     │
-         ╰────────────╯
-```
-
-The track is a closed oval with control points rotated +90° so the initial tangent points +Z (toward the camera).
-
-### 2.3 Control Points
+### 3.2 Control Points
 
 12 Catmull-Rom control points defining the oval:
 
@@ -56,7 +49,7 @@ The track is a closed oval with control points rotated +90° so the initial tang
 | 10 | (-8, 0, -45) | Turn entry |
 | 11 | (0, 0, -25) | Return to start |
 
-### 2.4 Spline Configuration
+### 3.3 Spline Configuration
 ```
 Curve Type:       CatmullRomCurve3
 Closed:           true
@@ -65,31 +58,126 @@ Direction:        Counter-clockwise (when viewed from above)
 Initial Tangent:  +Z direction (toward camera)
 ```
 
-## 3. Track Geometry
+## 4. Track Design: "Typhoon Pass"
 
-### 3.1 Spline-Based Construction
+### 4.1 Overview
+```
+Total Length:     ~650m (winding mountain pass)
+Lap Count:        3 (default)
+Surface:          Wet asphalt (rain)
+Setting:          Mountain day with rain
+Theme:            Alpine mountain pass with elevation
+Shape:            Winding S-curves with switchbacks
+```
+
+### 4.2 Track Theme
+- Mountain pass through steep terrain
+- Elevation changes along the track (hills and dips)
+- Rain weather by default (wet surface, reduced grip)
+- Trees and rocks lining the track
+- Guardrails on cliff edges
+- Overcast sky with rain particles
+- Day time with dramatic cloud cover
+
+### 4.3 Control Points
+
+18 Catmull-Rom control points defining the mountain pass:
+
+| Index | Position (x, y, z) | Description |
+|-------|-------------------|-------------|
+| 0 | (0, 0, 0) | Start/finish |
+| 1 | (5, 0.5, 30) | Gentle uphill |
+| 2 | (15, 1.5, 55) | Climbing right |
+| 3 | (30, 2.5, 75) | Hill crest |
+| 4 | (50, 2.0, 85) | Crest + turn left |
+| 5 | (65, 1.0, 80) | Downhill left |
+| 6 | (75, 0.0, 65) | Valley floor |
+| 7 | (80, 0.5, 45) | S-curve entry |
+| 8 | (70, 1.0, 25) | S-curve mid |
+| 9 | (55, 1.5, 10) | S-curve exit, climbing |
+| 10 | (40, 2.5, -5) | Ridge line |
+| 11 | (25, 3.0, -15) | High point |
+| 12 | (10, 2.0, -30) | Downhill switchback |
+| 13 | (-5, 1.0, -45) | Tight hairpin |
+| 14 | (-15, 0.0, -55) | Valley return |
+| 15 | (-20, 0.5, -40) | Gentle climb back |
+| 16 | (-15, 0.3, -20) | Final approach |
+| 17 | (-5, 0.1, -5) | Return to start |
+
+### 4.4 Elevation Profile
+```
+Height
+  3m │         ╭──╮
+  2m │    ╭───╯  ╰──╮
+  1m │───╯          ╰──╮
+  0m │                 ╰──────────
+     └──────────────────────────────→ Distance
+     Start                       Finish
+```
+
+Maximum elevation change: ~3.0m
+Smooth sinusoidal elevation for comfortable racing feel.
+
+### 4.5 Spline Configuration
+```
+Curve Type:       CatmullRomCurve3
+Closed:           true
+Tension:          0.4 (slightly smoother for mountain curves)
+Direction:        Clockwise (when viewed from above)
+Elevation:        Yes (y-values in control points)
+```
+
+### 4.6 Environmental Presets
+```
+Time of Day:      Day
+Weather:          Rain (default, overridable)
+Ambient Light:    #aabbcc, intensity 1.4
+Directional:      #ffffff, intensity 2.0 (overcast)
+Fog:              #8899aa, density 0.008
+Ground Color:     #2a3a2a (mountain grass)
+Decorations:      Pine trees, rocks, guardrails
+```
+
+### 4.7 Terrain-Specific Features
+- **Trees:** Pine trees along track edges (30-40 instances)
+- **Rocks:** Boulders near cliff edges (15-20 instances)
+- **Guardrails:** W-beam barriers on cliff sides
+- **Ground:** Mountain grass/rock texture (procedural)
+- **Elevation:** Track spline has y-values for hills
+
+### 4.8 Difficulty: Hard
+- Winding curves require precise steering
+- Elevation changes affect car balance
+- Rain reduces grip by 22% (default weather)
+- Narrow sections demand careful positioning
+- Switchbacks punish speed without control
+
+## 5. Track Geometry
+
+### 5.1 Spline-Based Construction
 Track built from a Catmull-Rom spline:
 - Control points define center line
 - Track width extruded from center using right vector
 - Right vector = cross(up, tangent) normalized
+- For elevated tracks: up vector follows world Y (0,1,0)
 
-### 3.2 Road Surface
+### 5.2 Road Surface
 ```
 Width:           12m (standard)
 Road Divisions:  200 segments
-Surface:         Flat (y = 0.01), no elevation changes
+Surface:         Follows elevation (y varies), 0.01 above terrain
 Material:        MeshStandardMaterial (#333333, rough 0.9)
 UV Mapping:      Tiling along track length
 ```
 
-### 3.3 Geometry Resolution
+### 5.3 Geometry Resolution
 - Spline segments: 200 per track
 - Road mesh: Triangle strip from spline
-- Road height: 0.01 (slightly above ground)
+- Road height: 0.01 above terrain y
 
-## 4. Track Boundaries
+## 6. Track Boundaries
 
-### 4.1 Barrier Configuration
+### 6.1 Barrier Configuration
 ```
 Barrier Height:  1.0m
 Barrier Offset:  0.5m from road edge
@@ -97,21 +185,21 @@ Total Edge:      6.5m from center (road half-width + offset)
 Material:        MeshStandardMaterial (#888888, rough 0.8, metal 0.2)
 ```
 
-### 4.2 Barrier Placement
+### 6.2 Barrier Placement
 - Both sides of track along entire length
-- Visual barriers: thin mesh strips
+- Visual barriers: W-beam mesh strips
 - Collision barriers: box colliders (0.5 × 0.5 × segmentLength/2)
 
-### 4.3 Barrier Physics
+### 6.3 Barrier Physics
 ```
 Body Type:       Fixed (static)
 Collider:        Box (0.5 × 0.5 × segmentLength/2)
 Segments:        10 per side (20 total collision boxes per side)
 ```
 
-## 5. Start/Finish
+## 7. Start/Finish
 
-### 5.1 Start Positions
+### 7.1 Start Positions
 ```
 Grid Layout:       2×2 staggered (4 cars)
 Grid Spacing:      5m between rows (lengthwise)
@@ -120,37 +208,33 @@ Pole Position:     t = 0 on spline (start/finish)
 Start Direction:   +Z (initial tangent of spline)
 ```
 
-### 5.2 Start Rotation
+### 7.2 Start Rotation
 ```
 Rotation = atan2(tangent.x, tangent.z) at t = 0
 ```
 
-### 5.3 Checkpoint System
+### 7.3 Checkpoint System
 ```
-Checkpoints:       8 (evenly spaced along track)
-Divisions:         8
+Checkpoints:       8-14 (varies by track, evenly spaced along track)
+Divisions:         Equal to checkpoint count
 Trigger Radius:    20m (checkpoint width)
 Direction:         Track tangent at checkpoint position
 ```
 
-### 5.4 Checkpoint Properties
+### 7.4 Checkpoint Properties
 | Checkpoint | Approx. Position | Notes |
 |------------|------------------|-------|
 | 0 | Start/finish | Lap completion check |
-| 1 | 1/8 around | |
-| 2 | 1/4 around | |
-| 3 | 3/8 around | |
-| 4 | 1/2 around | Halfway point |
-| 5 | 5/8 around | |
-| 6 | 3/4 around | |
-| 7 | 7/8 around | Final before finish |
+| 1 | 1/N around | |
+| ... | ... | |
+| N-1 | (N-1)/N around | Final before finish |
 
-### 5.5 Lap Detection
-- Checkpoints must be passed in order (0 → 1 → 2 → ... → 7 → 0)
-- When checkpoint 0 is passed after checkpoint 7: lap increments
+### 7.5 Lap Detection
+- Checkpoints must be passed in order (0 → 1 → 2 → ... → N-1 → 0)
+- When checkpoint 0 is passed after checkpoint N-1: lap increments
 - Lap counter: 0-indexed internally, displayed as 1-indexed
 
-### 5.6 Wrong Way Detection
+### 7.6 Wrong Way Detection
 - Compares car velocity direction to track tangent at last checkpoint
 - Track tangent stored as `checkpoint.normal` (spline tangent at that position)
 - Wrong way: `dot(velocityDir, trackTangent) < -0.5`
@@ -158,64 +242,59 @@ Direction:         Track tangent at checkpoint position
 - Ignored when car is reversing (forwardSpeed < 0)
 - Visual feedback: "WRONG WAY" pulsing text (no penalty in MVP)
 
-## 6. Visual Environment
+## 8. Visual Environment
 
-### 6.1 Track Decorations
-| Element | Count | Purpose |
-|---------|-------|---------|
-| Street Lights | 20 | Lighting, atmosphere |
-| Buildings | 25 | Skyline backdrop |
-| Barriers | Along entire track | Boundary definition |
+### 8.1 Track Decorations (Per Terrain)
 
-### 6.2 Street Light Placement
-- Lights placed along spline at 20 evenly spaced points
+| Terrain | Decorations | Ground Color |
+|---------|-------------|--------------|
+| Urban | Buildings, street lights | #111111 |
+| Coastal | Palm trees, beach, ocean | #c2b280 |
+| Mountain | Pine trees, rocks, cliffs | #2a3a2a |
+| Industrial | Warehouses, smokestacks | #1a1a1a |
+
+### 8.2 Street Light Placement
+- Lights placed along spline at evenly spaced points
+- Density varies by track (urban: high, mountain: low)
 - Positioned 8m to the right of track center
 - Pole height: 7m
 - Bulb: sphere geometry (0.25m radius)
 - Material: emissive warm orange (#ffcc88, intensity 3)
 
-### 6.3 Building Style
-- Simple box geometry with varied scale
-- Width: 5-15m, Height: 8-28m, Depth: 5-10m
-- Dark silhouettes against night sky (#1a1a2e)
-- Random lit windows (emissive yellow #ffdd88, intensity 0.5)
-- Placed 15-30m from track center, on random side
-- Cast and receive shadows
-
-### 6.4 Ground Plane
+### 8.3 Ground Plane
 - Large plane (200×200) at y = 0
-- Dark color (#111111)
+- Color varies by terrain type
 - Receives shadows from all lights
 
-## 7. Track Loading
+## 9. Track Loading
 
-### 7.1 Asset Pipeline
+### 9.1 Asset Pipeline
 ```
-1. Define control points (12 Vector3 in code)
-2. Generate CatmullRomCurve3 spline (closed, tension 0.5)
+1. Define control points (12-20 Vector3 in code)
+2. Generate CatmullRomCurve3 spline (closed, tension varies)
 3. Extrude road mesh from spline (200 divisions)
 4. Generate barrier visual meshes (2 sides)
 5. Generate barrier collision boxes (2 sides × 10 segments)
 6. Place street lights along spline
-7. Place buildings randomly along spline
+7. Place terrain-appropriate decorations
 ```
 
-### 7.2 Runtime Generation
+### 9.2 Runtime Generation
 - Track geometry built at load time (not pre-authored)
-- Control points are hardcoded in Track.ts
+- Control points are hardcoded in TrackDefinitions.ts
 - All geometry is procedural
+- Track rebuilds cleanly on selection change
 
-## 8. Post-MVP Track Features
+## 10. Post-MVP Track Features
 
-- Multiple tracks (3-5)
-- Elevation changes (hills, dips)
-- Weather effects (rain, fog)
+- More tracks (7+)
+- Dynamic elevation changes
 - Day/night cycle
-- Different surfaces (wet, gravel sections)
+- Different surfaces (wet, gravel, ice sections)
 - Track editor
-- Spline-based chicanes and tight corners
+- Weather changes during race
 
-## 9. Acceptance Criteria
+## 11. Acceptance Criteria
 
 | Test | Pass Condition |
 |------|---------------|
@@ -228,3 +307,6 @@ Direction:         Track tangent at checkpoint position
 | 60 FPS | Track renders at target frame rate |
 | No visual pop-in | Fog hides distant geometry |
 | Consistent width | Road width matches 12m spec throughout |
+| 6 tracks selectable | All tracks load and play correctly |
+| Elevation works | Mountain tracks have visible terrain changes |
+| Decorations match | Trees for mountain, buildings for urban, etc. |

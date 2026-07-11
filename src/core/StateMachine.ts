@@ -8,6 +8,7 @@ export type GameState =
   | 'PAUSED'
   | 'RESULTS'
   | 'SETTINGS'
+  | 'DEMO'
 
 export interface RaceResults {
   position: number
@@ -22,6 +23,7 @@ export interface GameSettings {
   steerSensitivity: number
   graphicsQuality: 'low' | 'medium' | 'high'
   weatherOverride: string
+  demoEnabled: boolean
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -29,7 +31,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   engineVolume: 0.6,
   steerSensitivity: 1.0,
   graphicsQuality: 'high',
-  weatherOverride: 'auto'
+  weatherOverride: 'auto',
+  demoEnabled: true
 }
 
 function loadSettings(): GameSettings {

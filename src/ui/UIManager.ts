@@ -656,6 +656,114 @@ export class UIManager {
         justify-content: center;
         margin-top: 30px;
       }
+
+      .demo-hud {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 50;
+      }
+
+      .demo-hud-top {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        text-align: center;
+        background: var(--bg-dark);
+        padding: 12px 32px;
+        border: 1px solid var(--border);
+      }
+
+      .demo-hud-car {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary);
+        text-transform: uppercase;
+        letter-spacing: 3px;
+      }
+
+      .demo-hud-track {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 16px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-top: 2px;
+      }
+
+      .demo-hud-conditions {
+        font-size: 12px;
+        color: var(--text-dim);
+        letter-spacing: 1px;
+        margin-top: 4px;
+      }
+
+      .demo-hud-prompt {
+        position: absolute;
+        bottom: 40px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 18px;
+        color: rgba(255, 255, 255, 0.4);
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        animation: pulse 2s ease infinite;
+      }
+
+      .settings-toggle {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+      }
+
+      .settings-toggle-label {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+      }
+
+      .settings-toggle-btn {
+        width: 52px;
+        height: 28px;
+        border-radius: 14px;
+        border: 2px solid var(--border);
+        background: rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+      }
+
+      .settings-toggle-btn.active {
+        border-color: var(--primary);
+        background: rgba(0, 255, 136, 0.2);
+      }
+
+      .settings-toggle-btn::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: var(--text-dim);
+        transition: all 0.2s ease;
+      }
+
+      .settings-toggle-btn.active::after {
+        left: 26px;
+        background: var(--primary);
+      }
     `
     document.head.appendChild(style)
   }
@@ -669,6 +777,7 @@ export class UIManager {
     this.state.on('RACING', () => this.showHUD())
     this.state.on('PAUSED', () => this.showPause())
     this.state.on('RESULTS', () => this.showResults())
+    this.state.on('DEMO', () => this.showDemoHUDFromState())
   }
 
   private showScreen(name: string): void {
@@ -987,6 +1096,25 @@ export class UIManager {
     graphicsGroup.appendChild(graphicsLabel)
     graphicsGroup.appendChild(graphicsOptions)
 
+    const demoToggle = document.createElement('div')
+    demoToggle.className = 'settings-toggle'
+
+    const demoLabel = document.createElement('div')
+    demoLabel.className = 'settings-toggle-label'
+    demoLabel.textContent = 'Demo Mode (Attract)'
+
+    const demoBtn = document.createElement('button')
+    demoBtn.className = `settings-toggle-btn ${settings.demoEnabled ? 'active' : ''}`
+    demoBtn.onclick = () => {
+      const newVal = !this.state.getSettings().demoEnabled
+      this.state.updateSettings({ demoEnabled: newVal })
+      this.onSettingsChanged?.()
+      demoBtn.classList.toggle('active', newVal)
+    }
+
+    demoToggle.appendChild(demoLabel)
+    demoToggle.appendChild(demoBtn)
+
     const buttons = document.createElement('div')
     buttons.className = 'settings-buttons'
 
@@ -1007,6 +1135,7 @@ export class UIManager {
     panel.appendChild(engineGroup)
     panel.appendChild(steerGroup)
     panel.appendChild(graphicsGroup)
+    panel.appendChild(demoToggle)
     panel.appendChild(buttons)
     overlay.appendChild(panel)
     parent.appendChild(overlay)
@@ -1246,6 +1375,54 @@ export class UIManager {
 
   hideAll(): void {
     this.container.innerHTML = ''
+  }
+
+  showDemoHUD(carName: string, trackName: string, weatherName: string, todName: string): void {
+    this.container.innerHTML = ''
+
+    const hud = document.createElement('div')
+    hud.className = 'demo-hud'
+    hud.id = 'demo-hud'
+
+    const top = document.createElement('div')
+    top.className = 'demo-hud-top'
+
+    const carLabel = document.createElement('div')
+    carLabel.className = 'demo-hud-car'
+    carLabel.textContent = carName
+
+    const trackLabel = document.createElement('div')
+    trackLabel.className = 'demo-hud-track'
+    trackLabel.textContent = trackName
+
+    const conditions = document.createElement('div')
+    conditions.className = 'demo-hud-conditions'
+    conditions.textContent = `${weatherName} \u2022 ${todName}`
+
+    top.appendChild(carLabel)
+    top.appendChild(trackLabel)
+    top.appendChild(conditions)
+
+    const prompt = document.createElement('div')
+    prompt.className = 'demo-hud-prompt'
+    prompt.textContent = 'Press any key to return to menu'
+
+    hud.appendChild(top)
+    hud.appendChild(prompt)
+    this.container.appendChild(hud)
+  }
+
+  private showDemoHUDFromState(): void {
+    const car = this.state.getSelectedCar()
+    const track = this.state.getSelectedTrack()
+    const carDef = CARS.find(c => c.id === car)
+    const trackDef = TRACKS.find(t => t.id === track)
+    this.showDemoHUD(
+      carDef?.name ?? 'Unknown',
+      trackDef?.name ?? 'Unknown',
+      this.state.getSettings().weatherOverride === 'auto' ? 'Clear' : this.state.getSettings().weatherOverride,
+      'Day'
+    )
   }
 
   private createButton(text: string, variant?: string): HTMLButtonElement {

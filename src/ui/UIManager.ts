@@ -873,6 +873,12 @@ export class UIManager {
       subtitle.className = 'car-card-subtitle'
       subtitle.textContent = car.subtitle
 
+      const engineBadge = document.createElement('div')
+      engineBadge.className = 'car-card-subtitle'
+      engineBadge.style.color = 'var(--primary)'
+      engineBadge.style.marginBottom = '12px'
+      engineBadge.textContent = `${car.engine.displacement} ${car.engine.type} \u2022 ${car.engine.horsepower} HP`
+
       const stats = [
         { label: 'Power', value: car.config.engineForce / 8500 },
         { label: 'Grip', value: car.config.peakGrip / 2.4 },
@@ -896,6 +902,7 @@ export class UIManager {
       card.appendChild(colorPreview)
       card.appendChild(name)
       card.appendChild(subtitle)
+      card.appendChild(engineBadge)
       card.appendChild(statsContainer)
       grid.appendChild(card)
     })

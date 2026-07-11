@@ -70,8 +70,8 @@ export async function runTestHarness(): Promise<void> {
     })
   })
   test('getCarById works', () => {
-    const phantom = getCarById('phantom-gt')
-    assert(phantom.name === 'Phantom GT', `Wrong car: ${phantom.name}`)
+    const car = getCarById('rossini-488')
+    assert(car.name === 'Rossini 488', `Wrong car: ${car.name}`)
   })
 
   // ── Phase 1: Core Rendering ──
@@ -256,22 +256,40 @@ export async function runTestHarness(): Promise<void> {
 
   // ── Phase 6: Car Roster ──
   console.log('\n-- Phase 6: Car Roster --')
-  test('Phantom GT config', () => {
-    const car = getCarById('phantom-gt')
-    assert(car.config.mass === 1550, `Phantom mass: ${car.config.mass}`)
-    assert(car.color === 0xcccccc, 'Phantom color wrong')
+  test('Rossini 488 config', () => {
+    const car = getCarById('rossini-488')
+    assert(car.config.mass === 1550, `Rossini mass: ${car.config.mass}`)
+    assert(car.color === 0xdc143c, 'Rossini color wrong')
   })
-  test('Viper RS config', () => {
-    const car = getCarById('viper-rs')
-    assert(car.config.peakGrip === 2.4, `Viper grip: ${car.config.peakGrip}`)
+  test('Weissach GT3 config', () => {
+    const car = getCarById('weissach-gt3')
+    assert(car.config.peakGrip === 2.4, `Weissach grip: ${car.config.peakGrip}`)
   })
-  test('Inferno SS config', () => {
-    const car = getCarById('inferno-ss')
-    assert(car.config.engineForce === 950, `Inferno force: ${car.config.engineForce}`)
+  test('Kaiju GT-R config', () => {
+    const car = getCarById('kaiju-gt-r')
+    assert(car.config.engineForce === 950, `Kaiju force: ${car.config.engineForce}`)
   })
-  test('AeroVen TT config', () => {
-    const car = getCarById('aeroven-tt')
-    assert(car.config.maxSpeed === 265, `AeroVen speed: ${car.config.maxSpeed}`)
+  test('Stingray Z06 config', () => {
+    const car = getCarById('stingray-z06')
+    assert(car.config.maxSpeed === 265, `Stingray speed: ${car.config.maxSpeed}`)
+  })
+  test('Turbo lag times correct', () => {
+    const turbo488 = getCarById('rossini-488')
+    const naGT3 = getCarById('weissach-gt3')
+    const turboGTR = getCarById('kaiju-gt-r')
+    const naZ06 = getCarById('stingray-z06')
+    assert(turbo488.config.turboLagTime === 0.15, `488 lag: ${turbo488.config.turboLagTime}`)
+    assert(naGT3.config.turboLagTime === 0.0, `GT3 lag: ${naGT3.config.turboLagTime}`)
+    assert(turboGTR.config.turboLagTime === 0.25, `GTR lag: ${turboGTR.config.turboLagTime}`)
+    assert(naZ06.config.turboLagTime === 0.0, `Z06 lag: ${naZ06.config.turboLagTime}`)
+  })
+  test('Per-car engine config exists', () => {
+    CARS.forEach(car => {
+      assert(car.engine !== undefined, `${car.name} missing engine`)
+      assert(car.engine.type.length > 0, `${car.name} missing engine type`)
+      assert(car.engine.baseFrequency > 0, `${car.name} missing baseFrequency`)
+      assert(car.engine.maxFrequency > car.engine.baseFrequency, `${car.name} maxFrequency <= baseFrequency`)
+    })
   })
   await testAsync('CarFactory creates colored mesh', async () => {
     const pw = new PhysicsWorld()
@@ -336,8 +354,8 @@ export async function runTestHarness(): Promise<void> {
   })
   test('StateMachine stores car selection', () => {
     const sm = new StateMachine()
-    sm.setSelectedCar('viper-rs')
-    assert(sm.getSelectedCar() === 'viper-rs', `Selected: ${sm.getSelectedCar()}`)
+    sm.setSelectedCar('weissach-gt3')
+    assert(sm.getSelectedCar() === 'weissach-gt3', `Selected: ${sm.getSelectedCar()}`)
   })
   test('StateMachine stores race results', () => {
     const sm = new StateMachine()

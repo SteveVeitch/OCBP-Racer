@@ -1,5 +1,14 @@
 import { CarConfig } from '../physics/CarController'
 
+export interface EngineDefinition {
+  type: string
+  displacement: string
+  horsepower: number
+  redline: number
+  baseFrequency: number
+  maxFrequency: number
+}
+
 export interface CarDefinition {
   id: string
   name: string
@@ -7,15 +16,24 @@ export interface CarDefinition {
   color: number
   config: CarConfig
   description: string
+  engine: EngineDefinition
 }
 
 export const CARS: CarDefinition[] = [
   {
-    id: 'phantom-gt',
-    name: 'Phantom GT',
-    subtitle: "The Gentleman's Express",
-    color: 0xcccccc,
-    description: 'Balanced, stable, forgiving. Perfect for beginners and consistent lap times.',
+    id: 'rossini-488',
+    name: 'Rossini 488',
+    subtitle: 'The Prancing Horse',
+    color: 0xdc143c,
+    description: 'Balanced, stable, beginner-friendly. Italian mid-engine exotic with twin-turbo V8.',
+    engine: {
+      type: 'Twin-Turbo V8',
+      displacement: '3.9L',
+      horsepower: 661,
+      redline: 8000,
+      baseFrequency: 35,
+      maxFrequency: 220
+    },
     config: {
       mass: 1550,
       engineForce: 800,
@@ -28,15 +46,24 @@ export const CARS: CarDefinition[] = [
       downforce: 1.2,
       slipAnglePeak: 8,
       slipAngleLimit: 25,
-      autoCorrect: 0.4
+      autoCorrect: 0.4,
+      turboLagTime: 0.15
     }
   },
   {
-    id: 'viper-rs',
-    name: 'Viper RS',
+    id: 'weissach-gt3',
+    name: 'Weissach GT3',
     subtitle: 'The Scalpel',
     color: 0x1a5c1a,
-    description: 'Precise, grippy, rewards skill. Highest grip, sharp steering.',
+    description: 'High grip, precise, rewards skill. German track-focused sports car with naturally aspirated flat-6.',
+    engine: {
+      type: 'NA Flat-6',
+      displacement: '4.0L',
+      horsepower: 502,
+      redline: 8500,
+      baseFrequency: 40,
+      maxFrequency: 260
+    },
     config: {
       mass: 1400,
       engineForce: 850,
@@ -49,15 +76,24 @@ export const CARS: CarDefinition[] = [
       downforce: 1.8,
       slipAnglePeak: 6,
       slipAngleLimit: 20,
-      autoCorrect: 0.6
+      autoCorrect: 0.6,
+      turboLagTime: 0.0
     }
   },
   {
-    id: 'inferno-ss',
-    name: 'Inferno SS',
+    id: 'kaiju-gt-r',
+    name: 'Kaiju GT-R',
     subtitle: 'The Wild Card',
     color: 0xcc2200,
-    description: 'Loose, powerful, drift-happy. Highest power-to-weight, oversteer bias.',
+    description: 'High power, loose rear, drifts easily. Japanese turbocharged super-GT with twin-turbo V6.',
+    engine: {
+      type: 'Twin-Turbo V6',
+      displacement: '3.8L',
+      horsepower: 565,
+      redline: 7200,
+      baseFrequency: 30,
+      maxFrequency: 200
+    },
     config: {
       mass: 1500,
       engineForce: 950,
@@ -70,15 +106,24 @@ export const CARS: CarDefinition[] = [
       downforce: 0.8,
       slipAnglePeak: 12,
       slipAngleLimit: 35,
-      autoCorrect: 0.2
+      autoCorrect: 0.2,
+      turboLagTime: 0.25
     }
   },
   {
-    id: 'aeroven-tt',
-    name: 'AeroVen TT',
+    id: 'stingray-z06',
+    name: 'Stingray Z06',
     subtitle: 'The Arrow',
     color: 0x1155cc,
-    description: 'Agile, responsive, top speed focused. Lightest with fastest top speed.',
+    description: 'Agile, responsive, top speed focused. American mid-engine exotic with naturally aspirated V8.',
+    engine: {
+      type: 'NA V8',
+      displacement: '5.5L',
+      horsepower: 670,
+      redline: 8600,
+      baseFrequency: 32,
+      maxFrequency: 240
+    },
     config: {
       mass: 1250,
       engineForce: 750,
@@ -91,7 +136,8 @@ export const CARS: CarDefinition[] = [
       downforce: 1.5,
       slipAnglePeak: 7,
       slipAngleLimit: 22,
-      autoCorrect: 0.5
+      autoCorrect: 0.5,
+      turboLagTime: 0.0
     }
   }
 ]

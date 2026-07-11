@@ -57,7 +57,7 @@ export class StateMachine {
   private previous: GameState = 'MENU'
   private listeners: Map<GameState, (() => void)[]> = new Map()
   private raceResults: RaceResults | null = null
-  private selectedCarId = 'phantom-gt'
+  private selectedCarId = 'rossini-488'
   private selectedTrackId = 'midnight-circuit'
   private settings: GameSettings = loadSettings()
 

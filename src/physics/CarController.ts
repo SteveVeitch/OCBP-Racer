@@ -16,6 +16,7 @@ export interface CarConfig {
   slipAnglePeak: number
   slipAngleLimit: number
   autoCorrect: number
+  turboLagTime: number
 }
 
 const DEFAULT_CONFIG: CarConfig = {
@@ -30,7 +31,8 @@ const DEFAULT_CONFIG: CarConfig = {
   downforce: 1.2,
   slipAnglePeak: 8,
   slipAngleLimit: 25,
-  autoCorrect: 0.4
+  autoCorrect: 0.4,
+  turboLagTime: 0.0
 }
 
 const WHEEL_RADIUS = 0.32
@@ -39,6 +41,8 @@ const MAX_ROLL_ANGLE = 5 * (Math.PI / 180)
 const GRIP_FORCE_FACTOR = 0.15
 const THROTTLE_RAMP_UP = 2.5
 const THROTTLE_RAMP_DOWN = 4.0
+const TURBO_DECAY_RATE = 8.0
+const TURBO_BOOST_MULTIPLIER = 0.18
 const MS_PER_KMH = 1 / 3.6
 
 const _quat = new THREE.Quaternion()
@@ -60,6 +64,7 @@ export class CarController {
   private lateralVelocity = 0
   private wheelSpin = 0
   private throttleLevel = 0
+  private boostLevel = 0
 
   private wheelFL!: THREE.Group
   private wheelFR!: THREE.Group
@@ -208,6 +213,18 @@ export class CarController {
     } else {
       this.throttleLevel = Math.max(0, this.throttleLevel - THROTTLE_RAMP_DOWN * dt)
     }
+
+    const turboLag = this.config.turboLagTime
+    if (turboLag > 0) {
+      if (input > 0) {
+        const spoolRate = 1 / turboLag
+        this.boostLevel = Math.min(1, this.boostLevel + spoolRate * dt)
+      } else {
+        this.boostLevel = Math.max(0, this.boostLevel - TURBO_DECAY_RATE * dt)
+      }
+    } else {
+      this.boostLevel = input > 0 ? 1 : 0
+    }
   }
 
   private applyThrottle(input: number): void {
@@ -216,7 +233,8 @@ export class CarController {
     const speed = this._cachedHorizontalSpeed
     const speedRatio = speed / this.maxSpeedMS
     const forceMultiplier = Math.max(0, 1 - speedRatio * 0.9)
-    const force = input * this.config.engineForce * forceMultiplier
+    const turboBoost = 1 + this.boostLevel * TURBO_BOOST_MULTIPLIER
+    const force = input * this.config.engineForce * forceMultiplier * turboBoost
 
     this.body.applyImpulse(
       { x: _forward.x * force, y: 0, z: _forward.z * force },
@@ -350,6 +368,7 @@ export class CarController {
     this.lateralVelocity = 0
     this.wheelSpin = 0
     this.throttleLevel = 0
+    this.boostLevel = 0
   }
 
   getPositionRef(): { x: number; y: number; z: number } {
@@ -401,6 +420,10 @@ export class CarController {
     const speed = this._cachedHorizontalSpeed
     const speedRatio = speed / this.maxSpeedMS
     return 800 + Math.min(1, speedRatio) * 6700
+  }
+
+  getBoostLevel(): number {
+    return this.boostLevel
   }
 
   getConfig(): CarConfig {

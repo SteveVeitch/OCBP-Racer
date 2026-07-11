@@ -108,24 +108,26 @@ The overlay is a flexbox-centered container with a CSS grid inside for phase col
 - **Glow animation:** Pulsing `box-shadow` in green (00ff88), oscillating between 8px and 16px spread
 - **Scanline:** A 4px-tall translucent green gradient sweeps vertically on a 4s loop
 - **Background:** Near-black (`rgba(5,5,16,0.97)`)
-- **Scrollbar:** Thin green (6px) with track matching background
+- **No internal scroll:** Grid fits entirely within the viewport — no `overflow-y`
 
 ### 4.3 Grid Implementation
+Fixed 3-column layout. 16 phase cards arranged in 3 columns × 6 rows, fitting on one screen without scroll.
+
 ```css
 .th-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
 }
 .th-phase {
   background: rgba(255,255,255,0.02);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: 4px;
-  padding: 10px 12px;
+  padding: 6px 8px;
 }
 .th-phase-head {
   color: #00ff88;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: bold;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -136,16 +138,14 @@ The overlay is a flexbox-centered container with a CSS grid inside for phase col
 ### 4.4 Typography
 - Font: `'Courier New', monospace`
 - Title: 16px, bold, letter-spacing 3px, uppercase, green with text-shadow glow
-- Phase headers: 11px, bold, uppercase, green
+- Phase headers: 10px, bold, uppercase, green
 - Test items: 11px, grey (#889), green (#00ff88) for pass, red (#ff4444) for fail
 - Summary: 14px, bold, letter-spacing 2px
 
-### 4.5 Responsive Behavior
-- Grid auto-fill with `minmax(220px, 1fr)` handles all screen sizes
-- Wide screens: 3-4 columns
-- Medium screens: 2 columns
-- Narrow screens: 1 column
-- Container max-width: 95vw, max-height: 92vh, with overflow-y scroll
+### 4.5 Layout
+- Fixed 3-column grid — all 16 phases visible at once, no scrolling required
+- Container width: 95vw, centered on screen
+- Phase cards compact: 6px/8px padding, 10px font
 
 ### 4.6 Summary Bar
 - Centered below grid, separated by a green border-top

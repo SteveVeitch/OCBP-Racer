@@ -1,4 +1,4 @@
-import { StateMachine } from '../core/StateMachine'
+import { StateMachine, AIDifficulty } from '../core/StateMachine'
 import { CARS } from '../cars/CarConfigs'
 import { TRACKS } from '../track/TrackDefinitions'
 import { getTrackLeaderboard, getOverallLeaderboard, type LeaderboardEntry } from './LeaderboardManager'
@@ -1156,6 +1156,38 @@ export class UIManager {
     weatherGroup.appendChild(weatherLabel)
     weatherGroup.appendChild(weatherOptions)
 
+    const aiDiffGroup = document.createElement('div')
+    aiDiffGroup.style.cssText = 'margin:12px 0;text-align:center;'
+    const aiDiffLabel = document.createElement('div')
+    aiDiffLabel.style.cssText = 'font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;'
+    aiDiffLabel.textContent = 'AI Difficulty'
+    const aiDiffOptions = document.createElement('div')
+    aiDiffOptions.className = 'settings-options'
+    aiDiffOptions.style.justifyContent = 'center'
+    const aiDiffChoices: Array<{ value: string; label: string; color: string }> = [
+      { value: 'beginner', label: 'Beginner', color: '#00ff88' },
+      { value: 'intermediate', label: 'Intermediate', color: '#ffcc00' },
+      { value: 'advanced', label: 'Advanced', color: '#ff8844' },
+      { value: 'pro', label: 'Pro', color: '#ff3366' },
+    ]
+    const currentAiDiff = this.state.getSettings().aiDifficulty
+    aiDiffChoices.forEach(d => {
+      const btn = document.createElement('button')
+      btn.className = `settings-option ${currentAiDiff === d.value ? 'active' : ''}`
+      btn.style.minWidth = '80px'
+      btn.style.color = d.color
+      btn.textContent = d.label
+      btn.onclick = () => {
+        this.state.updateSettings({ aiDifficulty: d.value as AIDifficulty })
+        this.onSettingsChanged?.()
+        aiDiffOptions.querySelectorAll('.settings-option').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+      }
+      aiDiffOptions.appendChild(btn)
+    })
+    aiDiffGroup.appendChild(aiDiffLabel)
+    aiDiffGroup.appendChild(aiDiffOptions)
+
     const buttons = document.createElement('div')
     buttons.style.cssText = 'display:flex;gap:16px;margin-top:16px;'
 
@@ -1175,6 +1207,7 @@ export class UIManager {
     container.appendChild(trackGrid)
     container.appendChild(todGroup)
     container.appendChild(weatherGroup)
+    container.appendChild(aiDiffGroup)
     container.appendChild(buttons)
     overlay.appendChild(container)
     parent.appendChild(overlay)

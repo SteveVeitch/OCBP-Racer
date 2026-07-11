@@ -438,7 +438,8 @@ export class Game {
       aiCar.resetPhysics()
       allCars.push(aiCar)
 
-      const aiController = new AIController(aiCar, this.track.getSpline(), 0.3 + i * 0.2, allCars)
+      const aiDifficulty = this.state.getSettings().aiDifficulty
+      const aiController = new AIController(aiCar, this.track.getSpline(), aiDifficulty, allCars)
       aiCar.setEnvironmentModifiers(mods)
       this.aiCars.push(aiCar)
       this.aiControllers.push(aiController)
@@ -982,7 +983,7 @@ export class Game {
     aiCar.resetPhysics()
     aiCar.setEnvironmentModifiers(mods)
     this.aiCars = [aiCar]
-    this.aiControllers = [new AIController(aiCar, this.track.getSpline(), 0.3, [aiCar])]
+    this.aiControllers = [new AIController(aiCar, this.track.getSpline(), 'beginner', [aiCar])]
 
     this.track.reset()
 

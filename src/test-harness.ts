@@ -421,13 +421,13 @@ export async function runTestHarness(): Promise<void> {
     const startPosSlow = track.getStartPosition(0)
     carSlow.setPosition(new THREE.Vector3(startPosSlow.x, 0.5, startPosSlow.z))
     carSlow.setLookAt(track.getStartRotation())
-    const aiSlow = new AIController(carSlow, track.getSpline(), 0.2)
+    const aiSlow = new AIController(carSlow, track.getSpline(), 'beginner')
 
     const carFast = factory.createCar(CARS[0], scene)
     const startPosFast = track.getStartPosition(0)
     carFast.setPosition(new THREE.Vector3(startPosFast.x, 0.5, startPosFast.z))
     carFast.setLookAt(track.getStartRotation())
-    const aiFast = new AIController(carFast, track.getSpline(), 0.9)
+    const aiFast = new AIController(carFast, track.getSpline(), 'pro')
 
     for (let i = 0; i < 300; i++) {
       aiSlow.update(1 / 60)
@@ -483,7 +483,7 @@ export async function runTestHarness(): Promise<void> {
     car.setPosition(new THREE.Vector3(500, 0.5, 500))
     car.resetPhysics()
 
-    // Run enough updates to exceed RECOVERY_TIMEOUT (5s at 1/60 steps = 300 frames)
+    // Run enough updates to exceed RECOVERY_TIMEOUT (intermediate = 5s at 1/60 steps = 300 frames)
     for (let i = 0; i < 320; i++) {
       ai.update(1 / 60)
       pw.step(1 / 60)

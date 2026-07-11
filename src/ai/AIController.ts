@@ -2,8 +2,63 @@ import * as THREE from 'three'
 import { SplinePath } from '../track/SplinePath'
 import { CarController } from '../physics/CarController'
 import { InputState } from '../input/InputManager'
+import { AIDifficulty } from '../core/StateMachine'
 
 type AIState = 'STARTING' | 'RACING' | 'RECOVERING'
+
+interface DifficultyProfile {
+  speedMultiplier: number
+  aggressiveness: number
+  lookAheadBase: number
+  lookAheadSpeedFactor: number
+  brakingAggression: number
+  racingLineOffset: number
+  recoveryTimeout: number
+  steerSmoothing: number
+}
+
+const DIFFICULTY_PROFILES: Record<AIDifficulty, DifficultyProfile> = {
+  beginner: {
+    speedMultiplier: 0.55,
+    aggressiveness: 0.15,
+    lookAheadBase: 0.03,
+    lookAheadSpeedFactor: 0.001,
+    brakingAggression: 0.3,
+    racingLineOffset: 0.0,
+    recoveryTimeout: 8.0,
+    steerSmoothing: 0.15,
+  },
+  intermediate: {
+    speedMultiplier: 0.75,
+    aggressiveness: 0.4,
+    lookAheadBase: 0.05,
+    lookAheadSpeedFactor: 0.002,
+    brakingAggression: 0.6,
+    racingLineOffset: 0.003,
+    recoveryTimeout: 5.0,
+    steerSmoothing: 0.08,
+  },
+  advanced: {
+    speedMultiplier: 0.92,
+    aggressiveness: 0.7,
+    lookAheadBase: 0.07,
+    lookAheadSpeedFactor: 0.003,
+    brakingAggression: 0.85,
+    racingLineOffset: 0.006,
+    recoveryTimeout: 3.0,
+    steerSmoothing: 0.04,
+  },
+  pro: {
+    speedMultiplier: 1.0,
+    aggressiveness: 0.9,
+    lookAheadBase: 0.09,
+    lookAheadSpeedFactor: 0.004,
+    brakingAggression: 1.0,
+    racingLineOffset: 0.008,
+    recoveryTimeout: 2.0,
+    steerSmoothing: 0.02,
+  },
+}
 
 const AVOIDANCE_RADIUS = 5.0
 const START_CONE_COS = Math.cos(45 * Math.PI / 180)
@@ -14,9 +69,6 @@ const RECOVERY_SPEED_THRESHOLD = 2.0
 const RECOVERY_ALIGN_COS = Math.cos(30 * Math.PI / 180)
 const RECOVERY_DISTANCE_THRESHOLD = 4.0
 const RECOVERY_THROTTLE_CUT_DURATION = 0.5
-const RECOVERY_TIMEOUT = 5.0
-const BASE_LOOK_AHEAD = 0.04
-const LOOK_AHEAD_SPEED_FACTOR = 0.002
 
 const _toTarget = new THREE.Vector3()
 const _forward = new THREE.Vector3()
@@ -24,6 +76,8 @@ const _right = new THREE.Vector3()
 const _toOther = new THREE.Vector3()
 const _carPos = new THREE.Vector3()
 const _cross = new THREE.Vector3()
+const _tangent = new THREE.Vector3()
+const _tangentAhead = new THREE.Vector3()
 
 export class AIController {
   private car: CarController
@@ -32,9 +86,9 @@ export class AIController {
   private currentT = 0
   private lap = 0
   private halfLapPassed = false
-  private aggressiveness: number
-  private lookAheadDistance = BASE_LOOK_AHEAD
+  private profile: DifficultyProfile
   private allCars: CarController[] = []
+  private smoothSteer = 0
 
   private aiState: AIState = 'STARTING'
   private raceTimer = 0
@@ -42,10 +96,15 @@ export class AIController {
   private recoveryTimer = 0
   private recoveryThrottleCutTimer = 0
 
-  constructor(car: CarController, spline: SplinePath, aggressiveness: number = 0.5, allCars: CarController[] = []) {
+  constructor(
+    car: CarController,
+    spline: SplinePath,
+    difficulty: AIDifficulty = 'intermediate',
+    allCars: CarController[] = [],
+  ) {
     this.car = car
     this.spline = spline
-    this.aggressiveness = aggressiveness
+    this.profile = DIFFICULTY_PROFILES[difficulty]
     this.allCars = allCars
     this.startDelay = 0.2 + Math.random() * 0.6
   }
@@ -70,32 +129,26 @@ export class AIController {
   private updateStarting(_dt: number, carPos: THREE.Vector3): InputState {
     if (this.raceTimer >= START_DURATION) {
       this.aiState = 'RACING'
-      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false,
-      cameraSwitch: false }
+      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false, cameraSwitch: false }
     }
 
     if (this.raceTimer < this.startDelay) {
-      return { throttle: 0, brake: 0, steer: 0, pause: false, confirm: false, back: false,
-      cameraSwitch: false }
+      return { throttle: 0, brake: 0, steer: 0, pause: false, confirm: false, back: false, cameraSwitch: false }
     }
 
     const elapsed = this.raceTimer - this.startDelay
     const throttleRamp = Math.min(1, elapsed / START_THROTTLE_RAMP)
-    const throttleCap = 0.7 + this.aggressiveness * 0.3
+    const throttleCap = 0.6 + this.profile.aggressiveness * 0.4
     const baseThrottle = throttleRamp * throttleCap
 
     const avoidance = this.calculateAvoidance(carPos)
     const steer = this.calculateSteer(carPos)
-    const brake = avoidance.brakeForce
 
     return {
       throttle: Math.max(0, baseThrottle - avoidance.throttleReduction),
-      brake,
+      brake: avoidance.brakeForce,
       steer: steer + avoidance.steerOffset,
-      pause: false,
-      confirm: false,
-      back: false,
-      cameraSwitch: false
+      pause: false, confirm: false, back: false, cameraSwitch: false,
     }
   }
 
@@ -104,8 +157,7 @@ export class AIController {
       this.aiState = 'RECOVERING'
       this.recoveryTimer = 0
       this.recoveryThrottleCutTimer = RECOVERY_THROTTLE_CUT_DURATION
-      return { throttle: 0, brake: 0.5, steer: 0, pause: false, confirm: false, back: false,
-      cameraSwitch: false }
+      return { throttle: 0, brake: 0.5, steer: 0, pause: false, confirm: false, back: false, cameraSwitch: false }
     }
 
     const steer = this.calculateSteer(carPos)
@@ -116,10 +168,10 @@ export class AIController {
     let throttle = 0
     let brake = 0
 
-    if (speedDiff > 2) {
-      throttle = Math.min(1, speedDiff / 10)
-    } else if (speedDiff < -2) {
-      brake = Math.min(1, -speedDiff / 10)
+    if (speedDiff > 1) {
+      throttle = Math.min(1, speedDiff / 8)
+    } else if (speedDiff < -1) {
+      brake = Math.min(1, (-speedDiff / 8) * this.profile.brakingAggression)
     }
 
     const avoidance = this.calculateAvoidance(carPos)
@@ -128,10 +180,7 @@ export class AIController {
       throttle: Math.max(0, throttle - avoidance.throttleReduction),
       brake: Math.max(brake, avoidance.brakeForce),
       steer: steer + avoidance.steerOffset,
-      pause: false,
-      confirm: false,
-      back: false,
-      cameraSwitch: false
+      pause: false, confirm: false, back: false, cameraSwitch: false,
     }
   }
 
@@ -139,12 +188,11 @@ export class AIController {
     this.recoveryTimer += dt
     this.recoveryThrottleCutTimer = Math.max(0, this.recoveryThrottleCutTimer - dt)
 
-    if (this.recoveryTimer > RECOVERY_TIMEOUT) {
+    if (this.recoveryTimer > this.profile.recoveryTimeout) {
       this.teleportToSpline()
       this.aiState = 'RACING'
       this.recoveryTimer = 0
-      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false,
-      cameraSwitch: false }
+      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false, cameraSwitch: false }
     }
 
     const throttle = this.recoveryThrottleCutTimer > 0 ? 0 : 0.3
@@ -162,18 +210,14 @@ export class AIController {
     if (this.canRejoin(carPos)) {
       this.aiState = 'RACING'
       this.recoveryTimer = 0
-      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false,
-      cameraSwitch: false }
+      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false, cameraSwitch: false }
     }
 
     return {
       throttle,
       brake: 0,
       steer,
-      pause: false,
-      confirm: false,
-      back: false,
-      cameraSwitch: false
+      pause: false, confirm: false, back: false, cameraSwitch: false,
     }
   }
 
@@ -184,16 +228,60 @@ export class AIController {
     _toTarget.subVectors(targetPoint, carPos).setY(0).normalize()
 
     _cross.crossVectors(_forward, _toTarget)
-    return Math.max(-1, Math.min(1, _cross.y * 3))
+    let rawSteer = Math.max(-1, Math.min(1, _cross.y * 3))
+
+    const offset = this.profile.racingLineOffset
+    if (offset > 0) {
+      const curvature = this.getCurvatureAhead()
+      rawSteer += Math.sign(rawSteer) * curvature * offset * 50
+      rawSteer = Math.max(-1, Math.min(1, rawSteer))
+    }
+
+    this.smoothSteer += (rawSteer - this.smoothSteer) * this.profile.steerSmoothing
+    return Math.max(-1, Math.min(1, this.smoothSteer))
+  }
+
+  private getCurvatureAhead(): number {
+    const steps = 5
+    let totalAngle = 0
+    for (let i = 0; i < steps; i++) {
+      const t1 = (this.targetT + (i * 0.02)) % 1
+      const t2 = (this.targetT + ((i + 1) * 0.02)) % 1
+      this.spline.getTangent(t1).setY(0).normalize()
+      this.spline.getTangent(t2).setY(0).normalize()
+      _tangent.copy(this.spline.getTangent(t1)).setY(0).normalize()
+      _tangentAhead.copy(this.spline.getTangent(t2)).setY(0).normalize()
+      totalAngle += 1 - Math.abs(_tangent.dot(_tangentAhead))
+    }
+    return Math.min(1, totalAngle)
   }
 
   private calculateTargetSpeed(): number {
-    const targetTangent = this.spline.getTangent(this.targetT)
-    const lookAheadT = (this.targetT + 0.05) % 1
-    const lookAheadTangent = this.spline.getTangent(lookAheadT)
-    const cornerAngle = Math.abs(1 - Math.abs(targetTangent.dot(lookAheadTangent)))
-    const slowDown = cornerAngle * (1 + this.aggressiveness * 0.5)
-    return Math.max(5, 20 - slowDown * 15)
+    const maxSpeedMs = this.car.getMaxSpeed() / 3.6
+    const baseTarget = maxSpeedMs * this.profile.speedMultiplier
+
+    const cornerSeverity = this.getCornerSeverity()
+    const slowDown = cornerSeverity * (1 + this.profile.aggressiveness * 0.5)
+    const cornerSpeed = maxSpeedMs * Math.max(0.25, 1 - slowDown * 0.7)
+
+    return Math.max(5, Math.min(baseTarget, cornerSpeed))
+  }
+
+  private getCornerSeverity(): number {
+    const checkPoints = 8
+    const stepSize = 0.03
+    let maxAngle = 0
+
+    for (let i = 0; i < checkPoints; i++) {
+      const t1 = (this.targetT + i * stepSize) % 1
+      const t2 = (this.targetT + (i + 1) * stepSize) % 1
+      _tangent.copy(this.spline.getTangent(t1)).setY(0).normalize()
+      _tangentAhead.copy(this.spline.getTangent(t2)).setY(0).normalize()
+      const angle = 1 - Math.abs(_tangent.dot(_tangentAhead))
+      if (angle > maxAngle) maxAngle = angle
+    }
+
+    return Math.min(1, maxAngle * 3)
   }
 
   private calculateAvoidance(carPos: THREE.Vector3): { steerOffset: number, throttleReduction: number, brakeForce: number } {
@@ -256,11 +344,7 @@ export class AIController {
   }
 
   private getExpectedSpeedRatio(): number {
-    const targetTangent = this.spline.getTangent(this.targetT)
-    const lookAheadT = (this.targetT + 0.05) % 1
-    const lookAheadTangent = this.spline.getTangent(lookAheadT)
-    const cornerAngle = Math.abs(1 - Math.abs(targetTangent.dot(lookAheadTangent)))
-    return Math.max(0.3, 1 - cornerAngle * 2)
+    return Math.max(0.3, 1 - this.getCornerSeverity() * 2)
   }
 
   private canRejoin(carPos: THREE.Vector3): boolean {
@@ -333,8 +417,8 @@ export class AIController {
     }
 
     const speed = this.car.getSpeed() / 3.6
-    this.lookAheadDistance = BASE_LOOK_AHEAD + speed * LOOK_AHEAD_SPEED_FACTOR
-    this.targetT = (closestT + this.lookAheadDistance) % 1
+    const lookAhead = this.profile.lookAheadBase + speed * this.profile.lookAheadSpeedFactor
+    this.targetT = (closestT + lookAhead) % 1
   }
 
   getCar(): CarController {
@@ -373,7 +457,7 @@ export class AIController {
 
     this.car.resetPhysics()
 
-    this.targetT = (closestT + this.lookAheadDistance) % 1
+    this.targetT = (closestT + this.profile.lookAheadBase) % 1
     this.currentT = closestT
   }
 
@@ -382,14 +466,11 @@ export class AIController {
     this.currentT = 0
     this.lap = 0
     this.halfLapPassed = false
+    this.smoothSteer = 0
     this.aiState = 'STARTING'
     this.raceTimer = 0
     this.recoveryTimer = 0
     this.recoveryThrottleCutTimer = 0
-  }
-
-  setAggressiveness(value: number): void {
-    this.aggressiveness = Math.max(0, Math.min(1, value))
   }
 
   setAllCars(cars: CarController[]): void {

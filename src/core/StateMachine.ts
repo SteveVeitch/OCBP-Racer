@@ -23,6 +23,8 @@ export interface RaceResults {
   trackId: string
 }
 
+export type AIDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'pro'
+
 export interface GameSettings {
   masterVolume: number
   engineVolume: number
@@ -33,6 +35,7 @@ export interface GameSettings {
   demoEnabled: boolean
   cameraDefault: 'chase' | 'windscreen' | 'hood' | 'bumper'
   fogEnabled: boolean
+  aiDifficulty: AIDifficulty
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -44,7 +47,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   todOverride: 'auto',
   demoEnabled: true,
   cameraDefault: 'chase',
-  fogEnabled: true
+  fogEnabled: true,
+  aiDifficulty: 'intermediate'
 }
 
 function loadSettings(): GameSettings {

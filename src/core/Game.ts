@@ -766,6 +766,7 @@ export class Game {
   private finishRace(): void {
     this.raceData.finished = true
     this.raceActive = false
+    this.calculatePosition()
 
     if (this.miniMap) {
       this.miniMap.dispose()

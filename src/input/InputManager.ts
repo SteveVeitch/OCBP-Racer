@@ -14,6 +14,12 @@ export class InputManager {
   private readonly DEAD_ZONE = 0.15
   private STEER_EXPONENT = 1.4
 
+  private static readonly GAME_KEYS = new Set([
+    'KeyW', 'KeyA', 'KeyS', 'KeyD',
+    'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight',
+    'Escape', 'Enter', 'Space', 'Backspace'
+  ])
+
   constructor() {
     this.setupKeyboard()
     this.setupGamepad()
@@ -21,11 +27,18 @@ export class InputManager {
 
   private setupKeyboard(): void {
     window.addEventListener('keydown', (e) => {
+      if (InputManager.GAME_KEYS.has(e.code)) {
+        e.preventDefault()
+      }
       this.keys.add(e.code)
     })
 
     window.addEventListener('keyup', (e) => {
       this.keys.delete(e.code)
+    })
+
+    window.addEventListener('blur', () => {
+      this.keys.clear()
     })
   }
 
@@ -73,9 +86,9 @@ export class InputManager {
     const gamepad = gamepads[this.gamepadIndex!]
     if (!gamepad) return this.getKeyboardState()
 
-    const leftStickX = this.applyDeadZone(gamepad.axes[0])
-    const rightTrigger = this.applyDeadZone(gamepad.axes[7])
-    const leftTrigger = this.applyDeadZone(gamepad.axes[6])
+    const leftStickX = this.applyDeadZone(gamepad.axes[0] ?? 0)
+    const rightTrigger = this.applyDeadZone(gamepad.axes[7] ?? 0)
+    const leftTrigger = this.applyDeadZone(gamepad.axes[6] ?? 0)
 
     return {
       throttle: rightTrigger,

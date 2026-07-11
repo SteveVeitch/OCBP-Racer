@@ -7,20 +7,28 @@ export class AudioManager {
   private engineFilter: BiquadFilterNode | null = null
   private screechGain: GainNode | null = null
   private screechFilter: BiquadFilterNode | null = null
+  private screechSource: AudioBufferSourceNode | null = null
   private windGain: GainNode | null = null
   private windFilter: BiquadFilterNode | null = null
+  private windSource: AudioBufferSourceNode | null = null
   private masterVolume = 1.0
   private engineVolume = 0.6
   private initialized = false
+  private stopTimeout: ReturnType<typeof setTimeout> | null = null
 
   async init(): Promise<void> {
-    this.ctx = new AudioContext()
+    try {
+      this.ctx = new AudioContext()
 
-    this.masterGain = this.ctx.createGain()
-    this.masterGain.gain.value = this.masterVolume
-    this.masterGain.connect(this.ctx.destination)
+      this.masterGain = this.ctx.createGain()
+      this.masterGain.gain.value = this.masterVolume
+      this.masterGain.connect(this.ctx.destination)
 
-    this.initialized = true
+      this.initialized = true
+    } catch (err) {
+      console.warn('[AudioManager] AudioContext creation failed:', err)
+      this.initialized = false
+    }
   }
 
   private ensureContext(): boolean {
@@ -70,6 +78,11 @@ export class AudioManager {
   private initTireScreech(): void {
     if (!this.ctx || !this.masterGain) return
 
+    if (this.screechSource) {
+      try { this.screechSource.stop() } catch { /* already stopped */ }
+      this.screechSource = null
+    }
+
     const bufferSize = this.ctx.sampleRate * 2
     const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate)
     const data = noiseBuffer.getChannelData(0)
@@ -87,15 +100,20 @@ export class AudioManager {
     this.screechFilter.Q.value = 3
     this.screechFilter.connect(this.screechGain)
 
-    const screechSource = this.ctx.createBufferSource()
-    screechSource.buffer = noiseBuffer
-    screechSource.loop = true
-    screechSource.connect(this.screechFilter)
-    screechSource.start()
+    this.screechSource = this.ctx.createBufferSource()
+    this.screechSource.buffer = noiseBuffer
+    this.screechSource.loop = true
+    this.screechSource.connect(this.screechFilter)
+    this.screechSource.start()
   }
 
   private initWindNoise(): void {
     if (!this.ctx || !this.masterGain) return
+
+    if (this.windSource) {
+      try { this.windSource.stop() } catch { /* already stopped */ }
+      this.windSource = null
+    }
 
     const bufferSize = this.ctx.sampleRate * 2
     const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate)
@@ -114,15 +132,25 @@ export class AudioManager {
     this.windFilter.Q.value = 1
     this.windFilter.connect(this.windGain)
 
-    const windSource = this.ctx.createBufferSource()
-    windSource.buffer = noiseBuffer
-    windSource.loop = true
-    windSource.connect(this.windFilter)
-    windSource.start()
+    this.windSource = this.ctx.createBufferSource()
+    this.windSource.buffer = noiseBuffer
+    this.windSource.loop = true
+    this.windSource.connect(this.windFilter)
+    this.windSource.start()
   }
 
   startRaceAudio(): void {
     if (!this.ensureContext()) return
+
+    if (this.stopTimeout !== null) {
+      clearTimeout(this.stopTimeout)
+      this.stopTimeout = null
+      try { this.engineOsc?.stop() } catch { /* ignore */ }
+      try { this.engineOsc2?.stop() } catch { /* ignore */ }
+      this.engineOsc = null
+      this.engineOsc2 = null
+    }
+
     this.initEngine()
     this.initTireScreech()
     this.initWindNoise()
@@ -149,11 +177,22 @@ export class AudioManager {
       this.windGain.gain.linearRampToValueAtTime(0, now + 0.05)
     }
 
-    setTimeout(() => {
-      try { this.engineOsc?.stop() } catch { /* ignore */ }
-      try { this.engineOsc2?.stop() } catch { /* ignore */ }
-      this.engineOsc = null
-      this.engineOsc2 = null
+    const localEngineOsc = this.engineOsc
+    const localEngineOsc2 = this.engineOsc2
+    const localScreech = this.screechSource
+    const localWind = this.windSource
+
+    this.engineOsc = null
+    this.engineOsc2 = null
+    this.screechSource = null
+    this.windSource = null
+
+    this.stopTimeout = setTimeout(() => {
+      this.stopTimeout = null
+      try { localEngineOsc?.stop() } catch { /* ignore */ }
+      try { localEngineOsc2?.stop() } catch { /* ignore */ }
+      try { localScreech?.stop() } catch { /* ignore */ }
+      try { localWind?.stop() } catch { /* ignore */ }
     }, 100)
   }
 
@@ -277,14 +316,14 @@ export class AudioManager {
   }
 
   setMasterVolume(volume: number): void {
-    this.masterVolume = volume
+    this.masterVolume = Math.max(0, Math.min(1, volume))
     if (this.masterGain && this.ctx) {
-      this.masterGain.gain.setTargetAtTime(volume, this.ctx.currentTime, 0.05)
+      this.masterGain.gain.setTargetAtTime(this.masterVolume, this.ctx.currentTime, 0.05)
     }
   }
 
   setEngineVolume(volume: number): void {
-    this.engineVolume = volume
+    this.engineVolume = Math.max(0, Math.min(1, volume))
   }
 
   suspend(): void {
@@ -301,6 +340,10 @@ export class AudioManager {
 
   dispose(): void {
     this.stopRaceAudio()
+    if (this.stopTimeout !== null) {
+      clearTimeout(this.stopTimeout)
+      this.stopTimeout = null
+    }
     this.ctx?.close()
   }
 }

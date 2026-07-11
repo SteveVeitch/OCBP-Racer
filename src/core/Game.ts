@@ -63,6 +63,9 @@ export class Game {
   private environment!: EnvironmentManager
   private selectedTrackId: string = TRACKS[0].id
 
+  private streetLightRefs: THREE.Object3D[] = []
+  private raceActive = false
+
   private raceData: RaceData = {
     startTime: 0,
     lapTimes: [],
@@ -80,8 +83,10 @@ export class Game {
   private readonly PHYSICS_TIMESTEP = 1 / 120
   private accumulator = 0
   private lastTime = 0
+  private lastFrameDt = 1 / 60
 
   private pausePressed = false
+  private transitionCooldown = 0
 
   constructor() {
     this.state = new StateMachine()
@@ -155,6 +160,7 @@ export class Game {
       log('UI initialized OK')
 
       log('Starting game loop...')
+      this.setupAutoPause()
       this.start()
       log('Game started OK — all systems go')
     } catch (err) {
@@ -223,6 +229,16 @@ export class Game {
     this.applyGraphicsQuality()
   }
 
+  private setupAutoPause(): void {
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden && this.raceActive && !this.paused) {
+        this.paused = true
+        this.ui.showPause()
+        this.audio.suspend()
+      }
+    })
+  }
+
   private applyGraphicsQuality(): void {
     const quality = this.state.getSettings().graphicsQuality
     switch (quality) {
@@ -246,48 +262,62 @@ export class Game {
     }
   }
 
+  private cleanupStreetLights(): void {
+    for (const obj of this.streetLightRefs) {
+      this.scene.remove(obj)
+      obj.traverse((child) => {
+        if (child instanceof THREE.Mesh) {
+          child.geometry.dispose()
+          if (Array.isArray(child.material)) {
+            child.material.forEach(m => m.dispose())
+          } else {
+            child.material.dispose()
+          }
+        } else if (child instanceof THREE.PointLight) {
+          child.dispose()
+        }
+      })
+    }
+    this.streetLightRefs = []
+  }
+
   private addStreetLights(): void {
     const spline = this.track.getSpline()
     const def = this.track.getDefinition()
     const count = def.streetLightDensity
+
+    const sharedPoleGeom = new THREE.CylinderGeometry(0.1, 0.12, 7, 6)
+    const sharedPoleMat = new THREE.MeshStandardMaterial({ color: 0x555555 })
+    const sharedBulbGeom = new THREE.SphereGeometry(0.25, 8, 8)
+    const sharedBulbMat = new THREE.MeshStandardMaterial({
+      color: 0xffcc88,
+      emissive: 0xffcc88,
+      emissiveIntensity: 3
+    })
 
     for (let i = 0; i < count; i++) {
       const t = i / count
       const point = spline.getPoint(t)
       const right = spline.getRightVector(t)
 
+      const group = new THREE.Group()
+
       const light = new THREE.PointLight(0xffcc88, 3.0, 40)
-      light.position.set(
-        point.x + right.x * 8,
-        7,
-        point.z + right.z * 8
-      )
+      light.position.set(right.x * 8, 7, right.z * 8)
       light.castShadow = false
-      this.scene.add(light)
+      group.add(light)
 
-      const poleGeometry = new THREE.CylinderGeometry(0.1, 0.12, 7, 6)
-      const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x555555 })
-      const pole = new THREE.Mesh(poleGeometry, poleMaterial)
-      pole.position.set(
-        point.x + right.x * 8,
-        3.5,
-        point.z + right.z * 8
-      )
-      this.scene.add(pole)
+      const pole = new THREE.Mesh(sharedPoleGeom, sharedPoleMat)
+      pole.position.set(right.x * 8, 3.5, right.z * 8)
+      group.add(pole)
 
-      const bulbGeometry = new THREE.SphereGeometry(0.25, 8, 8)
-      const bulbMaterial = new THREE.MeshStandardMaterial({
-        color: 0xffcc88,
-        emissive: 0xffcc88,
-        emissiveIntensity: 3
-      })
-      const bulb = new THREE.Mesh(bulbGeometry, bulbMaterial)
-      bulb.position.set(
-        point.x + right.x * 8,
-        7.2,
-        point.z + right.z * 8
-      )
-      this.scene.add(bulb)
+      const bulb = new THREE.Mesh(sharedBulbGeom, sharedBulbMat)
+      bulb.position.set(right.x * 8, 7.2, right.z * 8)
+      group.add(bulb)
+
+      group.position.set(point.x, 0, point.z)
+      this.scene.add(group)
+      this.streetLightRefs.push(group)
     }
   }
 
@@ -318,14 +348,19 @@ export class Game {
   }
 
   setTrack(trackId: string): void {
+    if (this.raceActive) return
     this.selectedTrackId = trackId
   }
 
   private startRace(): void {
+    if (this.transitionCooldown > 0) return
+    this.transitionCooldown = 0.3
+
     this.clearRaceEntities()
 
     const trackDef = getTrackById(this.selectedTrackId)
     if (trackDef && trackDef.id !== this.track.getDefinition().id) {
+      this.cleanupStreetLights()
       this.track.cleanup(this.scene, this.physics.getWorld())
       this.environment.clearDecorations()
       this.track = new Track(trackDef)
@@ -398,6 +433,7 @@ export class Game {
 
     this.countdownStep = -1
     this.countdownTimer = 0
+    this.raceActive = true
     try {
       this.audio.stopRaceAudio()
       this.audio.startRaceAudio()
@@ -408,27 +444,36 @@ export class Game {
   }
 
   private restartRace(): void {
+    if (this.transitionCooldown > 0) return
+    this.transitionCooldown = 0.3
+
     this.clearRaceEntities()
     this.ui.hideAll()
     this.startRace()
   }
 
   private returnToMenu(): void {
+    if (this.transitionCooldown > 0) return
+    this.transitionCooldown = 0.3
+
     this.clearRaceEntities()
     this.audio.stopRaceAudio()
     this.ui.hideAll()
     this.state.transition('MENU')
     this.paused = false
+    this.raceActive = false
   }
 
   private clearRaceEntities(): void {
     if (this.car) {
       this.scene.remove(this.car.getMesh())
+      this.car.disposeMesh()
       try { this.physics.getWorld().removeRigidBody(this.car.getBody()) } catch { /* already removed */ }
       this.car = undefined as unknown as CarController
     }
     this.aiCars.forEach(car => {
       this.scene.remove(car.getMesh())
+      car.disposeMesh()
       try { this.physics.getWorld().removeRigidBody(car.getBody()) } catch { /* already removed */ }
     })
     this.aiCars = []
@@ -451,6 +496,11 @@ export class Game {
     this.lastTime = currentTime
 
     if (deltaTime > 0.1) deltaTime = 0.1
+    this.lastFrameDt = deltaTime
+
+    if (this.transitionCooldown > 0) {
+      this.transitionCooldown = Math.max(0, this.transitionCooldown - deltaTime)
+    }
 
     this.handlePauseInput()
 
@@ -484,7 +534,7 @@ export class Game {
     if (inputState.pause && !this.pausePressed) {
       this.pausePressed = true
 
-      if (currentState === 'RACING') {
+      if (currentState === 'RACING' || currentState === 'COUNTDOWN') {
         if (this.paused) {
           this.paused = false
           this.ui.hidePause()
@@ -494,11 +544,6 @@ export class Game {
           this.ui.showPause()
           this.audio.suspend()
         }
-      } else if (currentState === 'PAUSED') {
-        this.paused = false
-        this.ui.hidePause()
-        this.audio.resume()
-        this.state.transition('RACING')
       }
     } else if (!inputState.pause) {
       this.pausePressed = false
@@ -604,7 +649,9 @@ export class Game {
     for (let i = 0; i < 50; i++) {
       const t = i / 50
       const point = spline.getPoint(t)
-      const dist = position.distanceTo(point)
+      const dx = position.x - point.x
+      const dz = position.z - point.z
+      const dist = dx * dx + dz * dz
       if (dist < closestDist) {
         closestDist = dist
         closestT = t
@@ -616,6 +663,7 @@ export class Game {
 
   private finishRace(): void {
     this.raceData.finished = true
+    this.raceActive = false
 
     const results: RaceResults = {
       position: this.raceData.position,
@@ -653,12 +701,12 @@ export class Game {
       this.particles.emitTireSmoke(this.car.getPosition(), intensity)
     }
 
-    this.particles.update(1 / 60)
+    this.particles.update(this.lastFrameDt)
   }
 
   private updateWeatherParticles(): void {
     if (this.weatherParticles && this.car) {
-      this.weatherParticles.update(1 / 60, this.car.getPosition())
+      this.weatherParticles.update(this.lastFrameDt, this.car.getPosition())
     }
   }
 
@@ -691,7 +739,7 @@ export class Game {
     const speed = this.car.getSpeed()
     const maxSpeed = this.car.getMaxSpeed()
 
-    this.cameraController.update(carPosition, carVelocity, carQuaternion, speed, maxSpeed, 1 / 60)
+    this.cameraController.update(carPosition, carVelocity, carQuaternion, speed, maxSpeed, this.lastFrameDt)
   }
 
   private render(): void {
@@ -724,6 +772,7 @@ export class Game {
   dispose(): void {
     this.running = false
     this.clearRaceEntities()
+    this.cleanupStreetLights()
     this.particles.dispose()
     this.weatherParticles?.dispose()
     this.environment?.dispose()

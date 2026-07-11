@@ -176,6 +176,15 @@ export class EnvironmentManager {
   private fogColor: THREE.Color = new THREE.Color(0x0a0a15)
   private decorations: THREE.Object3D[] = []
   private groundMesh: THREE.Mesh | null = null
+  private groundGeometry: THREE.PlaneGeometry | null = null
+  private currentTerrain: TerrainType | null = null
+
+  private sharedUrbanBaseMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9, metalness: 0.05 })
+  private sharedIndustrialBaseMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9, metalness: 0.1 })
+  private sharedCoastalTrunkMat = new THREE.MeshStandardMaterial({ color: 0x553311, roughness: 0.95 })
+  private sharedMountainTrunkMat = new THREE.MeshStandardMaterial({ color: 0x443322, roughness: 0.95 })
+  private sharedChimneyMat = new THREE.MeshStandardMaterial({ color: 0x554444, roughness: 0.85, metalness: 0.15 })
+  private sharedBandMat = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.6, metalness: 0.3 })
 
   constructor(scene: THREE.Scene) {
     this.scene = scene
@@ -232,21 +241,25 @@ export class EnvironmentManager {
   }
 
   setGroundTexture(terrain: TerrainType): void {
+    if (terrain === this.currentTerrain && this.groundMesh) return
+
     if (this.groundMesh) {
       this.scene.remove(this.groundMesh)
       const oldMat = this.groundMesh.material as THREE.MeshStandardMaterial
       if (oldMat.map) oldMat.map.dispose()
       oldMat.dispose()
-      this.groundMesh.geometry.dispose()
+    } else {
+      this.groundGeometry = new THREE.PlaneGeometry(400, 400)
     }
+
+    this.currentTerrain = terrain
     const tex = createGroundTexture(terrain)
-    const geom = new THREE.PlaneGeometry(400, 400)
     const mat = new THREE.MeshStandardMaterial({
       map: tex,
       roughness: 0.95,
       metalness: 0.0
     })
-    this.groundMesh = new THREE.Mesh(geom, mat)
+    this.groundMesh = new THREE.Mesh(this.groundGeometry!, mat)
     this.groundMesh.rotation.x = -Math.PI / 2
     this.groundMesh.position.y = -0.01
     this.groundMesh.receiveShadow = true
@@ -254,18 +267,31 @@ export class EnvironmentManager {
   }
 
   clearDecorations(): void {
+    const sharedMats = new Set<THREE.Material>([
+      this.sharedUrbanBaseMat,
+      this.sharedIndustrialBaseMat,
+      this.sharedCoastalTrunkMat,
+      this.sharedMountainTrunkMat,
+      this.sharedChimneyMat,
+      this.sharedBandMat
+    ])
+
     for (const deco of this.decorations) {
       this.scene.remove(deco)
       deco.traverse(child => {
         if (child instanceof THREE.Mesh) {
           child.geometry.dispose()
           if (child.material instanceof THREE.MeshStandardMaterial) {
-            if (child.material.map) child.material.map.dispose()
-            child.material.dispose()
+            if (!sharedMats.has(child.material)) {
+              if (child.material.map) child.material.map.dispose()
+              child.material.dispose()
+            }
           } else if (Array.isArray(child.material)) {
             child.material.forEach(m => {
-              if (m instanceof THREE.MeshStandardMaterial && m.map) m.map.dispose()
-              m.dispose()
+              if (!sharedMats.has(m)) {
+                if (m instanceof THREE.MeshStandardMaterial && m.map) m.map.dispose()
+                m.dispose()
+              }
             })
           }
         }
@@ -323,12 +349,7 @@ export class EnvironmentManager {
 
       const baseH = 1.0 + Math.random() * 1.5
       const baseGeom = new THREE.BoxGeometry(w + 0.4, baseH, d + 0.4)
-      const baseMat = new THREE.MeshStandardMaterial({
-        color: 0x333333,
-        roughness: 0.9,
-        metalness: 0.05
-      })
-      const baseMesh = new THREE.Mesh(baseGeom, baseMat)
+      const baseMesh = new THREE.Mesh(baseGeom, this.sharedUrbanBaseMat)
       baseMesh.position.set(x, baseH / 2, z)
       baseMesh.castShadow = true
       baseMesh.receiveShadow = true
@@ -345,8 +366,7 @@ export class EnvironmentManager {
       const z = center.z + Math.sin(angle) * dist
       const treeHeight = 3 + Math.random() * 5
       const trunkGeom = new THREE.CylinderGeometry(0.12, 0.2, treeHeight * 0.4, 8)
-      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x553311, roughness: 0.95 })
-      const trunk = new THREE.Mesh(trunkGeom, trunkMat)
+      const trunk = new THREE.Mesh(trunkGeom, this.sharedCoastalTrunkMat)
       trunk.position.set(x, treeHeight * 0.2, z)
       trunk.castShadow = true
       this.scene.add(trunk)
@@ -404,8 +424,7 @@ export class EnvironmentManager {
       const z = center.z + Math.sin(angle) * dist
       const treeHeight = 2 + Math.random() * 4
       const trunkGeom = new THREE.CylinderGeometry(0.1, 0.18, treeHeight * 0.4, 6)
-      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x443322, roughness: 0.95 })
-      const trunk = new THREE.Mesh(trunkGeom, trunkMat)
+      const trunk = new THREE.Mesh(trunkGeom, this.sharedMountainTrunkMat)
       trunk.position.set(x, treeHeight * 0.2, z)
       this.scene.add(trunk)
       this.decorations.push(trunk)
@@ -455,8 +474,7 @@ export class EnvironmentManager {
 
       const baseH = 1.5
       const baseGeom = new THREE.BoxGeometry(w + 0.4, baseH, d + 0.4)
-      const baseMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9, metalness: 0.1 })
-      const baseMesh = new THREE.Mesh(baseGeom, baseMat)
+      const baseMesh = new THREE.Mesh(baseGeom, this.sharedIndustrialBaseMat)
       baseMesh.position.set(x, baseH / 2, z)
       baseMesh.receiveShadow = true
       this.scene.add(baseMesh)
@@ -469,16 +487,14 @@ export class EnvironmentManager {
       const z = center.z + Math.sin(angle) * dist
       const chimneyH = 12 + Math.random() * 10
       const chimneyGeom = new THREE.CylinderGeometry(0.6, 0.8, chimneyH, 10)
-      const chimneyMat = new THREE.MeshStandardMaterial({ color: 0x554444, roughness: 0.85, metalness: 0.15 })
-      const chimney = new THREE.Mesh(chimneyGeom, chimneyMat)
+      const chimney = new THREE.Mesh(chimneyGeom, this.sharedChimneyMat)
       chimney.position.set(x, chimneyH / 2, z)
       chimney.castShadow = true
       this.scene.add(chimney)
       this.decorations.push(chimney)
 
       const bandGeom = new THREE.CylinderGeometry(0.7, 0.7, 1.0, 10)
-      const bandMat = new THREE.MeshStandardMaterial({ color: 0xcc3333, roughness: 0.6, metalness: 0.3 })
-      const band = new THREE.Mesh(bandGeom, bandMat)
+      const band = new THREE.Mesh(bandGeom, this.sharedBandMat)
       band.position.set(x, chimneyH * 0.75, z)
       this.scene.add(band)
       this.decorations.push(band)
@@ -492,8 +508,18 @@ export class EnvironmentManager {
       const mat = this.groundMesh.material as THREE.MeshStandardMaterial
       if (mat.map) mat.map.dispose()
       mat.dispose()
-      this.groundMesh.geometry.dispose()
+      this.groundGeometry?.dispose()
       this.groundMesh = null
+      this.groundGeometry = null
+      this.currentTerrain = null
     }
+    this.scene.remove(this.ambientLight)
+    this.scene.remove(this.directionalLight)
+    this.sharedUrbanBaseMat.dispose()
+    this.sharedIndustrialBaseMat.dispose()
+    this.sharedCoastalTrunkMat.dispose()
+    this.sharedMountainTrunkMat.dispose()
+    this.sharedChimneyMat.dispose()
+    this.sharedBandMat.dispose()
   }
 }

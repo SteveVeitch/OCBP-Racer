@@ -39,6 +39,18 @@ const MAX_ROLL_ANGLE = 5 * (Math.PI / 180)
 const GRIP_FORCE_FACTOR = 0.15
 const THROTTLE_RAMP_UP = 2.5
 const THROTTLE_RAMP_DOWN = 4.0
+const MS_PER_KMH = 1 / 3.6
+
+const _quat = new THREE.Quaternion()
+const _forward = new THREE.Vector3()
+const _right = new THREE.Vector3()
+const _axisY = new THREE.Vector3(0, 1, 0)
+const _newQuat = new THREE.Quaternion()
+const _velDir = new THREE.Vector3()
+
+function safeNumber(v: number, fallback: number): number {
+  return Number.isFinite(v) && v > 0 ? v : fallback
+}
 
 export class CarController {
   private body: RAPIER.RigidBody
@@ -60,10 +72,15 @@ export class CarController {
     steerMultiplier: 1.0
   }
 
+  private maxSpeedMS: number
+  private _cachedForwardSpeed = 0
+  private _cachedHorizontalSpeed = 0
+
   constructor(body: RAPIER.RigidBody, mesh: THREE.Group, config?: Partial<CarConfig>) {
     this.body = body
     this.mesh = mesh
     this.config = { ...DEFAULT_CONFIG, ...config }
+    this.maxSpeedMS = this.config.maxSpeed * MS_PER_KMH
     this.findWheels()
   }
 
@@ -88,7 +105,19 @@ export class CarController {
 
   update(dt: number, input: InputState): void {
     this.enforceGround()
-    this.updateLateralVelocity()
+
+    const velocity = this.body.linvel()
+    const rotation = this.body.rotation()
+    _quat.set(rotation.x, rotation.y, rotation.z, rotation.w)
+
+    _forward.set(0, 0, 1).applyQuaternion(_quat)
+    _right.set(1, 0, 0).applyQuaternion(_quat)
+
+    this._cachedForwardSpeed = velocity.x * _forward.x + velocity.z * _forward.z
+    this._cachedHorizontalSpeed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
+
+    this.lateralVelocity = velocity.x * _right.x + velocity.z * _right.z
+
     this.updateSteering(input.steer, dt)
     this.updateThrottleLevel(input.throttle, dt)
     this.applyThrottle(this.throttleLevel)
@@ -97,23 +126,19 @@ export class CarController {
     this.applyDownforce()
     this.applyGripForce()
     this.updateMesh(dt)
-  }
 
-  private updateLateralVelocity(): void {
-    const velocity = this.body.linvel()
-    const rotation = this.body.rotation()
-    const quat = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(quat)
-    this.lateralVelocity = velocity.x * right.x + velocity.z * right.z
+    const speedKmh = this._cachedHorizontalSpeed * 3.6
+    if (speedKmh > this.config.maxSpeed * 1.1) {
+      const ratio = (this.config.maxSpeed * 1.1) / speedKmh
+      this.body.setLinvel(
+        { x: velocity.x * ratio, y: velocity.y, z: velocity.z * ratio },
+        true
+      )
+    }
   }
 
   private calculateSlipAngle(): number {
-    const velocity = this.body.linvel()
-    const rotation = this.body.rotation()
-    const quat = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
-    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(quat)
-
-    const forwardSpeed = Math.abs(velocity.x * forward.x + velocity.z * forward.z)
+    const forwardSpeed = Math.abs(this._cachedForwardSpeed)
     const latSpeed = Math.abs(this.lateralVelocity)
 
     if (forwardSpeed < 0.5) return 0
@@ -135,7 +160,7 @@ export class CarController {
   }
 
   private applyGripForce(): void {
-    const speed = this.getSpeed() / 3.6
+    const speed = this._cachedHorizontalSpeed
     if (speed < 0.5) return
 
     const slipAngle = this.calculateSlipAngle()
@@ -143,46 +168,35 @@ export class CarController {
 
     if (gripCoeff < 0.01) return
 
-    const rotation = this.body.rotation()
-    const quat = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
-    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(quat)
-
     const sign = this.lateralVelocity > 0 ? -1 : 1
     const force = sign * gripCoeff * speed * GRIP_FORCE_FACTOR * this.envModifiers.gripMultiplier
 
     this.body.applyImpulse(
-      { x: right.x * force, y: 0, z: right.z * force },
+      { x: _right.x * force, y: 0, z: _right.z * force },
       true
     )
   }
 
   private updateSteering(input: number, dt: number): void {
-    const rotation = this.body.rotation()
-    const quat = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
-    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(quat)
-    const velocity = this.body.linvel()
-    const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
-
-    const steerDir = forwardSpeed >= 0 ? input : -input
+    const steerDir = this._cachedForwardSpeed >= 0 ? input : -input
     const targetSteer = steerDir * this.config.maxSteerAngle
     const steerDiff = targetSteer - this.currentSteer
     this.currentSteer += steerDiff * Math.min(dt * 10, 1)
 
     const currentAngle = Math.atan2(
-      2 * (quat.w * quat.y + quat.x * quat.z),
-      1 - 2 * (quat.y * quat.y + quat.z * quat.z)
+      2 * (_quat.w * _quat.y + _quat.x * _quat.z),
+      1 - 2 * (_quat.y * _quat.y + _quat.z * _quat.z)
     )
 
-    const speed = this.getSpeed() / 3.6
+    const speed = this._cachedHorizontalSpeed
     const speedFactor = Math.min(speed / 3, 1)
     const turnRate = this.currentSteer * speedFactor * this.config.steerSpeed * this.envModifiers.steerMultiplier
 
     const newAngle = currentAngle + turnRate * dt
-    const newQuat = new THREE.Quaternion()
-    newQuat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), newAngle)
+    _newQuat.setFromAxisAngle(_axisY, newAngle)
 
     this.body.setRotation(
-      { x: newQuat.x, y: newQuat.y, z: newQuat.z, w: newQuat.w },
+      { x: _newQuat.x, y: _newQuat.y, z: _newQuat.z, w: _newQuat.w },
       true
     )
     this.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
@@ -199,17 +213,13 @@ export class CarController {
   private applyThrottle(input: number): void {
     if (input <= 0) return
 
-    const rotation = this.body.rotation()
-    const quat = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
-    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(quat)
-
-    const speed = this.getSpeed() / 3.6
-    const speedRatio = speed / (this.config.maxSpeed / 3.6)
+    const speed = this._cachedHorizontalSpeed
+    const speedRatio = speed / this.maxSpeedMS
     const forceMultiplier = Math.max(0, 1 - speedRatio * 0.9)
     const force = input * this.config.engineForce * forceMultiplier
 
     this.body.applyImpulse(
-      { x: forward.x * force, y: 0, z: forward.z * force },
+      { x: _forward.x * force, y: 0, z: _forward.z * force },
       true
     )
   }
@@ -218,27 +228,27 @@ export class CarController {
     if (input <= 0) return
 
     const velocity = this.body.linvel()
-    const speed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
 
-    const rotation = this.body.rotation()
-    const quat = new THREE.Quaternion(rotation.x, rotation.y, rotation.z, rotation.w)
-    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(quat)
+    const speed = this._cachedHorizontalSpeed
 
-    const forwardSpeed = velocity.x * forward.x + velocity.z * forward.z
-
-    if (forwardSpeed > 1.0) {
-      const velDir = new THREE.Vector3(velocity.x, 0, velocity.z).normalize()
+    if (this._cachedForwardSpeed > 1.0) {
+      const mag = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
+      if (mag > 0.01) {
+        _velDir.set(velocity.x / mag, 0, velocity.z / mag)
+      } else {
+        _velDir.set(0, 0, 0)
+      }
       const brakeForce = input * this.config.brakeForce * this.envModifiers.brakingMultiplier
       this.body.applyImpulse(
-        { x: -velDir.x * brakeForce, y: 0, z: -velDir.z * brakeForce },
+        { x: -_velDir.x * brakeForce, y: 0, z: -_velDir.z * brakeForce },
         true
       )
     } else {
-      const reverseMaxSpeed = this.config.maxSpeed / 3.6 * 0.35
+      const reverseMaxSpeed = this.maxSpeedMS * 0.35
       if (speed < reverseMaxSpeed) {
         const reverseForce = input * this.config.engineForce * 0.4
         this.body.applyImpulse(
-          { x: -forward.x * reverseForce, y: 0, z: -forward.z * reverseForce },
+          { x: -_forward.x * reverseForce, y: 0, z: -_forward.z * reverseForce },
           true
         )
       }
@@ -247,7 +257,7 @@ export class CarController {
 
   private applyDrag(): void {
     const velocity = this.body.linvel()
-    const speed = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
+    const speed = this._cachedHorizontalSpeed
 
     if (speed > 0.1) {
       const dragMagnitude = this.config.dragCoeff * speed * 0.01 * this.envModifiers.dragMultiplier
@@ -263,7 +273,7 @@ export class CarController {
   }
 
   private applyDownforce(): void {
-    const speed = this.getSpeed() / 3.6
+    const speed = this._cachedHorizontalSpeed
     const force = this.config.downforce * speed * speed * 0.0001
     this.body.applyImpulse({ x: 0, y: -force, z: 0 }, true)
   }
@@ -280,7 +290,7 @@ export class CarController {
       this.body.setTranslation({ x: pos.x, y: 0.5, z: pos.z }, true)
     }
     const vel = this.body.linvel()
-    if (vel.y !== 0) {
+    if (Math.abs(vel.y) > 1e-4) {
       this.body.setLinvel({ x: vel.x, y: 0, z: vel.z }, true)
     }
   }
@@ -292,7 +302,7 @@ export class CarController {
     this.mesh.position.set(position.x, position.y - 0.5, position.z)
     this.mesh.quaternion.set(rotation.x, rotation.y, rotation.z, rotation.w)
 
-    const speed = this.getSpeed() / 3.6
+    const speed = this._cachedHorizontalSpeed
     this.wheelSpin += speed * dt / WHEEL_RADIUS
 
     const rollAngle = Math.max(-MAX_ROLL_ANGLE,
@@ -328,9 +338,8 @@ export class CarController {
   }
 
   setLookAt(angle: number): void {
-    const quat = new THREE.Quaternion()
-    quat.setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle)
-    this.body.setRotation({ x: quat.x, y: quat.y, z: quat.z, w: quat.w }, true)
+    _newQuat.setFromAxisAngle(_axisY, angle)
+    this.body.setRotation({ x: _newQuat.x, y: _newQuat.y, z: _newQuat.z, w: _newQuat.w }, true)
     this.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
   }
 
@@ -341,6 +350,14 @@ export class CarController {
     this.lateralVelocity = 0
     this.wheelSpin = 0
     this.throttleLevel = 0
+  }
+
+  getPositionRef(): { x: number; y: number; z: number } {
+    return this.body.translation()
+  }
+
+  getVelocityRef(): RAPIER.Vector {
+    return this.body.linvel()
   }
 
   getVelocity(): THREE.Vector3 {
@@ -381,8 +398,8 @@ export class CarController {
   }
 
   getRPM(): number {
-    const speed = this.getSpeed() / 3.6
-    const speedRatio = speed / (this.config.maxSpeed / 3.6)
+    const speed = this._cachedHorizontalSpeed
+    const speedRatio = speed / this.maxSpeedMS
     return 800 + Math.min(1, speedRatio) * 6700
   }
 
@@ -399,10 +416,29 @@ export class CarController {
   }
 
   setEnvironmentModifiers(mods: EnvironmentModifiers): void {
-    this.envModifiers = { ...mods }
+    const safe = safeNumber
+    this.envModifiers = {
+      gripMultiplier: safe(mods.gripMultiplier, 1.0),
+      dragMultiplier: safe(mods.dragMultiplier, 1.0),
+      brakingMultiplier: safe(mods.brakingMultiplier, 1.0),
+      steerMultiplier: safe(mods.steerMultiplier, 1.0)
+    }
   }
 
   getEnvironmentModifiers(): EnvironmentModifiers {
     return { ...this.envModifiers }
+  }
+
+  disposeMesh(): void {
+    this.mesh.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.geometry.dispose()
+        if (Array.isArray(child.material)) {
+          child.material.forEach(m => m.dispose())
+        } else {
+          child.material.dispose()
+        }
+      }
+    })
   }
 }

@@ -18,6 +18,13 @@ const DEFAULT_CONFIG: TrackConfig = {
   barrierColor: 0x888888
 }
 
+const _scratchVec = new THREE.Vector3()
+const _scratchVec2 = new THREE.Vector3()
+const _scratchVec3 = new THREE.Vector3()
+const _scratchVec4 = new THREE.Vector3()
+const _scratchQuat = new THREE.Quaternion()
+const _axisY = new THREE.Vector3(0, 1, 0)
+
 function createAsphaltTexture(): THREE.CanvasTexture {
   const size = 512
   const canvas = document.createElement('canvas')
@@ -134,22 +141,22 @@ function createGuardrailGeometry(
     const cx = point.x + right.x * offset
     const cz = point.z + right.z * offset
 
-    const wDir = new THREE.Vector3(right.x * side, 0, right.z * side)
+    _scratchVec.set(right.x * side, 0, right.z * side)
 
-    const bx = cx - wDir.x * flangeW
-    const bz = cz - wDir.z * flangeW
+    const bx = cx - _scratchVec.x * flangeW
+    const bz = cz - _scratchVec.z * flangeW
     vertices.push(bx, bottomY, bz)
-    normals.push(-wDir.x * side, 0, -wDir.z * side)
+    normals.push(-_scratchVec.x * side, 0, -_scratchVec.z * side)
     uvs.push(0, t * 20)
 
-    const tx = cx + wDir.x * flangeW
-    const tz = cz + wDir.z * flangeW
+    const tx = cx + _scratchVec.x * flangeW
+    const tz = cz + _scratchVec.z * flangeW
     vertices.push(tx, topY, tz)
-    normals.push(wDir.x * side, 0, wDir.z * side)
+    normals.push(_scratchVec.x * side, 0, _scratchVec.z * side)
     uvs.push(1, t * 20)
 
-    const mx1 = cx - wDir.x * webW
-    const mz1 = cz - wDir.z * webW
+    const mx1 = cx - _scratchVec.x * webW
+    const mz1 = cz - _scratchVec.z * webW
     vertices.push(mx1, midY, mz1)
     normals.push(0, 0, side)
     uvs.push(0.5, t * 20)
@@ -178,6 +185,7 @@ export class TrackBuilder {
   private config: TrackConfig
   private sceneMeshes: THREE.Mesh[] = []
   private rigidBodies: RAPIER.RigidBody[] = []
+  private disposedMaterials = new Set<THREE.Material>()
 
   constructor(config?: Partial<TrackConfig>) {
     this.config = { ...DEFAULT_CONFIG, ...config }
@@ -216,22 +224,34 @@ export class TrackBuilder {
   }
 
   cleanup(scene: THREE.Scene, world: RAPIER.World): void {
+    this.disposedMaterials.clear()
+
     for (const mesh of this.sceneMeshes) {
       scene.remove(mesh)
       mesh.geometry.dispose()
       if (Array.isArray(mesh.material)) {
         mesh.material.forEach(m => {
-          if (m instanceof THREE.MeshStandardMaterial && m.map) m.map.dispose()
-          m.dispose()
+          if (!this.disposedMaterials.has(m)) {
+            this.disposedMaterials.add(m)
+            if (m instanceof THREE.MeshStandardMaterial && m.map) m.map.dispose()
+            m.dispose()
+          }
         })
-      } else if (mesh.material instanceof THREE.MeshStandardMaterial && mesh.material.map) {
-        mesh.material.map.dispose()
-        mesh.material.dispose()
-      } else {
-        mesh.material.dispose()
+      } else if (mesh.material instanceof THREE.MeshStandardMaterial) {
+        if (!this.disposedMaterials.has(mesh.material)) {
+          this.disposedMaterials.add(mesh.material)
+          if (mesh.material.map) mesh.material.map.dispose()
+          mesh.material.dispose()
+        }
+      } else if (!this.disposedMaterials.has(mesh.material as THREE.Material)) {
+        const mat = mesh.material as THREE.Material
+        this.disposedMaterials.add(mat)
+        mat.dispose()
       }
     }
     this.sceneMeshes = []
+    this.disposedMaterials.clear()
+
     for (const body of this.rigidBodies) {
       world.removeRigidBody(body)
     }
@@ -255,11 +275,11 @@ export class TrackBuilder {
       const point = spline.getPoint(t)
       const right = spline.getRightVector(t)
 
-      const left = point.clone().add(right.clone().multiplyScalar(-halfWidth))
-      const rightPoint = point.clone().add(right.clone().multiplyScalar(halfWidth))
+      _scratchVec.copy(point).addScaledVector(right, -halfWidth)
+      _scratchVec2.copy(point).addScaledVector(right, halfWidth)
 
-      vertices.push(left.x, 0.01, left.z)
-      vertices.push(rightPoint.x, 0.01, rightPoint.z)
+      vertices.push(_scratchVec.x, 0.01, _scratchVec.z)
+      vertices.push(_scratchVec2.x, 0.01, _scratchVec2.z)
 
       normals.push(0, 1, 0)
       normals.push(0, 1, 0)
@@ -298,7 +318,7 @@ export class TrackBuilder {
     divisions: number
   ): void {
     const halfWidth = this.config.roadWidth / 2 + this.config.barrierOffset
-    const step = Math.floor(divisions / 20)
+    const step = Math.max(1, Math.floor(divisions / 20))
 
     for (const side of [-1, 1]) {
       const bodyDesc = RAPIER.RigidBodyDesc.fixed()
@@ -312,18 +332,21 @@ export class TrackBuilder {
         const pointNext = spline.getPoint(tNext)
         const right = spline.getRightVector(t)
 
-        const start = point.clone().add(right.clone().multiplyScalar(side * halfWidth))
-        const end = pointNext.clone().add(right.clone().multiplyScalar(side * halfWidth))
+        _scratchVec.copy(point).addScaledVector(right, side * halfWidth)
+        _scratchVec2.copy(pointNext).addScaledVector(right, side * halfWidth)
 
-        const length = start.distanceTo(end)
-        const mid = start.clone().add(end).multiplyScalar(0.5)
+        const length = _scratchVec.distanceTo(_scratchVec2)
+        if (length < 0.1) continue
 
-        const direction = end.clone().sub(start).normalize()
-        const angle = Math.atan2(direction.x, direction.z)
+        _scratchVec3.copy(_scratchVec).add(_scratchVec2).multiplyScalar(0.5)
+
+        _scratchVec4.copy(_scratchVec2).sub(_scratchVec).normalize()
+        const angle = Math.atan2(_scratchVec4.x, _scratchVec4.z)
 
         const colliderDesc = RAPIER.ColliderDesc.cuboid(0.5, 0.5, length / 2)
-        colliderDesc.setTranslation(mid.x, 0.5, mid.z)
-        colliderDesc.setRotation(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), angle))
+        colliderDesc.setTranslation(_scratchVec3.x, 0.5, _scratchVec3.z)
+        _scratchQuat.setFromAxisAngle(_axisY, angle)
+        colliderDesc.setRotation(_scratchQuat)
         world.createCollider(colliderDesc, body)
       }
     }

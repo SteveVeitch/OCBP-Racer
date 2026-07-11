@@ -14,12 +14,16 @@ const RECOVERY_SPEED_THRESHOLD = 2.0
 const RECOVERY_ALIGN_COS = Math.cos(30 * Math.PI / 180)
 const RECOVERY_DISTANCE_THRESHOLD = 4.0
 const RECOVERY_THROTTLE_CUT_DURATION = 0.5
+const RECOVERY_TIMEOUT = 5.0
+const BASE_LOOK_AHEAD = 0.04
+const LOOK_AHEAD_SPEED_FACTOR = 0.002
 
 const _toTarget = new THREE.Vector3()
 const _forward = new THREE.Vector3()
 const _right = new THREE.Vector3()
 const _toOther = new THREE.Vector3()
 const _carPos = new THREE.Vector3()
+const _cross = new THREE.Vector3()
 
 export class AIController {
   private car: CarController
@@ -28,7 +32,7 @@ export class AIController {
   private currentT = 0
   private lap = 0
   private aggressiveness: number
-  private lookAheadDistance = 0.05
+  private lookAheadDistance = BASE_LOOK_AHEAD
   private allCars: CarController[] = []
 
   private aiState: AIState = 'STARTING'
@@ -129,6 +133,12 @@ export class AIController {
     this.recoveryTimer += dt
     this.recoveryThrottleCutTimer = Math.max(0, this.recoveryThrottleCutTimer - dt)
 
+    if (this.recoveryTimer > RECOVERY_TIMEOUT) {
+      this.aiState = 'RACING'
+      this.recoveryTimer = 0
+      return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false }
+    }
+
     const throttle = this.recoveryThrottleCutTimer > 0 ? 0 : 0.3
 
     const nearestObstacle = this.findNearestObstacle(carPos)
@@ -143,6 +153,7 @@ export class AIController {
 
     if (this.canRejoin(carPos)) {
       this.aiState = 'RACING'
+      this.recoveryTimer = 0
       return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false }
     }
 
@@ -162,8 +173,8 @@ export class AIController {
     _forward.set(0, 0, 1).applyQuaternion(this.car.getQuaternion()).setY(0).normalize()
     _toTarget.subVectors(targetPoint, carPos).setY(0).normalize()
 
-    const cross = new THREE.Vector3().crossVectors(_forward, _toTarget)
-    return Math.max(-1, Math.min(1, cross.y * 3))
+    _cross.crossVectors(_forward, _toTarget)
+    return Math.max(-1, Math.min(1, _cross.y * 3))
   }
 
   private calculateTargetSpeed(): number {
@@ -306,6 +317,8 @@ export class AIController {
       this.lap++
     }
 
+    const speed = this.car.getSpeed() / 3.6
+    this.lookAheadDistance = BASE_LOOK_AHEAD + speed * LOOK_AHEAD_SPEED_FACTOR
     this.targetT = (closestT + this.lookAheadDistance) % 1
   }
 

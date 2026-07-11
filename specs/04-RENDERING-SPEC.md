@@ -313,6 +313,7 @@ Geometry:       Cylinder (0.32 radius, 0.22 width)
 - Dark color (#111111)
 - Receives shadows
 - Y = 0
+- Terrain texture generated procedurally via HTML Canvas (noise-based asphalt pattern) — no external texture files
 
 ### 6.2 Track Decorations
 - Street lights along spline (poles + bulbs)

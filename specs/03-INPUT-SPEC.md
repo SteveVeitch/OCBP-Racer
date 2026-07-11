@@ -246,6 +246,7 @@ See `04-RENDERING-SPEC.md` Section 4 for camera positions and parameters.
 - All keys cleared on window blur event (`blur`)
 - Prevents stuck keys when user tabs away during gameplay
 - Gamepad state also cleared on blur
+- Mouse movement and touch events also reset the demo idle timer (alongside keyboard and gamepad)
 
 ## 12. Accessibility Considerations
 

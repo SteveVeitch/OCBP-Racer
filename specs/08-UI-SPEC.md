@@ -212,6 +212,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Settings button opens SETTINGS, back returns to PAUSED (not MENU)
 - Restart button restarts current race
 - Audio suspended while paused, resumed on unpause
+- Auto-pause when browser tab becomes hidden (visibilitychange API)
 
 ### 3.7 Race Results
 

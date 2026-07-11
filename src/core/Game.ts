@@ -691,6 +691,7 @@ export class Game {
     const speedDelta = this.raceData.lastSpeed - currentSpeed
     if (this.raceData.lastSpeed > 5 && speedDelta > 15) {
       this.raceData.wallHits++
+      this.audio.playCollision()
     }
     this.raceData.lastSpeed = currentSpeed
 

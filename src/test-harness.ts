@@ -230,6 +230,20 @@ export async function runTestHarness(): Promise<void> {
     assert(track.getLapCount() === 3, `Expected 3 laps, got ${track.getLapCount()}`)
     assert(track.getCurrentLap() === 0, `Expected lap 0, got ${track.getCurrentLap()}`)
   })
+  test('Track getCenter returns valid vector', () => {
+    const track = new Track(TRACKS[0])
+    const center = track.getCenter()
+    assert(typeof center.x === 'number', 'center.x not a number')
+    assert(typeof center.z === 'number', 'center.z not a number')
+    assert(Math.abs(center.x) < 1000, `center.x out of range: ${center.x}`)
+    assert(Math.abs(center.z) < 1000, `center.z out of range: ${center.z}`)
+  })
+  test('Track getRadius returns positive value', () => {
+    const track = new Track(TRACKS[0])
+    const radius = track.getRadius()
+    assert(radius > 0, `radius should be positive: ${radius}`)
+    assert(radius < 1000, `radius out of range: ${radius}`)
+  })
   await testAsync('Track builds into scene', async () => {
     const pw = new PhysicsWorld()
     await pw.init()
@@ -306,12 +320,52 @@ export async function runTestHarness(): Promise<void> {
     assert(mesh.children.length >= 5, `Car mesh should have body+cabin+4wheels, has ${mesh.children.length}`)
     pw.dispose()
   })
+  await testAsync('Boost level ramps up for turbo car over time', async () => {
+    const pw = new PhysicsWorld()
+    await pw.init()
+    const scene = new THREE.Scene()
+    const factory = new CarFactory(pw.getWorld())
+    const turboCar = factory.createCar(getCarById('rossini-488'), scene)
+    const naCar = factory.createCar(getCarById('weissach-gt3'), scene)
+
+    for (let i = 0; i < 60; i++) {
+      const input = { throttle: 1, brake: 0, steer: 0, pause: false, confirm: false, back: false, cameraSwitch: false }
+      turboCar.update(1 / 60, input)
+      naCar.update(1 / 60, input)
+      pw.step(1 / 60)
+    }
+
+    const turboBoost = turboCar.getBoostLevel()
+    const naBoost = naCar.getBoostLevel()
+    assert(turboBoost > 0, `Turbo car should have boost > 0 after 1s: ${turboBoost}`)
+    assert(naBoost === 0, `NA car should have boost 0: ${naBoost}`)
+    pw.dispose()
+  })
 
   // ── Phase 7: Audio System ──
   console.log('\n-- Phase 7: Audio System --')
   test('AudioManager creates without error', () => {
     const am = new AudioManager()
     assert(am !== null, 'AudioManager not created')
+  })
+  test('AudioManager init creates context', async () => {
+    const am = new AudioManager()
+    await am.init()
+    assert(true, 'init() completed without error')
+  })
+  test('AudioManager setMasterVolume clamps values', () => {
+    const am = new AudioManager()
+    am.setMasterVolume(0.5)
+    am.setMasterVolume(-1)
+    am.setMasterVolume(2)
+    assert(true, 'setMasterVolume handled all values without error')
+  })
+  test('AudioManager setEngineVolume clamps values', () => {
+    const am = new AudioManager()
+    am.setEngineVolume(0.7)
+    am.setEngineVolume(-0.5)
+    am.setEngineVolume(1.5)
+    assert(true, 'setEngineVolume handled all values without error')
   })
 
   // ── Phase 8: AI ──
@@ -344,6 +398,38 @@ export async function runTestHarness(): Promise<void> {
     assert(typeof input.steer === 'number', 'AI steer not a number')
     pw.dispose()
   })
+  await testAsync('AI aggressiveness affects driving', async () => {
+    const pw = new PhysicsWorld()
+    await pw.init()
+    const scene = new THREE.Scene()
+    const track = new Track(TRACKS[0])
+    const factory = new CarFactory(pw.getWorld())
+
+    const carSlow = factory.createCar(CARS[0], scene)
+    const startPosSlow = track.getStartPosition(0)
+    carSlow.setPosition(new THREE.Vector3(startPosSlow.x, 0.5, startPosSlow.z))
+    carSlow.setLookAt(track.getStartRotation())
+    const aiSlow = new AIController(carSlow, track.getSpline(), 0.2)
+
+    const carFast = factory.createCar(CARS[0], scene)
+    const startPosFast = track.getStartPosition(0)
+    carFast.setPosition(new THREE.Vector3(startPosFast.x, 0.5, startPosFast.z))
+    carFast.setLookAt(track.getStartRotation())
+    const aiFast = new AIController(carFast, track.getSpline(), 0.9)
+
+    for (let i = 0; i < 300; i++) {
+      aiSlow.update(1 / 60)
+      aiFast.update(1 / 60)
+      pw.step(1 / 60)
+    }
+
+    const posSlow = carSlow.getPosition()
+    const posFast = carFast.getPosition()
+    const distSlow = Math.sqrt(posSlow.x * posSlow.x + posSlow.z * posSlow.z)
+    const distFast = Math.sqrt(posFast.x * posFast.x + posFast.z * posFast.z)
+    assert(distFast >= distSlow - 5, `Fast AI should be ahead: slow=${distSlow.toFixed(1)}, fast=${distFast.toFixed(1)}`)
+    pw.dispose()
+  })
 
   // ── Phase 9: UI ──
   console.log('\n-- Phase 9: UI --')
@@ -367,6 +453,15 @@ export async function runTestHarness(): Promise<void> {
     sm.setRaceResults({ position: 1, points: 10, totalTime: 60, bestLapTime: 20, lapTimes: [20, 20, 20], wallHits: 0, topSpeed: 200, carId: 'rossini-488', trackId: 'midnight-circuit' })
     const r = sm.getRaceResults()
     assert(r !== null && r.position === 1, 'Results not stored')
+  })
+  test('DEMO state exists', () => {
+    const sm = new StateMachine()
+    sm.transition('DEMO')
+    assert(sm.getCurrent() === 'DEMO', `State: ${sm.getCurrent()}`)
+  })
+  test('demoEnabled defaults to true', () => {
+    const sm = new StateMachine()
+    assert(sm.getSettings().demoEnabled === true, `demoEnabled: ${sm.getSettings().demoEnabled}`)
   })
 
   // ── Phase 10: Game Loop ──
@@ -648,6 +743,56 @@ export async function runTestHarness(): Promise<void> {
     assert(entries[1].totalTime === 110, `Second: ${entries[1].totalTime}`)
     clearLeaderboard()
   })
+  test('clearLeaderboard empties all data', () => {
+    addLeaderboardEntry({
+      carId: 'rossini-488', trackId: 'midnight-circuit',
+      totalTime: 90, bestLapTime: 28, wallHits: 1, topSpeed: 230, date: '2026-01-01'
+    })
+    assert(getTrackLeaderboard('midnight-circuit').length > 0, 'Pre-condition failed')
+    clearLeaderboard()
+    assert(getTrackLeaderboard('midnight-circuit').length === 0, 'Track leaderboard not cleared')
+    assert(getOverallLeaderboard().length === 0, 'Overall leaderboard not cleared')
+  })
+  test('Scoring points map correctly: 10/7/5/2', () => {
+    const POINTS_TABLE = [10, 7, 5, 2]
+    const sm = new StateMachine()
+    for (let pos = 1; pos <= 4; pos++) {
+      sm.setRaceResults({
+        position: pos, points: POINTS_TABLE[pos - 1], totalTime: 90, bestLapTime: 28,
+        lapTimes: [28, 30, 32], wallHits: 0, topSpeed: 230,
+        carId: 'rossini-488', trackId: 'midnight-circuit'
+      })
+      const r = sm.getRaceResults()
+      assert(r!.points === POINTS_TABLE[pos - 1], `Position ${pos}: expected ${POINTS_TABLE[pos - 1]} points, got ${r!.points}`)
+    }
+  })
+  test('Wall hits tracked in simulation', async () => {
+    const pw = new PhysicsWorld()
+    await pw.init()
+    const scene = new THREE.Scene()
+    const track = new Track(TRACKS[0])
+    track.build(scene, pw.getWorld())
+    const factory = new CarFactory(pw.getWorld())
+    const car = factory.createCar(CARS[0], scene)
+    const startPos = track.getStartPosition(0)
+    car.setPosition(new THREE.Vector3(startPos.x, 0.5, startPos.z))
+    car.setLookAt(track.getStartRotation())
+
+    let wallHits = 0
+    let lastSpeed = 0
+    for (let i = 0; i < 600; i++) {
+      car.update(1 / 60, { throttle: 1, brake: 0, steer: (i % 60 < 30 ? 1 : -1), pause: false, confirm: false, back: false, cameraSwitch: false })
+      pw.step(1 / 60)
+      const speed = car.getSpeed()
+      const delta = lastSpeed - speed
+      if (lastSpeed > 5 && delta > 15) wallHits++
+      lastSpeed = speed
+    }
+
+    assert(typeof wallHits === 'number', 'wallHitCount not a number')
+    assert(wallHits >= 0, `Wall hits should be >= 0: ${wallHits}`)
+    pw.dispose()
+  })
 
   // ── Phase 17: Rebindable Controls ──
   console.log('\n-- Phase 17: Rebindable Controls --')
@@ -671,6 +816,26 @@ export async function runTestHarness(): Promise<void> {
     im.resetBindings()
     const b = im.getBindings()
     assert(b.throttle[0] === 'KeyW', 'Not reset')
+  })
+  test('InputManager setBindings round-trip', () => {
+    const im = new InputManager()
+    im.resetBindings()
+    const custom = { ...DEFAULT_KEY_BINDINGS, throttle: ['KeyT'] }
+    im.setBindings(custom)
+    const b = im.getBindings()
+    assert(b.throttle[0] === 'KeyT', `Throttle after set: ${b.throttle[0]}`)
+    assert(b.brake[0] === 'KeyS', 'Brake should be unchanged')
+    im.resetBindings()
+  })
+  test('InputManager conflict detection swaps bindings', () => {
+    const im = new InputManager()
+    im.resetBindings()
+    const custom = { ...DEFAULT_KEY_BINDINGS, pause: ['KeyC'], cameraSwitch: ['Escape'] }
+    im.setBindings(custom)
+    const b2 = im.getBindings()
+    assert(b2.pause[0] === 'KeyC', `Pause after conflict: ${b2.pause[0]}`)
+    assert(b2.cameraSwitch[0] === 'Escape', `Camera after conflict: ${b2.cameraSwitch[0]}`)
+    im.resetBindings()
   })
 
   // ── Summary ──

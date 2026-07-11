@@ -497,7 +497,7 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 - [ ] Implement elevation support in TrackBuilder (y-values in spline)
 - [ ] Add mountain decorations (pine trees, rocks, guardrails)
 - [ ] Add Typhoon Pass to track select UI
-- [ ] Update test harness for multi-column layout
+- [x] Update test harness for multi-column layout
 - [ ] Add Typhoon Pass tests (spline, elevation, decorations)
 - [ ] Update test count (47 → 55+)
 - [ ] Final performance pass (ensure 60 FPS with all new features)

@@ -19,18 +19,20 @@ interface TestResult {
   name: string
   passed: boolean
   error?: string
+  phase: string
 }
 
 const results: TestResult[] = []
+let currentPhase = 'General'
 
 function test(name: string, fn: () => void): void {
   try {
     fn()
-    results.push({ name, passed: true })
+    results.push({ name, passed: true, phase: currentPhase })
     console.log(`  ✓ ${name}`)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    results.push({ name, passed: false, error: msg })
+    results.push({ name, passed: false, error: msg, phase: currentPhase })
     console.error(`  ✗ ${name}: ${msg}`)
   }
 }
@@ -38,11 +40,11 @@ function test(name: string, fn: () => void): void {
 async function testAsync(name: string, fn: () => Promise<void>): Promise<void> {
   try {
     await fn()
-    results.push({ name, passed: true })
+    results.push({ name, passed: true, phase: currentPhase })
     console.log(`  ✓ ${name}`)
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
-    results.push({ name, passed: false, error: msg })
+    results.push({ name, passed: false, error: msg, phase: currentPhase })
     console.error(`  ✗ ${name}: ${msg}`)
   }
 }
@@ -55,6 +57,7 @@ export async function runTestHarness(): Promise<void> {
   console.log('=== OCBP Racer Test Harness ===\n')
 
   // ── Phase 0: Project Setup ──
+  currentPhase = 'Phase 0: Setup'
   console.log('-- Phase 0: Project Setup --')
   test('Three.js imports', () => {
     assert(typeof THREE.Scene === 'function', 'THREE.Scene not found')
@@ -76,6 +79,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 1: Core Rendering ──
+  currentPhase = 'Phase 1: Rendering'
   console.log('\n-- Phase 1: Core Rendering --')
   test('WebGL renderer creates', () => {
     const canvas = document.createElement('canvas')
@@ -98,6 +102,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 2: Basic Car Physics ──
+  currentPhase = 'Phase 2: Physics'
   console.log('\n-- Phase 2: Car Physics --')
   await testAsync('Rapier WASM initializes', async () => {
     const pw = new PhysicsWorld()
@@ -190,6 +195,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 3: Chase Camera ──
+  currentPhase = 'Phase 3: Camera'
   console.log('\n-- Phase 3: Chase Camera --')
   test('CameraController creates', () => {
     const cam = new THREE.PerspectiveCamera(60, 1, 0.1, 1000)
@@ -207,6 +213,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 4: Track ──
+  currentPhase = 'Phase 4: Track'
   console.log('\n-- Phase 4: Track --')
   test('Track creates', () => {
     const track = new Track(TRACKS[0])
@@ -256,6 +263,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 5: Input System ──
+  currentPhase = 'Phase 5: Input'
   console.log('\n-- Phase 5: Input System --')
   test('InputManager creates', () => {
     const im = new InputManager()
@@ -274,6 +282,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 6: Car Roster ──
+  currentPhase = 'Phase 6: Cars'
   console.log('\n-- Phase 6: Car Roster --')
   test('Rossini 488 config', () => {
     const car = getCarById('rossini-488')
@@ -343,6 +352,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 7: Audio System ──
+  currentPhase = 'Phase 7: Audio'
   console.log('\n-- Phase 7: Audio System --')
   test('AudioManager creates without error', () => {
     const am = new AudioManager()
@@ -369,6 +379,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 8: AI ──
+  currentPhase = 'Phase 8: AI'
   console.log('\n-- Phase 8: AI Opponents --')
   await testAsync('AIController creates', async () => {
     const pw = new PhysicsWorld()
@@ -432,6 +443,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 9: UI ──
+  currentPhase = 'Phase 9: UI'
   console.log('\n-- Phase 9: UI --')
   test('StateMachine creates with MENU state', () => {
     const sm = new StateMachine()
@@ -465,6 +477,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 10: Game Loop ──
+  currentPhase = 'Phase 10: Integration'
   console.log('\n-- Phase 10: Game Loop --')
   await testAsync('Full integration: car on track', async () => {
     const pw = new PhysicsWorld()
@@ -525,6 +538,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 11: Track Definitions ──
+  currentPhase = 'Phase 11: Tracks'
   console.log('\n-- Phase 11: Track Definitions --')
   test('6 tracks defined', () => {
     assert(TRACKS.length === 6, `Expected 6 tracks, got ${TRACKS.length}`)
@@ -578,6 +592,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 12: Time of Day ──
+  currentPhase = 'Phase 12: Time of Day'
   console.log('\n-- Phase 12: Time of Day --')
   test('4 time-of-day presets exist', () => {
     assert(Object.keys(TimeOfDayPresets).length === 4, 'Expected 4 presets')
@@ -596,6 +611,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 13: Weather System ──
+  currentPhase = 'Phase 13: Weather'
   console.log('\n-- Phase 13: Weather System --')
   test('4 weather presets exist', () => {
     assert(Object.keys(WeatherPresets).length === 4, 'Expected 4 presets')
@@ -651,6 +667,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 15: Camera Views ──
+  currentPhase = 'Phase 15: Camera Views'
   console.log('\n-- Phase 15: Camera Views --')
   test('CameraController creates with chase view', () => {
     const cam = new CameraController(new THREE.PerspectiveCamera())
@@ -682,6 +699,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 16: Scoring + Leaderboard ──
+  currentPhase = 'Phase 16: Scoring'
   console.log('\n-- Phase 16: Scoring + Leaderboard --')
   test('RaceResults includes scoring fields', () => {
     const sm = new StateMachine()
@@ -795,6 +813,7 @@ export async function runTestHarness(): Promise<void> {
   })
 
   // ── Phase 17: Rebindable Controls ──
+  currentPhase = 'Phase 17: Controls'
   console.log('\n-- Phase 17: Rebindable Controls --')
   test('InputManager creates with default bindings', () => {
     const im = new InputManager()
@@ -851,28 +870,117 @@ export async function runTestHarness(): Promise<void> {
     })
   }
 
-  // Display results in page
+  // Display results in page — multi-column grid, centered, arcade-style
+  const phaseOrder = [...new Set(results.map(r => r.phase))]
+  const phaseGroups = phaseOrder.map(phase => ({
+    phase,
+    tests: results.filter(r => r.phase === phase)
+  }))
+
   const el = document.createElement('div')
   el.id = 'test-results'
   el.style.cssText = `
     position:fixed;top:0;left:0;width:100%;height:100%;
-    background:#0a0a1a;color:#ccc;font-family:monospace;font-size:13px;
-    padding:20px;z-index:9999;overflow:auto;
+    background:#050510;z-index:9999;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Courier New',monospace;
   `
   el.innerHTML = `
-    <h2 style="color:${failed > 0 ? '#ff4444' : '#00ff88'};margin-bottom:10px">
-      Test Results: ${passed}/${results.length} passed
-    </h2>
-    ${results.map(r => `
-      <div style="color:${r.passed ? '#00ff88' : '#ff4444'};margin:4px 0">
-        ${r.passed ? '✓' : '✗'} ${r.name}${r.error ? ` — ${r.error}` : ''}
+    <style>
+      @keyframes borderGlow {
+        0%,100% { box-shadow: 0 0 8px #00ff88, inset 0 0 8px rgba(0,255,136,0.05); }
+        50% { box-shadow: 0 0 16px #00ff88, inset 0 0 12px rgba(0,255,136,0.08); }
+      }
+      @keyframes scanline {
+        0% { transform: translateY(-100%); }
+        100% { transform: translateY(100%); }
+      }
+      .th-container {
+        border: 2px solid #00ff88;
+        border-radius: 8px;
+        background: rgba(5,5,16,0.97);
+        padding: 24px 28px 20px;
+        max-width: 95vw;
+        max-height: 92vh;
+        overflow-y: auto;
+        overflow-x: hidden;
+        position: relative;
+        animation: borderGlow 3s ease-in-out infinite;
+      }
+      .th-container::-webkit-scrollbar { width: 6px; }
+      .th-container::-webkit-scrollbar-track { background: #0a0a1a; }
+      .th-container::-webkit-scrollbar-thumb { background: #00ff88; border-radius: 3px; }
+      .th-scanline {
+        position:absolute;top:0;left:0;width:100%;height:4px;
+        background:linear-gradient(180deg,transparent,rgba(0,255,136,0.06),transparent);
+        animation:scanline 4s linear infinite;pointer-events:none;
+      }
+      .th-title {
+        text-align:center;color:#00ff88;font-size:16px;font-weight:bold;
+        letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;
+        text-shadow:0 0 10px rgba(0,255,136,0.5);
+      }
+      .th-subtitle {
+        text-align:center;color:#556;font-size:11px;margin-bottom:16px;
+      }
+      .th-grid {
+        display:grid;
+        grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+        gap:12px;margin-bottom:16px;
+      }
+      .th-phase {
+        background:rgba(255,255,255,0.02);
+        border:1px solid rgba(255,255,255,0.06);
+        border-radius:4px;padding:10px 12px;
+      }
+      .th-phase-head {
+        color:#00ff88;font-size:11px;font-weight:bold;
+        letter-spacing:1px;text-transform:uppercase;
+        margin-bottom:6px;padding-bottom:4px;
+        border-bottom:1px solid rgba(255,255,136,0.15);
+      }
+      .th-phase .th-test {
+        font-size:11px;padding:1px 0;color:#889;
+      }
+      .th-phase .th-test.pass { color:#00ff88; }
+      .th-phase .th-test.fail { color:#ff4444; }
+      .th-summary {
+        text-align:center;padding:10px;margin-top:4px;
+        border-top:1px solid rgba(0,255,136,0.15);
+      }
+      .th-summary .th-count {
+        font-size:14px;font-weight:bold;letter-spacing:2px;
+      }
+      .th-summary .th-count.all-pass { color:#00ff88; text-shadow:0 0 8px rgba(0,255,136,0.4); }
+      .th-summary .th-count.has-fail { color:#ff4444; text-shadow:0 0 8px rgba(255,68,68,0.4); }
+      .th-click-hint {
+        text-align:center;color:#556;font-size:10px;margin-top:8px;
+        letter-spacing:1px;
+      }
+    </style>
+    <div class="th-container">
+      <div class="th-scanline"></div>
+      <div class="th-title">=== OCBP Racer ===</div>
+      <div class="th-subtitle">Test Harness</div>
+      <div class="th-grid">
+        ${phaseGroups.map(g => `
+          <div class="th-phase">
+            <div class="th-phase-head">${g.phase}</div>
+            ${g.tests.map(r => `
+              <div class="th-test ${r.passed ? 'pass' : 'fail'}">
+                ${r.passed ? '\u2713' : '\u2717'} ${r.name}${r.error ? ` — ${r.error}` : ''}
+              </div>
+            `).join('')}
+          </div>
+        `).join('')}
       </div>
-    `).join('')}
-    ${failed === 0 ? `
-      <div style="margin-top:20px;color:#00ff88;font-size:16px">
-        All tests passed! Click anywhere to start the game.
+      <div class="th-summary">
+        <div class="th-count ${failed === 0 ? 'all-pass' : 'has-fail'}">
+          ${passed}/${results.length} PASSED${failed > 0 ? ` — ${failed} FAILED` : ''}
+        </div>
       </div>
-    ` : ''}
+      ${failed === 0 ? `<div class="th-click-hint">CLICK ANYWHERE TO START</div>` : ''}
+    </div>
   `
   document.body.appendChild(el)
 

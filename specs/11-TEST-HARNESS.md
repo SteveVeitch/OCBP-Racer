@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The test harness is an automated in-browser test suite that validates all game systems. It runs 55+ tests across 16 phases, covering project setup through full integration.
+The test harness is an automated in-browser test suite that validates all game systems. It runs 77 tests across 16 phases, covering project setup through full integration.
 
 ## 2. Accessing the Test Harness
 
@@ -65,83 +65,93 @@ interface TestResult {
 - Red text for failing tests (#ff4444)
 - Summary header with pass/fail count
 - Multi-column layout for compact display
-- If all pass: "All tests passed! Click anywhere to start the game."
+- If all pass: "CLICK ANYWHERE TO START" hint
 
-## 4. Multi-Column Layout
+## 4. Visual Style — Arcade Terminal
+
+The test harness overlay is styled to feel like part of the arcade game: a glowing green terminal panel centered on a dark screen.
 
 ### 4.1 Layout Structure
-The test harness overlay uses a multi-column layout to display tests compactly:
+The overlay is a flexbox-centered container with a CSS grid inside for phase columns:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│  === OCBP Racer Test Harness ===                     │
-│                                                       │
-│  ┌──────────────────┐  ┌──────────────────┐          │
-│  │ Phase 0: Setup   │  │ Phase 1: Render  │          │
-│  │  ✓ Three.js      │  │  ✓ WebGL          │          │
-│  │  ✓ Car configs   │  │  ✓ Scene          │          │
-│  │  ✓ getCarById    │  │  ✓ Ground         │          │
-│  └──────────────────┘  └──────────────────┘          │
-│  ┌──────────────────┐  ┌──────────────────┐          │
-│  │ Phase 2: Physics │  │ Phase 3: Camera  │          │
-│  │  ✓ Rapier WASM   │  │  ✓ Controller    │          │
-│  │  ✓ Car body      │  │  ✓ Follows car   │          │
-│  │  ✓ Accelerates   │  └──────────────────┘          │
-│  │  ✓ Brakes        │  ┌──────────────────┐          │
-│  │  ✓ Steers        │  │ Phase 4: Track   │          │
-│  │  ✓ 4 configs     │  │  ✓ Track creates │          │
-│  └──────────────────┘  │  ✓ Closed loop   │          │
-│                         │  ✓ Checkpoints   │          │
-│  ...                    │  ✓ Lap counting  │          │
-│                         │  ✓ Builds scene  │          │
-│                         └──────────────────┘          │
-│                                                       │
-│  === Results ===                                      │
-│  55 passed, 0 failed, 55 total                        │
-└─────────────────────────────────────────────────────┘
+╔═══════════════════════════════════════════════════════════╗
+║  (scanline animation sweeps vertically)                   ║
+║                                                           ║
+║              ═══ OCBP Racer ═══                           ║
+║                  Test Harness                             ║
+║                                                           ║
+║  ┌──────────────────┐  ┌──────────────────┐              ║
+║  │ PHASE 0: SETUP   │  │ PHASE 1: RENDER │              ║
+║  │  ✓ Three.js      │  │  ✓ WebGL         │              ║
+║  │  ✓ Car configs   │  │  ✓ Scene         │              ║
+║  │  ✓ getCarById    │  │  ✓ Ground        │              ║
+║  └──────────────────┘  └──────────────────┘              ║
+║  ┌──────────────────┐  ┌──────────────────┐              ║
+║  │ PHASE 2: PHYSICS │  │ PHASE 3: CAMERA │              ║
+║  │  ✓ Rapier WASM   │  │  ✓ Controller    │              ║
+║  │  ✓ Car body      │  │  ✓ Follows car   │              ║
+║  │  ✓ Accelerates   │  └──────────────────┘              ║
+║  └──────────────────┘                                    ║
+║  ... (remaining phases) ...                               ║
+║                                                           ║
+║  ─────────────────────────────────────────                ║
+║         77/77 PASSED                                     ║
+║                                                           ║
+║            CLICK ANYWHERE TO START                        ║
+╚═══════════════════════════════════════════════════════════╝
 ```
 
-### 4.2 CSS Implementation
+### 4.2 Container Styling
+- **Centering:** Overlay uses `display:flex; align-items:center; justify-content:center` to center the panel
+- **Border:** 2px solid #00ff88 with `border-radius: 8px`
+- **Glow animation:** Pulsing `box-shadow` in green (00ff88), oscillating between 8px and 16px spread
+- **Scanline:** A 4px-tall translucent green gradient sweeps vertically on a 4s loop
+- **Background:** Near-black (`rgba(5,5,16,0.97)`)
+- **Scrollbar:** Thin green (6px) with track matching background
+
+### 4.3 Grid Implementation
 ```css
-.test-results {
+.th-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
-  padding: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
 }
-
-.test-phase {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 12px;
+.th-phase {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 4px;
+  padding: 10px 12px;
 }
-
-.test-phase h3 {
+.th-phase-head {
   color: #00ff88;
-  font-size: 14px;
-  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(0,255,136,0.15);
 }
-
-.test-item {
-  font-family: 'Courier New', monospace;
-  font-size: 12px;
-  padding: 2px 0;
-}
-
-.test-pass { color: #00ff88; }
-.test-fail { color: #ff4444; }
 ```
 
-### 4.3 Responsive Behavior
-- On wide screens (>1200px): 3 columns
-- On medium screens (800-1200px): 2 columns
-- On narrow screens (<800px): 1 column
-- Grid auto-fill handles this automatically
+### 4.4 Typography
+- Font: `'Courier New', monospace`
+- Title: 16px, bold, letter-spacing 3px, uppercase, green with text-shadow glow
+- Phase headers: 11px, bold, uppercase, green
+- Test items: 11px, grey (#889), green (#00ff88) for pass, red (#ff4444) for fail
+- Summary: 14px, bold, letter-spacing 2px
 
-### 4.4 Summary Bar
-- Fixed at bottom of overlay
-- Shows total pass/fail count
-- Green background if all pass
+### 4.5 Responsive Behavior
+- Grid auto-fill with `minmax(220px, 1fr)` handles all screen sizes
+- Wide screens: 3-4 columns
+- Medium screens: 2 columns
+- Narrow screens: 1 column
+- Container max-width: 95vw, max-height: 92vh, with overflow-y scroll
+
+### 4.6 Summary Bar
+- Centered below grid, separated by a green border-top
+- Green (#00ff88) with glow if all pass
+- Red (#ff4444) with glow if any fail
+- Format: `77/77 PASSED` or `75/77 PASSED — 2 FAILED`
 - Red background if any fail
 
 ## 5. Test Inventory

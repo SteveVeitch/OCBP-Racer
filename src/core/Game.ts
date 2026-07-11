@@ -34,6 +34,7 @@ interface RaceData {
   wallHits: number
   topSpeed: number
   lastSpeed: number
+  wallHitCooldown: number
 }
 
 function log(msg: string): void {
@@ -84,7 +85,8 @@ export class Game {
     wrongWay: false,
     wallHits: 0,
     topSpeed: 0,
-    lastSpeed: 0
+    lastSpeed: 0,
+    wallHitCooldown: 0
   }
 
   private countdownTimer = 0
@@ -455,7 +457,8 @@ export class Game {
       wrongWay: false,
       wallHits: 0,
       topSpeed: 0,
-      lastSpeed: 0
+      lastSpeed: 0,
+      wallHitCooldown: 0
     }
 
     this.countdownStep = -1
@@ -696,10 +699,12 @@ export class Game {
     }
 
     const speedDelta = this.raceData.lastSpeed - currentSpeed
-    if (this.raceData.lastSpeed > 5 && speedDelta > 15) {
+    if (this.raceData.wallHitCooldown <= 0 && this.raceData.lastSpeed > 5 && speedDelta > 20) {
       this.raceData.wallHits++
+      this.raceData.wallHitCooldown = 0.5
       this.audio.playCollision()
     }
+    this.raceData.wallHitCooldown = Math.max(0, this.raceData.wallHitCooldown - 1 / 60)
     this.raceData.lastSpeed = currentSpeed
 
     const result = this.track.checkCheckpoints(carPos)

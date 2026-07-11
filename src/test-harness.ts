@@ -442,6 +442,51 @@ export async function runTestHarness(): Promise<void> {
     assert(distFast >= distSlow - 5, `Fast AI should be ahead: slow=${distSlow.toFixed(1)}, fast=${distFast.toFixed(1)}`)
     pw.dispose()
   })
+  await testAsync('AI lap counter requires halfway progress', async () => {
+    const pw = new PhysicsWorld()
+    await pw.init()
+    const scene = new THREE.Scene()
+    const track = new Track(TRACKS[0])
+    const factory = new CarFactory(pw.getWorld())
+    const car = factory.createCar(CARS[0], scene)
+    car.setPosition(new THREE.Vector3(0, 0.5, 0))
+    car.setLookAt(track.getStartRotation())
+    const ai = new AIController(car, track.getSpline())
+
+    // Teleport car near start/finish twice without crossing halfway
+    for (let cycle = 0; cycle < 5; cycle++) {
+      car.setPosition(new THREE.Vector3(0, 0.5, 0.1))
+      car.resetPhysics()
+      ai.update(1 / 60)
+    }
+    assert(ai.getLap() === 0, `Lap should be 0 before halfway: ${ai.getLap()}`)
+    pw.dispose()
+  })
+  await testAsync('AI recovery teleport resets position to spline', async () => {
+    const pw = new PhysicsWorld()
+    await pw.init()
+    const scene = new THREE.Scene()
+    const track = new Track(TRACKS[0])
+    const factory = new CarFactory(pw.getWorld())
+    const car = factory.createCar(CARS[0], scene)
+    car.setPosition(new THREE.Vector3(0, 0.5, 0))
+    car.setLookAt(track.getStartRotation())
+    const ai = new AIController(car, track.getSpline())
+
+    // Force car far off track to trigger recovery
+    car.setPosition(new THREE.Vector3(500, 0.5, 500))
+
+    // Run enough updates to exceed RECOVERY_TIMEOUT (5s at 1/60 steps = 300 frames)
+    for (let i = 0; i < 310; i++) {
+      ai.update(1 / 60)
+      pw.step(1 / 60)
+    }
+
+    const pos = car.getPosition()
+    const dist = Math.sqrt(pos.x * pos.x + pos.z * pos.z)
+    assert(dist < 50, `Car should be teleported back near track: dist=${dist.toFixed(1)}`)
+    pw.dispose()
+  })
 
   // ── Phase 9: UI ──
   currentPhase = 'Phase 9: UI'

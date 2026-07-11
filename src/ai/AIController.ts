@@ -31,6 +31,7 @@ export class AIController {
   private targetT = 0
   private currentT = 0
   private lap = 0
+  private halfLapPassed = false
   private aggressiveness: number
   private lookAheadDistance = BASE_LOOK_AHEAD
   private allCars: CarController[] = []
@@ -139,6 +140,7 @@ export class AIController {
     this.recoveryThrottleCutTimer = Math.max(0, this.recoveryThrottleCutTimer - dt)
 
     if (this.recoveryTimer > RECOVERY_TIMEOUT) {
+      this.teleportToSpline()
       this.aiState = 'RACING'
       this.recoveryTimer = 0
       return { throttle: 0.5, brake: 0, steer: this.calculateSteer(carPos), pause: false, confirm: false, back: false,
@@ -321,8 +323,13 @@ export class AIController {
 
     const prevT = this.currentT
     this.currentT = closestT
-    if (prevT > 0.9 && closestT < 0.1) {
+
+    if (closestT > 0.3 && closestT < 0.7) {
+      this.halfLapPassed = true
+    }
+    if (this.halfLapPassed && prevT > 0.9 && closestT < 0.1) {
       this.lap++
+      this.halfLapPassed = false
     }
 
     const speed = this.car.getSpeed() / 3.6
@@ -342,10 +349,39 @@ export class AIController {
     return this.currentT
   }
 
+  private teleportToSpline(): void {
+    const carPos = this.car.getPosition()
+    let closestT = 0
+    let closestDist = Infinity
+    for (let i = 0; i < 50; i++) {
+      const t = i / 50
+      const point = this.spline.getPoint(t)
+      const dx = carPos.x - point.x
+      const dz = carPos.z - point.z
+      const dist = dx * dx + dz * dz
+      if (dist < closestDist) {
+        closestDist = dist
+        closestT = t
+      }
+    }
+    const point = this.spline.getPoint(closestT)
+    this.car.setPosition(new THREE.Vector3(point.x, 0.5, point.z))
+
+    const tangent = this.spline.getTangent(closestT)
+    const angle = Math.atan2(tangent.x, tangent.z)
+    this.car.setLookAt(angle)
+
+    this.car.resetPhysics()
+
+    this.targetT = (closestT + this.lookAheadDistance) % 1
+    this.currentT = closestT
+  }
+
   reset(): void {
     this.targetT = 0
     this.currentT = 0
     this.lap = 0
+    this.halfLapPassed = false
     this.aiState = 'STARTING'
     this.raceTimer = 0
     this.recoveryTimer = 0

@@ -171,7 +171,10 @@ export class Game {
         onRaceStart: () => this.startRace(),
         onRestart: () => this.restartRace(),
         onBackToMenu: () => this.returnToMenu(),
-        onSettingsChanged: () => this.applySettings()
+        onSettingsChanged: () => this.applySettings(),
+        onRebindAction: (action, cb) => this.input.startListening(action, cb),
+        onResetBindings: () => this.input.resetBindings(),
+        getBindings: () => this.input.getBindings()
       })
       log('UI initialized OK')
 

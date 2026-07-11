@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { InputManager } from './input/InputManager'
+import { InputManager, DEFAULT_KEY_BINDINGS } from './input/InputManager'
 import { PhysicsWorld } from './physics/PhysicsWorld'
 import { CarController } from './physics/CarController'
 import { CameraController } from './rendering/CameraController'
@@ -641,6 +641,30 @@ export async function runTestHarness(): Promise<void> {
     assert(entries[0].totalTime === 85, `First: ${entries[0].totalTime}`)
     assert(entries[1].totalTime === 110, `Second: ${entries[1].totalTime}`)
     clearLeaderboard()
+  })
+
+  // ── Phase 17: Rebindable Controls ──
+  console.log('\n-- Phase 17: Rebindable Controls --')
+  test('InputManager creates with default bindings', () => {
+    const im = new InputManager()
+    const b = im.getBindings()
+    assert(b.throttle[0] === 'KeyW', `Throttle: ${b.throttle[0]}`)
+    assert(b.brake[0] === 'KeyS', `Brake: ${b.brake[0]}`)
+    assert(b.steerLeft[0] === 'KeyA', `SteerLeft: ${b.steerLeft[0]}`)
+    assert(b.pause[0] === 'Escape', `Pause: ${b.pause[0]}`)
+  })
+  test('InputManager default bindings match constant', () => {
+    const im = new InputManager()
+    const b = im.getBindings()
+    for (const key of Object.keys(DEFAULT_KEY_BINDINGS) as Array<keyof typeof DEFAULT_KEY_BINDINGS>) {
+      assert(b[key][0] === DEFAULT_KEY_BINDINGS[key][0], `${key} mismatch`)
+    }
+  })
+  test('InputManager resetBindings restores defaults', () => {
+    const im = new InputManager()
+    im.resetBindings()
+    const b = im.getBindings()
+    assert(b.throttle[0] === 'KeyW', 'Not reset')
   })
 
   // ── Summary ──

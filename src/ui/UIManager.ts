@@ -2,6 +2,7 @@ import { StateMachine } from '../core/StateMachine'
 import { CARS } from '../cars/CarConfigs'
 import { TRACKS } from '../track/TrackDefinitions'
 import { getTrackLeaderboard, getOverallLeaderboard, type LeaderboardEntry } from './LeaderboardManager'
+import { type KeyBindings, DEFAULT_KEY_BINDINGS } from '../input/InputManager'
 
 export class UIManager {
   private container!: HTMLDivElement
@@ -12,6 +13,9 @@ export class UIManager {
   private onRestart?: () => void
   private onBackToMenu?: () => void
   private onSettingsChanged?: () => void
+  private onRebindAction?: (action: keyof KeyBindings, callback: (action: keyof KeyBindings, keys: string[]) => void) => void
+  private onResetBindings?: () => void
+  private getBindings?: () => KeyBindings
   private selectedCarIndex = 0
   private selectedTrackIndex = 0
 
@@ -26,6 +30,9 @@ export class UIManager {
     onRestart?: () => void
     onBackToMenu?: () => void
     onSettingsChanged?: () => void
+    onRebindAction?: (action: keyof KeyBindings, callback: (action: keyof KeyBindings, keys: string[]) => void) => void
+    onResetBindings?: () => void
+    getBindings?: () => KeyBindings
   }): void {
     this.onCarSelected = callbacks.onCarSelected
     this.onTrackSelected = callbacks.onTrackSelected
@@ -33,6 +40,9 @@ export class UIManager {
     this.onRestart = callbacks.onRestart
     this.onBackToMenu = callbacks.onBackToMenu
     this.onSettingsChanged = callbacks.onSettingsChanged
+    this.onRebindAction = callbacks.onRebindAction
+    this.onResetBindings = callbacks.onResetBindings
+    this.getBindings = callbacks.getBindings
 
     this.container = document.createElement('div')
     this.container.id = 'ui-container'
@@ -1260,6 +1270,73 @@ export class UIManager {
     demoToggle.appendChild(demoLabel)
     demoToggle.appendChild(demoBtn)
 
+    const controlsHeader = document.createElement('div')
+    controlsHeader.className = 'settings-label'
+    controlsHeader.style.cssText = 'margin-top:16px;margin-bottom:8px;border-top:1px solid var(--border);padding-top:16px'
+    controlsHeader.textContent = 'Controls'
+
+    const bindings = this.getBindings?.() ?? DEFAULT_KEY_BINDINGS
+    const actions: Array<[keyof KeyBindings, string]> = [
+      ['throttle', 'Throttle'],
+      ['brake', 'Brake'],
+      ['steerLeft', 'Steer Left'],
+      ['steerRight', 'Steer Right'],
+      ['pause', 'Pause'],
+      ['cameraSwitch', 'Camera']
+    ]
+
+    const controlsGroup = document.createElement('div')
+    controlsGroup.style.cssText = 'margin-bottom:16px'
+
+    for (const [action, label] of actions) {
+      const row = document.createElement('div')
+      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)'
+
+      const nameEl = document.createElement('span')
+      nameEl.style.cssText = 'font-family:Rajdhani,sans-serif;font-size:14px;color:var(--text-dim)'
+      nameEl.textContent = label
+
+      const keysEl = document.createElement('span')
+      keysEl.style.cssText = 'font-family:Courier New,monospace;font-size:12px;color:var(--primary)'
+      const formatKey = (code: string) => code.replace('Key', '').replace('Arrow', '↑↓←→'.charAt(['Up','Down','Left','Right'].indexOf(code.replace('Arrow',''))))
+      keysEl.textContent = bindings[action].map(formatKey).join(' / ')
+
+      const changeBtn = document.createElement('button')
+      changeBtn.className = 'settings-option'
+      changeBtn.style.cssText = 'flex:0;padding:4px 12px;font-size:11px;min-width:80px'
+      changeBtn.textContent = 'Change'
+      changeBtn.onclick = () => {
+        changeBtn.textContent = 'Press key...'
+        changeBtn.style.borderColor = 'var(--accent)'
+        this.onRebindAction?.(action, (_act, keys) => {
+          changeBtn.textContent = 'Change'
+          changeBtn.style.borderColor = ''
+          keysEl.textContent = keys.map(formatKey).join(' / ')
+        })
+      }
+
+      row.appendChild(nameEl)
+      row.appendChild(keysEl)
+      row.appendChild(changeBtn)
+      controlsGroup.appendChild(row)
+    }
+
+    const resetBtn = this.createButton('Reset to Defaults')
+    resetBtn.style.cssText = 'font-size:12px;padding:6px 16px;margin-top:8px;margin-bottom:16px'
+    resetBtn.onclick = () => {
+      this.onResetBindings?.()
+      if (this.getBindings) {
+        const fresh = this.getBindings()
+        const keyEls = controlsGroup.querySelectorAll('span[style*="Courier"]')
+        const formatKey = (code: string) => code.replace('Key', '').replace('Arrow', '↑↓←→'.charAt(['Up','Down','Left','Right'].indexOf(code.replace('Arrow',''))))
+        keyEls.forEach((el, i) => {
+          if (i < actions.length) {
+            el.textContent = fresh[actions[i][0]].map(formatKey).join(' / ')
+          }
+        })
+      }
+    }
+
     const buttons = document.createElement('div')
     buttons.className = 'settings-buttons'
 
@@ -1283,6 +1360,9 @@ export class UIManager {
     panel.appendChild(cameraGroup)
     panel.appendChild(fogToggle)
     panel.appendChild(demoToggle)
+    panel.appendChild(controlsHeader)
+    panel.appendChild(controlsGroup)
+    panel.appendChild(resetBtn)
     panel.appendChild(buttons)
     overlay.appendChild(panel)
     parent.appendChild(overlay)

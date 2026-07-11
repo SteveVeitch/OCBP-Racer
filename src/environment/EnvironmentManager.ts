@@ -337,6 +337,9 @@ export class EnvironmentManager {
       const geom = new THREE.BoxGeometry(w, h, d)
       const mat = new THREE.MeshStandardMaterial({
         map: winTex,
+        emissive: 0xffffff,
+        emissiveMap: winTex,
+        emissiveIntensity: 1.5,
         roughness: 0.85,
         metalness: 0.1
       })
@@ -462,6 +465,9 @@ export class EnvironmentManager {
       const geom = new THREE.BoxGeometry(w, h, d)
       const mat = new THREE.MeshStandardMaterial({
         map: winTex,
+        emissive: 0xffffff,
+        emissiveMap: winTex,
+        emissiveIntensity: 1.2,
         roughness: 0.8,
         metalness: 0.25
       })

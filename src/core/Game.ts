@@ -245,9 +245,9 @@ export class Game {
 
     this.bloomPass = new UnrealBloomPass(
       new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.6,
-      0.4,
-      0.85
+      1.0,
+      0.5,
+      0.6
     )
     this.composer.addPass(this.bloomPass)
     this.applyGraphicsQuality()
@@ -272,13 +272,13 @@ export class Game {
         this.renderer.setPixelRatio(1)
         break
       case 'medium':
-        this.bloomPass.strength = 0.4
+        this.bloomPass.strength = 0.7
         this.bloomPass.enabled = true
         this.bloomPass.resolution.set(window.innerWidth / 2, window.innerHeight / 2)
         this.renderer.setPixelRatio(1)
         break
       case 'high':
-        this.bloomPass.strength = 0.6
+        this.bloomPass.strength = 1.0
         this.bloomPass.enabled = true
         this.bloomPass.resolution.set(window.innerWidth, window.innerHeight)
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -316,7 +316,7 @@ export class Game {
     const sharedBulbMat = new THREE.MeshStandardMaterial({
       color: 0xffcc88,
       emissive: 0xffcc88,
-      emissiveIntensity: 3
+      emissiveIntensity: 5
     })
 
     for (let i = 0; i < count; i++) {
@@ -326,7 +326,7 @@ export class Game {
 
       const group = new THREE.Group()
 
-      const light = new THREE.PointLight(0xffcc88, 3.0, 40)
+      const light = new THREE.PointLight(0xffcc88, 6.0, 50)
       light.position.set(right.x * 8, 7, right.z * 8)
       light.castShadow = false
       group.add(light)

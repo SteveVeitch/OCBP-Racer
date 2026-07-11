@@ -186,11 +186,11 @@ export class CarFactory {
       grille: new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.6, metalness: 0.4 }),
       chrome: new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.15, metalness: 0.95 }),
       headlight: new THREE.MeshStandardMaterial({
-        color: 0xffffff, emissive: 0xffffcc, emissiveIntensity: 1.5,
+        color: 0xffffff, emissive: 0xffffcc, emissiveIntensity: 3.0,
         roughness: 0.1, metalness: 0.5,
       }),
       taillight: new THREE.MeshStandardMaterial({
-        color: 0xff0000, emissive: 0xff2200, emissiveIntensity: 1.0,
+        color: 0xff0000, emissive: 0xff2200, emissiveIntensity: 2.0,
         roughness: 0.2, metalness: 0.3,
       }),
     }
@@ -213,15 +213,15 @@ export class CarFactory {
     addBox(group, { w: 0.25, h: 0.1, d: 0.06, x: -rx, y: ry, z: rz, mat: 'taillight' }, mats)
     addBox(group, { w: 0.25, h: 0.1, d: 0.06, x: rx, y: ry, z: rz, mat: 'taillight' }, mats)
 
-    const hlL = new THREE.SpotLight(0xffeedd, 8, 30, 0.4, 0.5, 1.5)
+    const hlL = new THREE.SpotLight(0xffeedd, 25, 60, 0.5, 0.4, 1.5)
     hlL.position.set(-fx, fy, fz)
-    hlL.target.position.set(-fx, 0, 15)
+    hlL.target.position.set(-fx, 0, 20)
     group.add(hlL)
     group.add(hlL.target)
 
-    const hlR = new THREE.SpotLight(0xffeedd, 8, 30, 0.4, 0.5, 1.5)
+    const hlR = new THREE.SpotLight(0xffeedd, 25, 60, 0.5, 0.4, 1.5)
     hlR.position.set(fx, fy, fz)
-    hlR.target.position.set(fx, 0, 15)
+    hlR.target.position.set(fx, 0, 20)
     group.add(hlR)
     group.add(hlR.target)
 

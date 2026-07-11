@@ -61,10 +61,10 @@ export const TimeOfDayPresets: Record<string, TimeOfDayPreset> = {
   night: {
     id: 'night',
     name: 'Night',
-    ambientColor: new THREE.Color(0x111122),
-    ambientIntensity: 0.15,
+    ambientColor: new THREE.Color(0x222244),
+    ambientIntensity: 0.25,
     directionalColor: new THREE.Color(0x4444ff),
-    directionalIntensity: 0.15,
+    directionalIntensity: 0.2,
     directionalAngle: 0,
     fogColor: new THREE.Color(0x0a0a15),
     fogNear: 40,

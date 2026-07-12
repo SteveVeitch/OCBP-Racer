@@ -7,6 +7,8 @@ export interface EngineDefinition {
   redline: number
   baseFrequency: number
   maxFrequency: number
+  primaryWaveform: OscillatorType
+  secondaryWaveform: OscillatorType
 }
 
 export interface CarDefinition {
@@ -32,7 +34,9 @@ export const CARS: CarDefinition[] = [
       horsepower: 661,
       redline: 8000,
       baseFrequency: 35,
-      maxFrequency: 220
+      maxFrequency: 220,
+      primaryWaveform: 'sawtooth',
+      secondaryWaveform: 'sawtooth'
     },
     config: {
       mass: 1550,
@@ -46,7 +50,6 @@ export const CARS: CarDefinition[] = [
       downforce: 1.2,
       slipAnglePeak: 8,
       slipAngleLimit: 25,
-      autoCorrect: 0.4,
       turboLagTime: 0.15
     }
   },
@@ -62,7 +65,9 @@ export const CARS: CarDefinition[] = [
       horsepower: 502,
       redline: 8500,
       baseFrequency: 40,
-      maxFrequency: 260
+      maxFrequency: 260,
+      primaryWaveform: 'triangle',
+      secondaryWaveform: 'sawtooth'
     },
     config: {
       mass: 1400,
@@ -76,7 +81,6 @@ export const CARS: CarDefinition[] = [
       downforce: 1.8,
       slipAnglePeak: 6,
       slipAngleLimit: 20,
-      autoCorrect: 0.6,
       turboLagTime: 0.0
     }
   },
@@ -92,7 +96,9 @@ export const CARS: CarDefinition[] = [
       horsepower: 565,
       redline: 7200,
       baseFrequency: 30,
-      maxFrequency: 200
+      maxFrequency: 200,
+      primaryWaveform: 'square',
+      secondaryWaveform: 'sawtooth'
     },
     config: {
       mass: 1500,
@@ -106,7 +112,6 @@ export const CARS: CarDefinition[] = [
       downforce: 0.8,
       slipAnglePeak: 12,
       slipAngleLimit: 35,
-      autoCorrect: 0.2,
       turboLagTime: 0.25
     }
   },
@@ -122,7 +127,9 @@ export const CARS: CarDefinition[] = [
       horsepower: 670,
       redline: 8600,
       baseFrequency: 32,
-      maxFrequency: 240
+      maxFrequency: 240,
+      primaryWaveform: 'sawtooth',
+      secondaryWaveform: 'triangle'
     },
     config: {
       mass: 1250,
@@ -136,7 +143,6 @@ export const CARS: CarDefinition[] = [
       downforce: 1.5,
       slipAnglePeak: 7,
       slipAngleLimit: 22,
-      autoCorrect: 0.5,
       turboLagTime: 0.0
     }
   }

@@ -2,7 +2,6 @@ export type GameState =
   | 'MENU'
   | 'CAR_SELECT'
   | 'TRACK_SELECT'
-  | 'LOADING'
   | 'COUNTDOWN'
   | 'RACING'
   | 'PAUSED'

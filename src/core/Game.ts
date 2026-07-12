@@ -105,6 +105,7 @@ export class Game {
   private isDemo = false
   private lastActivityTime = 0
   private static readonly DEMO_IDLE_TIMEOUT = 180
+  private static readonly POINTS_TABLE = [10, 7, 5, 2]
   private miniMap: MiniMap | null = null
 
   constructor() {
@@ -793,7 +794,7 @@ export class Game {
       this.miniMap = null
     }
 
-    const POINTS_TABLE = [10, 7, 5, 2]
+    const POINTS_TABLE = Game.POINTS_TABLE
     const points = POINTS_TABLE[this.raceData.position - 1] || 0
     const carId = this.state.getSelectedCar()
     const trackId = this.state.getSelectedTrack()
@@ -837,7 +838,8 @@ export class Game {
       bestTime: this.raceData.bestLapTime,
       position: this.raceData.position,
       wrongWay: this.raceData.wrongWay,
-      rpm: this.car.getRPM()
+      rpm: this.car.getRPM(),
+      score: Game.POINTS_TABLE[this.raceData.position - 1] || 0
     })
   }
 

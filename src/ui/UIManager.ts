@@ -268,6 +268,20 @@ export class UIManager {
         letter-spacing: 1px;
       }
 
+      .turbo-badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--bg-dark);
+        background: var(--accent);
+        padding: 2px 8px;
+        border-radius: 2px;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-left: 6px;
+        vertical-align: middle;
+      }
+
       .car-color-preview {
         width: 100%;
         height: 60px;
@@ -389,6 +403,32 @@ export class UIManager {
         font-size: 18px;
         color: var(--accent);
         vertical-align: super;
+      }
+
+      .hud-score {
+        position: absolute;
+        bottom: 30px;
+        left: 30px;
+        background: var(--bg-dark);
+        padding: 10px 20px;
+        border: 1px solid var(--border);
+        text-align: center;
+      }
+
+      .hud-score .score-label {
+        font-size: 11px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        display: block;
+      }
+
+      .hud-score .score-value {
+        font-family: 'Courier New', monospace;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary);
+        line-height: 1;
       }
 
       .hud-wrong-way {
@@ -850,7 +890,7 @@ export class UIManager {
 
     const version = document.createElement('div')
     version.className = 'version-text'
-    version.textContent = 'v0.1.0 MVP'
+    version.textContent = 'v0.2.0'
 
     overlay.appendChild(title)
     overlay.appendChild(subtitle)
@@ -987,6 +1027,13 @@ export class UIManager {
       engineBadge.style.color = 'var(--primary)'
       engineBadge.style.marginBottom = '12px'
       engineBadge.textContent = `${car.engine.displacement} ${car.engine.type} \u2022 ${car.engine.horsepower} HP`
+
+      if (car.config.turboLagTime > 0) {
+        const turboTag = document.createElement('span')
+        turboTag.className = 'turbo-badge'
+        turboTag.textContent = 'TURBO'
+        engineBadge.appendChild(turboTag)
+      }
 
       const stats = [
         { label: 'Power', value: car.config.engineForce / 8500 },
@@ -1529,6 +1576,10 @@ export class UIManager {
         <span class="pos-value" id="hud-position">1</span><span class="pos-suffix" id="hud-pos-suffix">st</span>
       </div>
       <div class="hud-wrong-way" id="hud-wrong-way">WRONG WAY</div>
+      <div class="hud-score">
+        <span class="score-label">Score</span>
+        <span class="score-value" id="hud-score">0</span>
+      </div>
     `
 
     this.container.appendChild(hud)
@@ -1543,6 +1594,7 @@ export class UIManager {
     position: number
     wrongWay: boolean
     rpm: number
+    score: number
   }): void {
     const speedEl = document.getElementById('hud-speed')
     const lapEl = document.getElementById('hud-lap')
@@ -1552,6 +1604,7 @@ export class UIManager {
     const posSuffix = document.getElementById('hud-pos-suffix')
     const wrongWay = document.getElementById('hud-wrong-way')
     const rpmFill = document.getElementById('hud-rpm')
+    const scoreEl = document.getElementById('hud-score')
 
     if (speedEl) speedEl.textContent = Math.round(data.speed).toString()
     if (lapEl) lapEl.textContent = `${Math.min(data.lap + 1, data.totalLaps)}/${data.totalLaps}`
@@ -1561,6 +1614,7 @@ export class UIManager {
     if (posSuffix) posSuffix.textContent = this.getOrdinalSuffix(data.position)
     if (wrongWay) wrongWay.classList.toggle('visible', data.wrongWay)
     if (rpmFill) rpmFill.style.width = `${Math.min(100, (data.rpm / 7500) * 100)}%`
+    if (scoreEl) scoreEl.textContent = data.score.toString()
   }
 
   showPause(): void {

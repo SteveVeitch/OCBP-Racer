@@ -15,7 +15,6 @@ export interface CarConfig {
   downforce: number
   slipAnglePeak: number
   slipAngleLimit: number
-  autoCorrect: number
   turboLagTime: number
 }
 
@@ -31,7 +30,6 @@ const DEFAULT_CONFIG: CarConfig = {
   downforce: 1.2,
   slipAnglePeak: 8,
   slipAngleLimit: 25,
-  autoCorrect: 0.4,
   turboLagTime: 0.0
 }
 

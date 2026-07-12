@@ -69,13 +69,13 @@ export class AudioManager {
     this.engineFilter.connect(this.engineGain)
 
     this.engineOsc = this.ctx.createOscillator()
-    this.engineOsc.type = 'sawtooth'
+    this.engineOsc.type = engine?.primaryWaveform ?? 'sawtooth'
     this.engineOsc.frequency.value = engine?.baseFrequency ?? 40
     this.engineOsc.connect(this.engineFilter)
     this.engineOsc.start()
 
     this.engineOsc2 = this.ctx.createOscillator()
-    this.engineOsc2.type = 'square'
+    this.engineOsc2.type = engine?.secondaryWaveform ?? 'square'
     this.engineOsc2.frequency.value = (engine?.baseFrequency ?? 40) * 0.5
 
     const gain2 = this.ctx.createGain()

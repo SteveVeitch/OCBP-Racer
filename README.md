@@ -366,7 +366,7 @@ The game is designed using a comprehensive Software Design Document (SDD) system
 | `07-CAR-SPEC.md` | Car roster, engines, turbo lag, procedural meshes |
 | `08-UI-SPEC.md` | UI screens, scoring, leaderboard, settings |
 | `09-ASSET-PIPELINE.md` | Asset workflow, placeholder strategy |
-| `10-MVP-ROADMAP.md` | Build phases, completion status |
+| `10-EPIC-ROADMAP.md` | Build phases, completion status |
 | `11-TEST-HARNESS.md` | Test suite documentation |
 
 ## 3D Model Credits

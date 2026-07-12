@@ -373,6 +373,13 @@ export class CarController {
     this.boostLevel = 0
   }
 
+  syncMesh(): void {
+    const pos = this.body.translation()
+    const rot = this.body.rotation()
+    this.mesh.position.set(pos.x, pos.y - 0.5, pos.z)
+    this.mesh.quaternion.set(rot.x, rot.y, rot.z, rot.w)
+  }
+
   getPositionRef(): { x: number; y: number; z: number } {
     return this.body.translation()
   }

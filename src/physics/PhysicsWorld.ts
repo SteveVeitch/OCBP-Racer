@@ -49,6 +49,10 @@ export class PhysicsWorld {
     return this.world
   }
 
+  getCarFactory(): CarFactory {
+    return this.carFactory
+  }
+
   dispose(): void {
     if (this.world) {
       this.world.free()

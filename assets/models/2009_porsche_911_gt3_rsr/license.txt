@@ -1,0 +1,11 @@
+Model Information:
+* title:	2009 Porsche 911 GT3 RSR
+* source:	https://sketchfab.com/3d-models/2009-porsche-911-gt3-rsr-94e85a7b980d4088bc3c2c0a9822e981
+* author:	OUTPISTON (https://sketchfab.com/outpiston)
+
+Model License:
+* license type:	CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)
+* requirements:	Author must be credited. No commercial use. Modified versions must have the same license.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "2009 Porsche 911 GT3 RSR" (https://sketchfab.com/3d-models/2009-porsche-911-gt3-rsr-94e85a7b980d4088bc3c2c0a9822e981) by OUTPISTON (https://sketchfab.com/outpiston) licensed under CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)

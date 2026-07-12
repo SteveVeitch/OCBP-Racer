@@ -110,6 +110,10 @@ export class InputManager {
     return this.getKeyboardState()
   }
 
+  isAnyKeyPressed(): boolean {
+    return this.keys.size > 0
+  }
+
   getBindings(): KeyBindings {
     return { ...this.bindings }
   }

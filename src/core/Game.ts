@@ -103,7 +103,7 @@ export class Game {
 
   private isDemo = false
   private lastActivityTime = 0
-  private static readonly DEMO_IDLE_TIMEOUT = 180
+  private static readonly DEMO_IDLE_TIMEOUT = 60
   private miniMap: MiniMap | null = null
 
   constructor() {
@@ -130,6 +130,10 @@ export class Game {
       this.physics = new PhysicsWorld()
       await this.physics.init()
       log('Physics initialized OK')
+
+      log('Loading car models...')
+      await this.physics.getCarFactory().preloadModels()
+      log('Car models loaded OK')
 
       log('Creating track...')
       this.selectedTrackId = this.state.getSelectedTrack()
@@ -403,6 +407,7 @@ export class Game {
     this.car.setPosition(new THREE.Vector3(startPos.x, 0.5, startPos.z))
     this.car.setLookAt(startRot)
     this.car.resetPhysics()
+    this.car.syncMesh()
     const resolvedDef = trackDef || TRACKS[0]
     const weather = getTrackWeather(resolvedDef, this.state.getSettings().weatherOverride)
     const mods = combineModifiers(
@@ -436,6 +441,7 @@ export class Game {
       aiCar.setPosition(new THREE.Vector3(aiPos.x, 0.5, aiPos.z))
       aiCar.setLookAt(startRot)
       aiCar.resetPhysics()
+      aiCar.syncMesh()
       allCars.push(aiCar)
 
       const aiDifficulty = this.state.getSettings().aiDifficulty
@@ -566,7 +572,6 @@ export class Game {
 
       this.updateParticles()
       this.updateWeatherParticles()
-      this.updateDemoAudio()
       this.checkDemoExit()
     } else if (currentState === 'COUNTDOWN') {
       this.updateCountdown(deltaTime)
@@ -834,20 +839,25 @@ export class Game {
   }
 
   private updateParticles(): void {
-    const lateralVelocity = Math.abs(this.car.getLateralVelocity())
-    const speed = this.car.getSpeed() / 3.6
+    const activeCar = this.isDemo ? this.aiCars[0] : this.car
+    if (!activeCar) return
+
+    const lateralVelocity = Math.abs(activeCar.getLateralVelocity())
+    const speed = activeCar.getSpeed() / 3.6
 
     if (lateralVelocity > 2 && speed > 5) {
       const intensity = Math.min(1, lateralVelocity / 10)
-      this.particles.emitTireSmoke(this.car.getPosition(), intensity)
+      this.particles.emitTireSmoke(activeCar.getPosition(), intensity)
     }
 
     this.particles.update(this.lastFrameDt)
   }
 
   private updateWeatherParticles(): void {
-    if (this.weatherParticles && this.car) {
-      this.weatherParticles.update(this.lastFrameDt, this.car.getPosition())
+    if (!this.weatherParticles) return
+    const activeCar = this.isDemo ? this.aiCars[0] : this.car
+    if (activeCar) {
+      this.weatherParticles.update(this.lastFrameDt, activeCar.getPosition())
     }
   }
 
@@ -981,6 +991,7 @@ export class Game {
     aiCar.setPosition(new THREE.Vector3(aiPos.x, 0.5, aiPos.z))
     aiCar.setLookAt(startRot)
     aiCar.resetPhysics()
+    aiCar.syncMesh()
     aiCar.setEnvironmentModifiers(mods)
     this.aiCars = [aiCar]
     this.aiControllers = [new AIController(aiCar, this.track.getSpline(), 'beginner', [aiCar])]
@@ -994,21 +1005,17 @@ export class Game {
 
     this.raceActive = true
 
-    try {
-      this.audio.stopRaceAudio()
-      this.audio.startRaceAudio(carDef.engine)
-    } catch (err) {
-      logError('Audio init failed (non-fatal):', err)
-    }
-
     this.state.transition('DEMO')
     this.ui.showDemoHUD(carDef.name, trackDef.name, randomWeather.name, randomTod.name)
   }
 
   private checkDemoExit(): void {
-    const inputState = this.input.getState()
-    if (inputState.throttle > 0 || inputState.brake > 0 || Math.abs(inputState.steer) > 0 ||
-        inputState.pause || inputState.confirm || inputState.back) {
+    if (this.input.isAnyKeyPressed()) {
+      this.returnToMenu()
+      return
+    }
+    const gamepad = navigator.getGamepads()[0]
+    if (gamepad && (gamepad.buttons.some(b => b.pressed) || gamepad.axes.some(a => Math.abs(a) > 0.15))) {
       this.returnToMenu()
     }
   }
@@ -1025,24 +1032,6 @@ export class Game {
     })
 
     this.physics.step(dt)
-  }
-
-  private updateDemoAudio(): void {
-    if (this.aiCars.length === 0) return
-    const aiCar = this.aiCars[0]
-
-    this.audio.playEngine(aiCar.getRPM(), 0, aiCar.getBoostLevel())
-
-    const slipAngle = aiCar.getSlipAngle()
-    const gripCoeff = aiCar.getGripCoefficient()
-    if (slipAngle > 5 && gripCoeff < aiCar.getConfig().peakGrip * 0.8) {
-      const screechIntensity = Math.min(1, (slipAngle - 5) / 15)
-      this.audio.playTireScreech(screechIntensity)
-    } else {
-      this.audio.playTireScreech(0)
-    }
-
-    this.audio.playWindNoise(aiCar.getSpeed())
   }
 
   dispose(): void {

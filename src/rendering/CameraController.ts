@@ -122,13 +122,16 @@ export class CameraController {
     maxSpeed: number,
     dt: number
   ): void {
-    const targetPosition = this.calculateTargetPosition(carPosition, carQuaternion)
-
     if (this.currentView === 'chase') {
+      const targetPosition = this.calculateTargetPosition(carPosition, carQuaternion)
       this.resolveWallCollision(carPosition, targetPosition)
+      this.springFollow(targetPosition, dt)
+    } else {
+      const directPosition = this.calculateTargetPosition(carPosition, carQuaternion)
+      this.camera.position.copy(directPosition)
+      this.velocity.set(0, 0, 0)
     }
 
-    this.springFollow(targetPosition, dt)
     this.updateLookAt(carPosition, carQuaternion)
     this.updateFOV(speed, maxSpeed)
   }

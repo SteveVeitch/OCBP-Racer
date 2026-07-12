@@ -24,7 +24,7 @@ Run the automated test suite:
 http://localhost:3000?test
 ```
 
-55+ tests validate all game systems. Click the results overlay to start the game.
+79 tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 
@@ -54,9 +54,9 @@ Press **C** (or **Y**) to cycle through camera views:
 | View | Description |
 |------|-------------|
 | Chase | Third-person, spring follow, look-ahead |
-| Windscreen | Interior view, wide FOV |
-| Hood | On-hood, aggressive angle |
-| Bumper | Low, maximum speed sensation |
+| Windscreen | Interior view, direct attach, wide FOV |
+| Hood | On-hood, direct attach, aggressive angle |
+| Bumper | Low, direct attach, maximum speed sensation |
 
 ### Game Flow
 
@@ -66,7 +66,7 @@ Main Menu → Car Select → Track Select → Countdown → Race → Results →
 
 ### Demo / Attract Mode
 
-After 3 minutes of inactivity on the main menu, a demo race begins automatically with a random car, track, weather, and time-of-day. A single AI car drives at a leisurely pace. Press any key to return to the menu. Can be disabled in Settings.
+After 1 minute of inactivity on the main menu, a demo race begins automatically with a random car, track, weather, and time-of-day. A single AI car drives at a leisurely pace. Press any key to return to the menu. Can be disabled in Settings.
 
 ## The Cars
 
@@ -186,11 +186,11 @@ Physics runs at a fixed 120 Hz timestep with accumulator pattern.
 
 ### Car Mesh
 
-Each car is a distinct procedural shape built from box/cylinder/lathe geometry:
-- Unique silhouette per car (not identical boxes with different colors)
+Each car uses a GLTF model for detailed body geometry with procedural wheels and lighting:
+- GLTF body models with per-car paint tinting
+- 4 procedural spinning wheels (tire + rim detail)
 - Headlights and taillights with emissive materials
-- 4 wheels with tire + rim detail
-- Headlight/taillight point lights attached to car group
+- Spot/point lights attached to car group for shadow casting
 - Headlights off on day tracks, on at night/dusk/dawn
 
 ### AI
@@ -247,7 +247,7 @@ OCBP Racer/
 ├── specs/                      # SDD specification documents
 ├── src/
 │   ├── main.ts                 # Entry point
-│   ├── test-harness.ts         # 55 automated tests
+│   ├── test-harness.ts         # 79 automated tests
 │   ├── core/
 │   │   ├── Game.ts             # Main game loop + race logic
 │   │   └── StateMachine.ts     # Game state transitions
@@ -327,6 +327,17 @@ The game is designed using a comprehensive Software Design Document (SDD) system
 | `09-ASSET-PIPELINE.md` | Asset workflow, placeholder strategy |
 | `10-MVP-ROADMAP.md` | Build phases, completion status |
 | `11-TEST-HARNESS.md` | Test suite documentation |
+
+## 3D Model Credits
+
+Car body models are sourced from Sketchfab under Creative Commons licenses:
+
+| Car | Model | Author | License |
+|-----|-------|--------|---------|
+| Rossini 488 | [2018 Ferrari 488 GT3](https://sketchfab.com/3d-models/2018-ferrari-488-gt3-bb14ee3833564f349a317d704a506cd3) | Ddiaz Design | CC-BY-4.0 |
+| Weissach GT3 | [2009 Porsche 911 GT3 RSR](https://sketchfab.com/3d-models/2009-porsche-911-gt3-rsr-94e85a7b980d4088bc3c2c0a9822e981) | OUTPISTON | CC-BY-NC-SA-4.0 |
+| Kaiju GT-R | [Nissan GTR 2016](https://sketchfab.com/3d-models/nissan-gtr-2016-605ec596d44c4f88bd9b088c60250e37) | David_Holiday | CC-BY-4.0 |
+| Stingray Z06 | [2020 Chevrolet Corvette C8](https://sketchfab.com/3d-models/2020-chevrolet-corvette-c8-06d0f3f8c108476fb9452e18f3ecb382) | OUTPISTON | CC-BY-NC-SA-4.0 |
 
 ## License
 

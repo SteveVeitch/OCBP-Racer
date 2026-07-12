@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import RAPIER from '@dimforge/rapier3d-compat'
 import { CarController, CarConfig } from '../physics/CarController'
 import { CarDefinition } from './CarConfigs'
@@ -118,6 +119,35 @@ const PROFILES: Record<string, CarMeshProfile> = {
   },
 }
 
+const GLTF_PATHS: Record<string, string> = {
+  'rossini-488': '/assets/models/2018_ferrari_488_gt3/scene.gltf',
+  'weissach-gt3': '/assets/models/2009_porsche_911_gt3_rsr/scene.gltf',
+  'kaiju-gt-r': '/assets/models/2018_nissan_gtr/scene.gltf',
+  'stingray-z06': '/assets/models/2020_chevrolet_corvette_c8/scene.gltf',
+}
+
+const TARGET_LENGTHS: Record<string, number> = {
+  'rossini-488': 4.3,
+  'weissach-gt3': 4.2,
+  'kaiju-gt-r': 4.4,
+  'stingray-z06': 4.2,
+}
+
+interface ModelOverride {
+  scaleMultiplier?: number
+  yOffsetOverride?: number
+}
+
+const MODEL_OVERRIDES: Record<string, ModelOverride> = {
+  'kaiju-gt-r': { scaleMultiplier: 2.6, yOffsetOverride: 0.15 },
+}
+
+interface CachedGLTFModel {
+  scene: THREE.Group
+  scale: number
+  yOffset: number
+}
+
 const _box = new THREE.BoxGeometry(1, 1, 1)
 
 function addBox(group: THREE.Group, spec: BoxSpec, mats: Record<string, THREE.Material>): void {
@@ -130,9 +160,47 @@ function addBox(group: THREE.Group, spec: BoxSpec, mats: Record<string, THREE.Ma
 
 export class CarFactory {
   private world: RAPIER.World
+  private modelCache = new Map<string, CachedGLTFModel>()
 
   constructor(world: RAPIER.World) {
     this.world = world
+  }
+
+  async preloadModels(): Promise<void> {
+    const loader = new GLTFLoader()
+    const entries = Object.entries(GLTF_PATHS)
+
+    const results = await Promise.allSettled(
+      entries.map(async ([carId, path]) => {
+        const gltf = await loader.loadAsync(path)
+        const scene = gltf.scene
+
+        const box = new THREE.Box3().setFromObject(scene)
+        const size = box.getSize(new THREE.Vector3())
+        const targetLen = TARGET_LENGTHS[carId] || 4.3
+        let scale = targetLen / Math.max(size.z, 0.01)
+
+        const override = MODEL_OVERRIDES[carId]
+        if (override?.scaleMultiplier) scale *= override.scaleMultiplier
+
+        scene.scale.setScalar(scale)
+
+        const scaledBox = new THREE.Box3().setFromObject(scene)
+        const yOffset = override?.yOffsetOverride ?? -scaledBox.min.y
+
+        this.modelCache.set(carId, { scene, scale, yOffset })
+      })
+    )
+
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        console.warn(`Failed to load GLTF for ${entries[i][0]}:`, r.reason)
+      }
+    })
+  }
+
+  hasModel(carId: string): boolean {
+    return this.modelCache.has(carId)
   }
 
   createCar(definition: CarDefinition, scene: THREE.Scene): CarController {
@@ -163,14 +231,41 @@ export class CarFactory {
     const profile = PROFILES[definition.id]
     if (!profile) return group
 
+    const cached = this.modelCache.get(definition.id)
+    if (cached) {
+      const model = cached.scene.clone(true)
+      model.position.y = cached.yOffset
+
+      model.traverse(child => {
+        if (child instanceof THREE.Mesh) {
+          child.castShadow = true
+          child.receiveShadow = true
+
+          const mat = child.material
+          if (mat instanceof THREE.MeshStandardMaterial && !mat.transparent) {
+            if (mat.emissiveIntensity > 0) return
+            const roughness = mat.roughness
+            const metalness = mat.metalness
+            if (roughness < 0.5 && metalness > 0.3) {
+              const tinted = mat.clone()
+              tinted.color.set(definition.color)
+              child.material = tinted
+            }
+          }
+        }
+      })
+
+      group.add(model)
+    } else {
+      const mats = this.createMaterials(definition.color)
+      for (const spec of profile.body) addBox(group, spec, mats)
+      for (const spec of profile.extras) addBox(group, spec, mats)
+      this.addQuadExhausts(group, definition.id, mats)
+    }
+
     const mats = this.createMaterials(definition.color)
-
-    for (const spec of profile.body) addBox(group, spec, mats)
-    for (const spec of profile.extras) addBox(group, spec, mats)
-
     this.addLights(group, profile.body, mats)
     this.addWheels(group, profile, mats)
-    this.addQuadExhausts(group, definition.id, mats)
 
     return group
   }

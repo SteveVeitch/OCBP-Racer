@@ -1,0 +1,11 @@
+Model Information:
+* title:	2020 Chevrolet Corvette C8
+* source:	https://sketchfab.com/3d-models/2020-chevrolet-corvette-c8-06d0f3f8c108476fb9452e18f3ecb382
+* author:	OUTPISTON (https://sketchfab.com/outpiston)
+
+Model License:
+* license type:	CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)
+* requirements:	Author must be credited. No commercial use. Modified versions must have the same license.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "2020 Chevrolet Corvette C8" (https://sketchfab.com/3d-models/2020-chevrolet-corvette-c8-06d0f3f8c108476fb9452e18f3ecb382) by OUTPISTON (https://sketchfab.com/outpiston) licensed under CC-BY-NC-SA-4.0 (http://creativecommons.org/licenses/by-nc-sa/4.0/)

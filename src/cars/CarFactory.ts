@@ -153,7 +153,16 @@ const GLTF_WHEEL_NAMES: Record<string, string[]> = {
     'gt3:LOD_A_TYRE_mm_tyre',      // FL
     'gt3:LOD_A_TYRE_mm_tyre1',     // FR
     'gt3:LOD_A_TYRE_REAR_mm_tyre', // RL
-    'gt3:LOD_A_TYRE_REAR_mm_tyre1' // RR
+    'gt3:LOD_A_TYRE_REAR_mm_tyre1______' // RR
+  ],
+}
+
+const GLTF_RIM_NAMES: Record<string, string[]> = {
+  'rossini-488': [
+    'gt3:LOD_A_WHEEL_mm_wheel',         // FL
+    'gt3:LOD_A_WHEEL_mm_wheel1',        // FR
+    'gt3:LOD_A_WHEEL_REAR_mm_wheel',    // RL
+    'gt3:LOD_A_WHEEL_REAR_mm_wheel1',   // RR
   ],
 }
 
@@ -269,7 +278,8 @@ export class CarFactory {
       group.add(model)
 
       const wheelNames = GLTF_WHEEL_NAMES[definition.id]
-      if (wheelNames && this.extractGLTFWheels(group, model, wheelNames)) {
+      const rimNames = GLTF_RIM_NAMES[definition.id]
+      if (wheelNames && this.extractGLTFWheels(group, model, wheelNames, rimNames)) {
         useProceduralWheels = false
       }
     } else {
@@ -288,32 +298,44 @@ export class CarFactory {
     return group
   }
 
-  private extractGLTFWheels(root: THREE.Group, gltfScene: THREE.Group, wheelNames: string[]): boolean {
+  private extractGLTFWheels(root: THREE.Group, gltfScene: THREE.Group, wheelNames: string[], rimNames: string[]): boolean {
     const _worldPos = new THREE.Vector3()
 
-    for (const name of wheelNames) {
-      let found: THREE.Object3D | undefined
-      gltfScene.traverse(child => {
-        if (child.name === name && !found) found = child
-      })
-      if (!found) return false
+    for (let i = 0; i < wheelNames.length; i++) {
+      const tyreNode = this.findNode(gltfScene, wheelNames[i])
+      if (!tyreNode) return false
 
-      found.getWorldPosition(_worldPos)
+      tyreNode.getWorldPosition(_worldPos)
       root.worldToLocal(_worldPos)
 
       const wheelGroup = new THREE.Group()
       wheelGroup.userData.isWheel = true
       wheelGroup.position.copy(_worldPos)
 
-      const clone = found.clone(true)
-      wheelGroup.add(clone)
+      wheelGroup.add(tyreNode.clone(true))
+      tyreNode.parent?.remove(tyreNode)
 
-      found.parent?.remove(found)
+      const rimName = rimNames[i]
+      if (rimName) {
+        const rimNode = this.findNode(gltfScene, rimName)
+        if (rimNode) {
+          wheelGroup.add(rimNode.clone(true))
+          rimNode.parent?.remove(rimNode)
+        }
+      }
 
       root.add(wheelGroup)
     }
 
     return true
+  }
+
+  private findNode(root: THREE.Object3D, name: string): THREE.Object3D | undefined {
+    let found: THREE.Object3D | undefined
+    root.traverse(child => {
+      if (child.name === name && !found) found = child
+    })
+    return found
   }
 
   private createMaterials(color: number): Record<string, THREE.Material> {

@@ -139,7 +139,7 @@ interface ModelOverride {
 }
 
 const MODEL_OVERRIDES: Record<string, ModelOverride> = {
-  'kaiju-gt-r': { scaleMultiplier: 2.6, yOffsetOverride: 0.15 },
+  'kaiju-gt-r': { scaleMultiplier: 2.3, yOffsetOverride: 0.15 },
 }
 
 interface CachedGLTFModel {

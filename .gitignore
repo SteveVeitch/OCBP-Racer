@@ -36,6 +36,9 @@ coverage/
 tmp/
 temp/
 
+# Standalone build artifact
+OCBP-Racer-standalone.zip
+
 # Large assets (optional, track via Git LFS)
 # assets/models/
 # assets/textures/

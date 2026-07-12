@@ -14,7 +14,11 @@ export class PhysicsWorld {
   }
 
   async init(): Promise<void> {
-    await RAPIER.init()
+    const wasmUrl = new URL('/rapier_wasm3d_bg.wasm', import.meta.url)
+    const response = await fetch(wasmUrl)
+    const wasmBytes = await response.arrayBuffer()
+    // rapier3d-compat runtime accepts ArrayBuffer despite incomplete type declaration
+    await (RAPIER.init as (arg: ArrayBuffer) => Promise<void>)(wasmBytes)
     this.world = new RAPIER.World(this.gravity)
     this.carFactory = new CarFactory(this.world)
     this.createGround()

@@ -7,7 +7,7 @@
 | Language | TypeScript | 7.x | Type safety, developer experience |
 | Renderer | Three.js | r185+ | WebGL2 3D rendering |
 | Physics | Rapier.js | 0.19.3 | WASM-accelerated rigid body physics |
-| Audio | Howler.js | 2.2+ | Cross-browser audio playback |
+| Audio | Web Audio API | — | Procedural audio synthesis (no audio files) |
 | Build | Vite | 5.4 | Dev server, bundling, HMR |
 | Package Manager | npm | 10+ | Dependency management |
 
@@ -75,11 +75,22 @@ OCBP Racer/
 │   ├── 08-UI-SPEC.md
 │   ├── 09-ASSET-PIPELINE.md
 │   ├── 10-MVP-ROADMAP.md
-│   └── 11-TEST-HARNESS.md
+│   ├── 11-TEST-HARNESS.md
+│   └── 12-AI-BEHAVIOR.md
+│
+├── assets/                         ← GLTF car models (Sketchfab, CC licenses)
+│   └── models/
+│       ├── 2018_ferrari_488_gt3/
+│       ├── 2009_porsche_911_gt3_rsr/
+│       ├── 2018_nissan_gtr/
+│       └── 2020_chevrolet_corvette_c8/
+│
+├── public/                         ← Static assets (Rapier WASM for Vite)
+│   └── rapier_wasm3d_bg.wasm
 │
 ├── src/
 │   ├── main.ts                     ← Entry point, game initialization
-│   ├── test-harness.ts             ← Automated test suite (35 tests)
+│   ├── test-harness.ts             ← Automated test suite (79 tests)
 │   │
 │   ├── core/
 │   │   ├── Game.ts                 ← Main game class, loop, race logic
@@ -89,31 +100,47 @@ OCBP Racer/
 │   │   └── InputManager.ts         ← Unified keyboard + gamepad input
 │   │
 │   ├── physics/
-│   │   ├── PhysicsWorld.ts         ← Rapier.js WASM wrapper
-│   │   └── CarController.ts        ← Car physics model + reverse gear
+│   │   ├── PhysicsWorld.ts         ← Rapier.js WASM wrapper (explicit WASM loading)
+│   │   └── CarController.ts        ← Car physics model + grip/slip + turbo lag
 │   │
 │   ├── rendering/
-│   │   ├── CameraController.ts     ← Chase cam with spring follow
-│   │   └── ParticleSystem.ts       ← Tire smoke particles
+│   │   ├── CameraController.ts     ← 4 camera views + spring follow + wall collision
+│   │   ├── ParticleSystem.ts       ← Tire smoke particles
+│   │   ├── WeatherParticleSystem.ts ← Rain particles (InstancedMesh)
+│   │   └── MiniMap.ts              ← Track overlay with car positions
 │   │
 │   ├── audio/
-│   │   └── AudioManager.ts         ← Howler.js stub (placeholder)
+│   │   └── AudioManager.ts         ← Procedural audio (Web Audio API, no files)
 │   │
 │   ├── cars/
-│   │   ├── CarConfigs.ts           ← 4 car definitions + types
-│   │   └── CarFactory.ts           ← Car mesh + physics body creation
+│   │   ├── CarConfigs.ts           ← 4 car definitions + engine specs
+│   │   └── CarFactory.ts           ← GLTF models + procedural wheels + paint tinting
 │   │
 │   ├── track/
 │   │   ├── Track.ts                ← Track logic, checkpoints, wrong way
 │   │   ├── TrackBuilder.ts         ← Procedural road + barrier meshes
+│   │   ├── TrackDefinitions.ts     ← 6 track definitions with control points
 │   │   └── SplinePath.ts           ← Catmull-Rom spline wrapper
 │   │
+│   ├── environment/
+│   │   ├── EnvironmentManager.ts   ← Lighting, fog, sky, decorations
+│   │   ├── TimeOfDayPresets.ts     ← 4 presets (dawn/day/dusk/night)
+│   │   ├── WeatherPresets.ts       ← 4 presets (clear/rain/fog/storm)
+│   │   └── EnvironmentModifiers.ts ← Physics multiplier structs
+│   │
 │   ├── ai/
-│   │   └── AIController.ts         ← AI racing line follower
+│   │   └── AIController.ts         ← AI 3-state behavior + difficulty levels
 │   │
 │   └── ui/
-│       └── UIManager.ts            ← HTML/CSS overlay UI
+│       └── UIManager.ts            ← HTML/CSS overlay UI + leaderboard
 │
+├── dist/                           ← Standalone build output (gitignored)
+│   ├── index.html
+│   ├── rapier_wasm3d_bg.wasm
+│   ├── serve.bat                   ← One-click server launcher
+│   └── assets/                     ← Bundled JS + GLTF models
+│
+├── build-standalone.bat            ← Build standalone package
 ├── index.html                      ← Entry HTML with loading screen
 ├── package.json
 ├── tsconfig.json
@@ -149,27 +176,35 @@ OCBP Racer/
 ## 6. Build Configuration
 
 ### 6.1 Vite Config
-- Dev server with HMR
-- Static asset handling
+- Dev server with HMR (port 3000)
+- Static asset handling (GLTF models in `assets/`, WASM in `public/`)
 - TypeScript compilation
+- ES2020 target
 
 ### 6.2 Production
 - Tree shaking
-- Code splitting
+- Code splitting (Game, LeaderboardManager, test-harness chunks)
 - Asset hashing
 - Target: ES2020 (modern browsers)
 
+### 6.3 Standalone Build
+- `build-standalone.bat` runs `vite build`, copies GLTF models to `dist/`
+- `public/rapier_wasm3d_bg.wasm` is copied to `dist/` by Vite's public dir handling
+- `PhysicsWorld.ts` explicitly fetches WASM and passes ArrayBuffer to `RAPIER.init()`, bypassing Vite's broken `import.meta.url` replacement in the bundled rapier code
+- `dist/serve.bat` launches a Python/Node.js HTTP server (WASM requires HTTP, `file://` won't work)
+- Self-contained: copy `dist/` folder to redistribute, recipient only needs Python or Node.js
+
 ## 7. Performance Budget
 
-| Resource | Budget |
-|----------|--------|
-| Draw calls | < 200 |
-| Triangles | < 500K |
-| Texture memory | < 512 MB |
-| JavaScript bundle | < 2 MB (gzipped) |
-| Total assets | < 50 MB |
-| Physics bodies | < 50 |
-| Audio channels | < 16 |
+| Resource | Budget | Actual |
+|----------|--------|--------|
+| Draw calls | < 200 | ~100 |
+| Triangles | < 500K | ~200K |
+| Texture memory | < 512 MB | ~100 MB |
+| JavaScript bundle | < 2 MB (gzipped) | ~1 MB gzipped |
+| Total assets | < 50 MB | ~15 MB |
+| Physics bodies | < 50 | ~10 |
+| Audio channels | < 16 | ~8 |
 
 ## 8. Error Handling
 
@@ -184,9 +219,10 @@ OCBP Racer/
 
 ### 9.1 Test Harness
 - Automated test suite: `src/test-harness.ts`
-- 35 tests across 10 phases
+- 79 tests across 18 phases
 - Accessible at `http://localhost:3000?test`
 - Tests run in browser with visual results overlay
+- 5-column grid layout, arcade terminal styling
 - Click results to start game (if all pass)
 
 ### 9.2 Test Categories
@@ -201,3 +237,10 @@ OCBP Racer/
 - Phase 8: AI opponents (creation, input generation)
 - Phase 9: UI state machine (transitions, storage)
 - Phase 10: Integration (car on track, 4 cars on track)
+- Phase 11: Environment system (weather, time-of-day, modifiers)
+- Phase 12: Track definitions (6 tracks, spline, checkpoints)
+- Phase 13: Car renaming + turbo physics
+- Phase 14: Per-car audio + camera views
+- Phase 15: Scoring + leaderboard
+- Phase 16: Rebindable controls
+- Phase 17: Typhoon Pass + polish

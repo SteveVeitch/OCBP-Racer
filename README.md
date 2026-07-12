@@ -9,12 +9,42 @@ A browser-based arcade street racing game featuring exotic sports cars with semi
 
 ## Play
 
+### Development
+
 ```bash
 npm install
 npm run dev
 ```
 
 Open `http://localhost:3000` in your browser.
+
+### Standalone Build (no npm required to run)
+
+Build a self-contained version that can run with just Python or Node.js — no npm install needed.
+
+```bash
+# Build the standalone package
+build-standalone.bat
+```
+
+This produces a `dist/` folder with everything bundled. To run:
+
+```bash
+cd dist
+serve.bat
+```
+
+Or manually:
+
+```bash
+cd dist
+python -m http.server 8000
+# Open http://localhost:8000
+```
+
+**Requirements to run:** Python 3.x or Node.js (just for the HTTP server — the game itself is pure browser). WASM physics requires an HTTP server; `file://` will not work.
+
+**To redistribute:** Copy the entire `dist/` folder. Recipients just need Python or Node.js and a modern browser.
 
 ## Test Harness
 
@@ -245,6 +275,8 @@ Each car uses a GLTF model for detailed body geometry with procedural wheels and
 ```
 OCBP Racer/
 ├── specs/                      # SDD specification documents
+├── assets/                     # GLTF car models (Sketchfab, CC licenses)
+├── public/                     # Static assets (Rapier WASM)
 ├── src/
 │   ├── main.ts                 # Entry point
 │   ├── test-harness.ts         # 79 automated tests
@@ -259,12 +291,13 @@ OCBP Racer/
 │   ├── rendering/
 │   │   ├── CameraController.ts # 4 camera views + spring follow + wall collision
 │   │   ├── ParticleSystem.ts   # Tire smoke particles
-│   │   └── WeatherParticleSystem.ts  # Rain particles (InstancedMesh)
+│   │   ├── WeatherParticleSystem.ts  # Rain particles (InstancedMesh)
+│   │   └── MiniMap.ts          # Track overlay with car positions
 │   ├── audio/
 │   │   └── AudioManager.ts     # Per-car engine synthesis, turbo, exhaust
 │   ├── cars/
 │   │   ├── CarConfigs.ts       # 4 car definitions with engines
-│   │   └── CarFactory.ts       # Distinct car mesh + body creation
+│   │   └── CarFactory.ts       # GLTF models + procedural wheels, paint tinting
 │   ├── track/
 │   │   ├── Track.ts            # Track logic + checkpoints
 │   │   ├── TrackBuilder.ts     # Procedural road + barriers + cleanup
@@ -276,9 +309,16 @@ OCBP Racer/
 │   │   ├── WeatherPresets.ts         # 4 presets (clear/rain/fog/storm)
 │   │   └── EnvironmentModifiers.ts   # Physics multiplier structs
 │   ├── ai/
-│   │   └── AIController.ts     # AI 3-state behavior
+│   │   └── AIController.ts     # AI 3-state behavior + difficulty levels
 │   └── ui/
 │       └── UIManager.ts        # HTML/CSS overlay UI + leaderboard
+├── dist/                       # Standalone build output
+│   ├── index.html              # Production entry point
+│   ├── rapier_wasm3d_bg.wasm   # Physics engine WASM binary
+│   ├── serve.bat               # One-click server launcher
+│   ├── build-standalone.bat    # Rebuild script
+│   └── assets/                 # Bundled JS + GLTF models
+├── build-standalone.bat        # Build standalone package
 ├── index.html
 ├── package.json
 ├── tsconfig.json
@@ -298,8 +338,9 @@ OCBP Racer/
 ```bash
 npm install          # Install dependencies
 npm run dev          # Start dev server (http://localhost:3000)
-npm run build        # Build for production
+npm run build        # Build for production (Vite)
 npm run preview      # Preview production build
+build-standalone.bat # Build standalone dist/ (no npm needed to run)
 ```
 
 ### Test Harness

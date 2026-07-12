@@ -300,6 +300,8 @@ export class CarFactory {
 
   private extractGLTFWheels(root: THREE.Group, gltfScene: THREE.Group, wheelNames: string[], rimNames: string[]): boolean {
     const _worldPos = new THREE.Vector3()
+    const _worldQuat = new THREE.Quaternion()
+    const _worldScale = new THREE.Vector3()
 
     for (let i = 0; i < wheelNames.length; i++) {
       const tyreNode = this.findNode(gltfScene, wheelNames[i])
@@ -307,19 +309,23 @@ export class CarFactory {
 
       tyreNode.getWorldPosition(_worldPos)
       root.worldToLocal(_worldPos)
+      tyreNode.getWorldQuaternion(_worldQuat)
+      tyreNode.getWorldScale(_worldScale)
 
       const wheelGroup = new THREE.Group()
       wheelGroup.userData.isWheel = true
       wheelGroup.position.copy(_worldPos)
 
-      wheelGroup.add(tyreNode.clone(true))
+      const tyreClone = this.cloneNodeOriented(tyreNode, _worldQuat, _worldScale)
+      wheelGroup.add(tyreClone)
       tyreNode.parent?.remove(tyreNode)
 
       const rimName = rimNames[i]
       if (rimName) {
         const rimNode = this.findNode(gltfScene, rimName)
         if (rimNode) {
-          wheelGroup.add(rimNode.clone(true))
+          const rimClone = this.cloneNodeOriented(rimNode, _worldQuat, _worldScale)
+          wheelGroup.add(rimClone)
           rimNode.parent?.remove(rimNode)
         }
       }
@@ -328,6 +334,16 @@ export class CarFactory {
     }
 
     return true
+  }
+
+  private cloneNodeOriented(node: THREE.Object3D, worldQuat: THREE.Quaternion, worldScale: THREE.Vector3): THREE.Object3D {
+    const clone = node.clone(true)
+    clone.position.set(0, 0, 0)
+    clone.quaternion.copy(worldQuat)
+    clone.scale.copy(worldScale)
+    clone.updateMatrix()
+    clone.matrixAutoUpdate = false
+    return clone
   }
 
   private findNode(root: THREE.Object3D, name: string): THREE.Object3D | undefined {

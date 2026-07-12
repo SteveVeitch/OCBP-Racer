@@ -279,7 +279,7 @@ export class CarFactory {
 
       const wheelNames = GLTF_WHEEL_NAMES[definition.id]
       const rimNames = GLTF_RIM_NAMES[definition.id]
-      if (wheelNames && this.extractGLTFWheels(group, model, wheelNames, rimNames)) {
+      if (wheelNames && this.wrapGLTFWheels(group, model, wheelNames, rimNames)) {
         useProceduralWheels = false
       }
     } else {
@@ -298,52 +298,32 @@ export class CarFactory {
     return group
   }
 
-  private extractGLTFWheels(root: THREE.Group, gltfScene: THREE.Group, wheelNames: string[], rimNames: string[]): boolean {
-    const _worldPos = new THREE.Vector3()
-    const _worldQuat = new THREE.Quaternion()
-    const _worldScale = new THREE.Vector3()
+  private wrapGLTFWheels(root: THREE.Group, gltfScene: THREE.Group, wheelNames: string[], rimNames: string[]): boolean {
+    const pivots: THREE.Group[] = []
 
     for (let i = 0; i < wheelNames.length; i++) {
       const tyreNode = this.findNode(gltfScene, wheelNames[i])
-      if (!tyreNode) return false
+      if (!tyreNode?.parent) return false
 
-      tyreNode.getWorldPosition(_worldPos)
-      root.worldToLocal(_worldPos)
-      tyreNode.getWorldQuaternion(_worldQuat)
-      tyreNode.getWorldScale(_worldScale)
-
-      const wheelGroup = new THREE.Group()
-      wheelGroup.userData.isWheel = true
-      wheelGroup.position.copy(_worldPos)
-
-      const tyreClone = this.cloneNodeOriented(tyreNode, _worldQuat, _worldScale)
-      wheelGroup.add(tyreClone)
-      tyreNode.parent?.remove(tyreNode)
+      const pivot = new THREE.Group()
+      tyreNode.parent.add(pivot)
+      tyreNode.parent.remove(tyreNode)
+      pivot.add(tyreNode)
 
       const rimName = rimNames[i]
       if (rimName) {
         const rimNode = this.findNode(gltfScene, rimName)
-        if (rimNode) {
-          const rimClone = this.cloneNodeOriented(rimNode, _worldQuat, _worldScale)
-          wheelGroup.add(rimClone)
-          rimNode.parent?.remove(rimNode)
+        if (rimNode?.parent) {
+          rimNode.parent.remove(rimNode)
+          pivot.add(rimNode)
         }
       }
 
-      root.add(wheelGroup)
+      pivots.push(pivot)
     }
 
+    root.userData.gltfWheels = pivots
     return true
-  }
-
-  private cloneNodeOriented(node: THREE.Object3D, worldQuat: THREE.Quaternion, worldScale: THREE.Vector3): THREE.Object3D {
-    const clone = node.clone(true)
-    clone.position.set(0, 0, 0)
-    clone.quaternion.copy(worldQuat)
-    clone.scale.copy(worldScale)
-    clone.updateMatrix()
-    clone.matrixAutoUpdate = false
-    return clone
   }
 
   private findNode(root: THREE.Object3D, name: string): THREE.Object3D | undefined {

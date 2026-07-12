@@ -86,6 +86,17 @@ export class InputManager {
 
     window.addEventListener('blur', () => {
       this.keys.clear()
+      this.gamepadIndex = null
+    })
+
+    window.addEventListener('focus', () => {
+      const gamepads = navigator.getGamepads()
+      for (let i = 0; i < gamepads.length; i++) {
+        if (gamepads[i]) {
+          this.gamepadIndex = i
+          break
+        }
+      }
     })
   }
 

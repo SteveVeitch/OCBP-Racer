@@ -14,7 +14,7 @@ import { EnvironmentManager } from '../environment/EnvironmentManager'
 import { combineModifiers } from '../environment/EnvironmentModifiers'
 import { TimeOfDayPresets } from '../environment/TimeOfDayPresets'
 import { WeatherPresets } from '../environment/WeatherPresets'
-import { StateMachine, RaceResults } from './StateMachine'
+import { StateMachine, GameState, RaceResults } from './StateMachine'
 import { UIManager } from '../ui/UIManager'
 import { AudioManager } from '../audio/AudioManager'
 import { AIController } from '../ai/AIController'
@@ -59,6 +59,7 @@ export class Game {
   private track!: Track
   private running = false
   private paused = false
+  private prePauseState: GameState = 'MENU'
 
   private state: StateMachine
   private ui: UIManager
@@ -103,7 +104,7 @@ export class Game {
 
   private isDemo = false
   private lastActivityTime = 0
-  private static readonly DEMO_IDLE_TIMEOUT = 60
+  private static readonly DEMO_IDLE_TIMEOUT = 180
   private miniMap: MiniMap | null = null
 
   constructor() {
@@ -172,6 +173,7 @@ export class Game {
 
       log('Setting up UI...')
       this.ui.init({
+        audio: this.audio,
         onCarSelected: (id) => this.state.setSelectedCar(id),
         onTrackSelected: (id) => this.setTrack(id),
         onRaceStart: () => this.startRace(),
@@ -260,9 +262,13 @@ export class Game {
   private setupAutoPause(): void {
     document.addEventListener('visibilitychange', () => {
       if (document.hidden && this.raceActive && !this.paused) {
-        this.paused = true
-        this.ui.showPause()
-        this.audio.suspend()
+        const currentState = this.state.getCurrent()
+        if (currentState === 'RACING' || currentState === 'COUNTDOWN') {
+          this.prePauseState = currentState
+          this.paused = true
+          this.state.transition('PAUSED')
+          this.audio.suspend()
+        }
       }
     })
   }
@@ -493,11 +499,13 @@ export class Game {
     this.clearRaceEntities()
     this.ui.hideAll()
     this.paused = false
+    this.prePauseState = 'RACING'
     this.startRace()
   }
 
   private resumeRace(): void {
     this.paused = false
+    this.state.transition(this.prePauseState)
     this.ui.hidePause()
     this.audio.resume()
   }
@@ -511,6 +519,7 @@ export class Game {
     this.ui.hideAll()
     this.state.transition('MENU')
     this.paused = false
+    this.prePauseState = 'MENU'
     this.raceActive = false
     this.isDemo = false
   }
@@ -612,15 +621,15 @@ export class Game {
       this.pausePressed = true
 
       if (currentState === 'RACING' || currentState === 'COUNTDOWN') {
-        if (this.paused) {
-          this.paused = false
-          this.ui.hidePause()
-          this.audio.resume()
-        } else {
-          this.paused = true
-          this.ui.showPause()
-          this.audio.suspend()
-        }
+        this.prePauseState = currentState
+        this.paused = true
+        this.state.transition('PAUSED')
+        this.audio.suspend()
+      } else if (currentState === 'PAUSED') {
+        this.paused = false
+        this.state.transition(this.prePauseState)
+        this.ui.hidePause()
+        this.audio.resume()
       }
     } else if (!inputState.pause) {
       this.pausePressed = false

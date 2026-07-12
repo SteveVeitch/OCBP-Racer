@@ -3,10 +3,12 @@ import { CARS } from '../cars/CarConfigs'
 import { TRACKS } from '../track/TrackDefinitions'
 import { getTrackLeaderboard, getOverallLeaderboard, type LeaderboardEntry } from './LeaderboardManager'
 import { type KeyBindings, DEFAULT_KEY_BINDINGS } from '../input/InputManager'
+import { AudioManager } from '../audio/AudioManager'
 
 export class UIManager {
   private container!: HTMLDivElement
   private state: StateMachine
+  private audio?: AudioManager
   private onCarSelected?: (id: string) => void
   private onTrackSelected?: (id: string) => void
   private onRaceStart?: () => void
@@ -25,6 +27,7 @@ export class UIManager {
   }
 
   init(callbacks: {
+    audio?: AudioManager
     onCarSelected?: (id: string) => void
     onTrackSelected?: (id: string) => void
     onRaceStart?: () => void
@@ -36,6 +39,7 @@ export class UIManager {
     onResetBindings?: () => void
     getBindings?: () => KeyBindings
   }): void {
+    this.audio = callbacks.audio
     this.onCarSelected = callbacks.onCarSelected
     this.onTrackSelected = callbacks.onTrackSelected
     this.onRaceStart = callbacks.onRaceStart
@@ -1408,8 +1412,7 @@ export class UIManager {
     backBtn.onclick = () => {
       const prev = this.state.getPrevious()
       if (prev === 'PAUSED' || prev === 'RACING' || prev === 'COUNTDOWN') {
-        this.state.transition('RACING')
-        requestAnimationFrame(() => this.showPause())
+        this.state.transition('PAUSED')
       } else {
         this.state.transition('MENU')
       }
@@ -1760,6 +1763,13 @@ export class UIManager {
     const btn = document.createElement('button')
     btn.className = `menu-btn ${variant || ''}`
     btn.textContent = text
+    btn.addEventListener('click', () => {
+      if (variant === 'primary') {
+        this.audio?.playUIConfirm()
+      } else {
+        this.audio?.playUIClick()
+      }
+    })
     return btn
   }
 

@@ -123,7 +123,6 @@ Handling Profile:
 | **Downforce** | 1.2 | 1.8 | 0.8 | 1.5 |
 | **Slip Angle Peak (°)** | 8 | 6 | 12 | 7 |
 | **Slip Angle Limit (°)** | 25 | 20 | 35 | 22 |
-| **Auto-Correct** | 0.4 | 0.6 | 0.2 | 0.5 |
 
 ### 3.2 Engine Specifications
 
@@ -309,17 +308,14 @@ interface CarDefinition {
 }
 
 interface EngineDefinition {
-  type: 'v8-turbo' | 'flat6-na' | 'v6-turbo' | 'v8-na'
-  cylinders: number        // 6 or 8
+  type: string             // e.g. 'Twin-Turbo V8', 'NA Flat-6'
   displacement: string     // e.g. '3.9L'
-  aspiration: 'turbo' | 'na'
+  horsepower: number       // HP
   redline: number          // RPM
-  idleRPM: number          // default 800
-  // Audio synthesis parameters
-  baseFrequency: number    // Hz at idle (e.g. 45 for V8, 55 for flat-6)
-  maxFrequency: number     // Hz at redline (e.g. 180 for V8, 220 for flat-6)
-  harmonicContent: number  // 0-1, richness of tone
-  roughness: number        // 0-1, irregularity of waveform
+  baseFrequency: number    // Hz at idle
+  maxFrequency: number     // Hz at redline
+  primaryWaveform: OscillatorType   // 'sawtooth', 'square', 'triangle', 'sine'
+  secondaryWaveform: OscillatorType // sub-harmonic oscillator type
 }
 
 interface CarConfig {
@@ -334,7 +330,6 @@ interface CarConfig {
   downforce: number     // downforce coefficient
   slipAnglePeak: number // degrees
   slipAngleLimit: number // degrees
-  autoCorrect: number   // DEPRECATED — not used by grip/slip model
   turboLagTime: number  // seconds (0 for NA cars)
 }
 ```

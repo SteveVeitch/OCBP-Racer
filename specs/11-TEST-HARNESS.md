@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The test harness is an automated in-browser test suite that validates all game systems. It runs 77 tests across 16 phases, covering project setup through full integration.
+The test harness is an automated in-browser test suite that validates all game systems. It runs 85 tests across 19 phases, covering project setup through full integration.
 
 ## 2. Accessing the Test Harness
 
@@ -96,7 +96,7 @@ The overlay is a flexbox-centered container with a CSS grid inside for phase col
 ║  ... (remaining phases) ...                               ║
 ║                                                           ║
 ║  ─────────────────────────────────────────                ║
-║         77/77 PASSED                                     ║
+║         85/85 PASSED                                     ║
 ║                                                           ║
 ║            CLICK ANYWHERE TO START                        ║
 ╚═══════════════════════════════════════════════════════════╝
@@ -143,7 +143,7 @@ Fixed 5-column layout. 16 phase cards arranged in 5 columns × 4 rows, fitting o
 - Summary: 14px, bold, letter-spacing 2px
 
 ### 4.5 Layout
-- Fixed 5-column grid — all 16 phases visible at once, no scrolling required
+- Fixed 5-column grid — all 19 phases visible at once, no scrolling required
 - Container width: 95vw, centered on screen
 - Phase cards compact: 6px/8px padding, 10px font
 
@@ -151,7 +151,7 @@ Fixed 5-column layout. 16 phase cards arranged in 5 columns × 4 rows, fitting o
 - Centered below grid, separated by a green border-top
 - Green (#00ff88) with glow if all pass
 - Red (#ff4444) with glow if any fail
-- Format: `77/77 PASSED` or `75/77 PASSED — 2 FAILED`
+- Format: `85/85 PASSED` or `83/85 PASSED — 2 FAILED`
 - Red background if any fail
 
 ## 5. Test Inventory
@@ -305,7 +305,18 @@ Fixed 5-column layout. 16 phase cards arranged in 5 columns × 4 rows, fitting o
 | 56 | DEMO state exists | Sync | Creates StateMachine, checks DEMO is valid GameState |
 | 57 | demoEnabled defaults to true | Sync | Checks default settings.demoEnabled === true |
 
-**Total: 57 tests** (55 base + 2 new)
+### Phase 18: Bug Fixes & Polish (6 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 58 | StateMachine LOADING state removed | Sync | Verifies LOADING is no longer a valid state |
+| 59 | CarConfig autoCorrect field removed | Sync | Checks all cars lack autoCorrect property |
+| 60 | EngineDefinition has per-car waveforms | Sync | All 4 cars have valid primaryWaveform and secondaryWaveform |
+| 61 | Turbo cars have turboLagTime > 0 | Sync | Rossini and Kaiju are turbo |
+| 62 | NA cars have turboLagTime === 0 | Sync | Weissach and Stingray are NA |
+| 63 | AudioManager has UI audio methods | Sync | playUIClick and playUIConfirm exist |
+
+**Total: 85 tests** (63 base + UI/physics/audio/controls)
 
 ## 6. Test Dependencies
 
@@ -439,8 +450,16 @@ npm run dev
   ✓ DEMO state exists
   ✓ demoEnabled defaults to true
 
+-- Phase 18: Bug Fixes & Polish --
+  ✓ StateMachine LOADING state removed
+  ✓ CarConfig autoCorrect field removed
+  ✓ EngineDefinition has per-car waveforms
+  ✓ Turbo cars have turboLagTime > 0
+  ✓ NA cars have turboLagTime === 0
+  ✓ AudioManager has UI audio methods
+
 === Results ===
-57 passed, 0 failed, 57 total
+85 passed, 0 failed, 85 total
 ```
 
 ## 8. Failure Handling

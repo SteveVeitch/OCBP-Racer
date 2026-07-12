@@ -182,12 +182,9 @@ interface CarConfig {
   downforce: number     // downforce coefficient (0.8-1.8)
   slipAnglePeak: number // degrees (6-12)
   slipAngleLimit: number // degrees (20-35)
-  autoCorrect: number   // DEPRECATED — not used by grip/slip model
   turboLagTime: number  // seconds (0 for NA cars)
 }
 ```
-
-> **Note:** `autoCorrect` remains in the interface for backward compatibility but is no longer applied by the physics engine. The grip/slip model (section 3.4) replaces all lateral auto-correction.
 
 ### 4.2 Actual Car Parameters
 
@@ -204,7 +201,6 @@ interface CarConfig {
 | **Downforce** | 1.2 | 1.8 | 0.8 | 1.5 |
 | **Slip Angle Peak (°)** | 8 | 6 | 12 | 7 |
 | **Slip Angle Limit (°)** | 25 | 20 | 35 | 22 |
-| **Auto-Correct** | 0.4 | 0.6 | 0.2 | 0.5 |
 | **Turbo Lag (s)** | 0.15 | 0.00 | 0.25 | 0.00 |
 
 ### 4.3 RPM Calculation

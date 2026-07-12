@@ -63,36 +63,36 @@ Engine synthesis is **per-car** based on `EngineDefinition` in the car config. E
 Each engine has two oscillators mixed together, filtered for warmth:
 
 **Oscillator 1 (Primary):**
-- Waveform: sawtooth (V8), square (flat-6), or sawtooth (V6)
+- Waveform: per-car (see table below)
 - Frequency: `baseFrequency + (rpm / redline) × (maxFrequency - baseFrequency)`
 
 **Oscillator 2 (Sub-harmonic):**
-- Waveform: square (always)
+- Waveform: per-car (see table below)
 - Frequency: 0.5× primary frequency
-- Volume: `harmonicContent × 0.15`
+- Volume: 0.15
 
 **Filter:**
 - Type: Lowpass
-- Q: `2 + roughness × 3` (higher Q = more resonant)
+- Q: 2
 - Cutoff: follows primary frequency × 1.5
 
 #### Per-Car Engine Profiles
 
-| Car | Engine Type | Base Freq | Max Freq | Harmonic | Roughness | Filter Q |
-|-----|-------------|-----------|----------|----------|-----------|----------|
-| Rossini 488 | V8 Turbo | 45 Hz | 180 Hz | 0.7 | 0.3 | 2.9 |
-| Weissach GT3 | Flat-6 NA | 55 Hz | 220 Hz | 0.5 | 0.1 | 2.3 |
-| Kaiju GT-R | V6 Turbo | 50 Hz | 195 Hz | 0.6 | 0.4 | 3.2 |
-| Stingray Z06 | V8 NA | 42 Hz | 175 Hz | 0.8 | 0.2 | 2.6 |
+| Car | Engine Type | Primary Wave | Secondary Wave | Base Freq | Max Freq |
+|-----|-------------|-------------|----------------|-----------|----------|
+| Rossini 488 | V8 Turbo | sawtooth | sawtooth | 35 Hz | 220 Hz |
+| Weissach GT3 | Flat-6 NA | triangle | sawtooth | 40 Hz | 260 Hz |
+| Kaiju GT-R | V6 Turbo | square | sawtooth | 30 Hz | 200 Hz |
+| Stingray Z06 | V8 NA | sawtooth | triangle | 32 Hz | 240 Hz |
 
 #### RPM-to-Frequency Mapping
 ```
 frequency = baseFrequency + (rpm / redline) × (maxFrequency - baseFrequency)
 
-Rossini 488:   45 Hz (idle) → 180 Hz (redline 8000)
-Weissach GT3:  55 Hz (idle) → 220 Hz (redline 9000)
-Kaiju GT-R:    50 Hz (idle) → 195 Hz (redline 7000)
-Stingray Z06:  42 Hz (idle) → 175 Hz (redline 8600)
+Rossini 488:   35 Hz (idle) → 220 Hz (redline 8000)
+Weissach GT3:  40 Hz (idle) → 260 Hz (redline 8500)
+Kaiju GT-R:    30 Hz (idle) → 200 Hz (redline 7200)
+Stingray Z06:  32 Hz (idle) → 240 Hz (redline 8600)
 ```
 
 #### RPM Variation at Top End

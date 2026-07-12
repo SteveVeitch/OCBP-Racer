@@ -54,7 +54,7 @@ Run the automated test suite:
 http://localhost:3000?test
 ```
 
-79 tests validate all game systems. Click the results overlay to start the game.
+85 tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 

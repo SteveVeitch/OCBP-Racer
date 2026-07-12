@@ -90,7 +90,7 @@ OCBP Racer/
 │
 ├── src/
 │   ├── main.ts                     ← Entry point, game initialization
-│   ├── test-harness.ts             ← Automated test suite (79 tests)
+│   ├── test-harness.ts             ← Automated test suite (85 tests)
 │   │
 │   ├── core/
 │   │   ├── Game.ts                 ← Main game class, loop, race logic
@@ -219,7 +219,7 @@ OCBP Racer/
 
 ### 9.1 Test Harness
 - Automated test suite: `src/test-harness.ts`
-- 79 tests across 18 phases
+- 85 tests across 19 phases
 - Accessible at `http://localhost:3000?test`
 - Tests run in browser with visual results overlay
 - 5-column grid layout, arcade terminal styling
@@ -243,4 +243,5 @@ OCBP Racer/
 - Phase 14: Per-car audio + camera views
 - Phase 15: Scoring + leaderboard
 - Phase 16: Rebindable controls
-- Phase 17: Typhoon Pass + polish
+- Phase 17: Demo mode
+- Phase 18: Bug fixes & polish (waveforms, autoCorrect removal, turbo check)

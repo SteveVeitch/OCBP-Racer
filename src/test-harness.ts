@@ -910,6 +910,49 @@ export async function runTestHarness(): Promise<void> {
     im.resetBindings()
   })
 
+  // ── Phase 18: Bug Fixes & Polish ──
+  currentPhase = 'Phase 18: Bug Fixes & Polish'
+  console.log('\n-- Phase 18: Bug Fixes & Polish --')
+  test('StateMachine LOADING state removed', () => {
+    const sm = new StateMachine()
+    const valid = sm.getCurrent() as string
+    assert(valid !== 'LOADING', `Current state should not be LOADING: ${valid}`)
+  })
+  test('CarConfig autoCorrect field removed', () => {
+    for (const car of CARS) {
+      const cfg: Record<string, unknown> = car.config as unknown as Record<string, unknown>
+      assert(!('autoCorrect' in cfg), `${car.name} still has autoCorrect`)
+    }
+  })
+  test('EngineDefinition has per-car waveforms', () => {
+    for (const car of CARS) {
+      assert(typeof car.engine.primaryWaveform === 'string', `${car.name} missing primaryWaveform`)
+      assert(typeof car.engine.secondaryWaveform === 'string', `${car.name} missing secondaryWaveform`)
+      const valid: OscillatorType[] = ['sine', 'square', 'sawtooth', 'triangle']
+      assert(valid.includes(car.engine.primaryWaveform), `${car.name} invalid primaryWaveform: ${car.engine.primaryWaveform}`)
+      assert(valid.includes(car.engine.secondaryWaveform), `${car.name} invalid secondaryWaveform: ${car.engine.secondaryWaveform}`)
+    }
+  })
+  test('Turbo cars have turboLagTime > 0', () => {
+    const turbo = CARS.filter(c => c.config.turboLagTime > 0)
+    assert(turbo.length === 2, `Expected 2 turbo cars, got ${turbo.length}`)
+    const turboIds = turbo.map(c => c.id).sort()
+    assert(turboIds[0] === 'kaiju-gt-r', `Expected Kaiju to be turbo, got ${turboIds[0]}`)
+    assert(turboIds[1] === 'rossini-488', `Expected Rossini to be turbo, got ${turboIds[1]}`)
+  })
+  test('NA cars have turboLagTime === 0', () => {
+    const na = CARS.filter(c => c.config.turboLagTime === 0)
+    assert(na.length === 2, `Expected 2 NA cars, got ${na.length}`)
+    const naIds = na.map(c => c.id).sort()
+    assert(naIds[0] === 'stingray-z06', `Expected Stingray to be NA, got ${naIds[0]}`)
+    assert(naIds[1] === 'weissach-gt3', `Expected Weissach to be NA, got ${naIds[1]}`)
+  })
+  test('AudioManager has UI audio methods', () => {
+    const am = new AudioManager()
+    assert(typeof am.playUIClick === 'function', 'playUIClick missing')
+    assert(typeof am.playUIConfirm === 'function', 'playUIConfirm missing')
+  })
+
   // ── Summary ──
   console.log('\n=== Results ===')
   const passed = results.filter(r => r.passed).length

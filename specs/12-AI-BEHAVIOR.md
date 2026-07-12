@@ -97,7 +97,23 @@ AI enters RECOVERING when any of:
 | `recoveryAlignThreshold` | 30° | Max angle from track tangent to rejoin |
 | `recoveryDistanceThreshold` | 4.0m | Max distance from spline to rejoin |
 
-## 8. AI Constructor Changes
+## 8. AI Difficulty Levels
+
+The game supports 4 difficulty levels, selectable on the track selection screen. Each level scales multiple AI behavior parameters:
+
+| Parameter | Beginner | Intermediate | Advanced | Pro |
+|-----------|----------|-------------|----------|-----|
+| Aggressiveness | 0.3 | 0.5 | 0.7 | 0.9 |
+| Corner slow-down | 0.6 | 0.4 | 0.25 | 0.1 |
+| Avoidance radius | 7.0m | 5.0m | 3.5m | 2.0m |
+| Throttle on straights | 0.7 | 0.85 | 0.95 | 1.0 |
+| Steering precision | 0.6 | 0.8 | 0.9 | 1.0 |
+| Recovery speed | Slow | Normal | Fast | Instant |
+| Max speed fraction | 0.75 | 0.85 | 0.92 | 1.0 |
+
+Difficulty is persisted in `GameSettings.aiDifficulty` and saved to localStorage.
+
+## 9. AI Constructor Changes
 
 `AIController` constructor accepts additional parameters:
 
@@ -105,7 +121,7 @@ AI enters RECOVERING when any of:
 constructor(
   car: CarController,
   spline: SplinePath,
-  aggressiveness?: number,
+  difficulty?: AIDifficulty,
   allCars?: CarController[]
 )
 ```
@@ -113,9 +129,11 @@ constructor(
 The `allCars` reference gives the AI awareness of other cars for avoidance.
 Game.ts passes the full car list when constructing AI controllers.
 
-## 9. Out of Scope
+Difficulty parameter accepts: `'beginner' | 'intermediate' | 'advanced' | 'pro'`.
 
-- Rubber-banding / dynamic difficulty
+## 10. Out of Scope
+
+- Rubber-banding / dynamic difficulty within a race
 - AI pit stops
 - AI personality / team behavior
 - Multiplayer AI

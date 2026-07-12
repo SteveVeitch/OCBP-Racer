@@ -330,11 +330,14 @@ Geometry:       Cylinder (0.32 radius, 0.22 width)
 
 ## 7. Car Mesh Construction
 
-### 7.1 Enhanced Procedural Mesh
-Each car has a distinct procedural silhouette built from box/lathe/cylinder geometry. See `07-CAR-SPEC.md` Section 4.2 for per-car mesh profiles.
+### 7.1 GLTF Body Models (Current)
+Each car uses a GLTF model loaded asynchronously at startup for detailed body geometry. Models are cached, scaled to target dimensions, and paint-tinted by applying the car color to PBR materials with low roughness and high metalness. The model is a single child Group with BufferGeometry children.
 
-### 7.2 Wheel Positions
-Per-car wheel positions defined in car spec (Section 4.4).
+### 7.2 Procedural Wheels (Always)
+4 procedural wheels are always added to each car for spin animation, regardless of GLTF availability:
+- Tire: CylinderGeometry (0.32 radius, 0.22 width), dark material
+- Rim: CylinderGeometry (0.20 radius, 0.24 width), silver material
+- Wheel groups detected by `CarController.findWheels()` — finds direct children of root Group that are Groups with ≥2 children including CylinderGeometry
 
 ### 7.3 Wheel Animation
 - **Spin:** All 4 wheels rotate around local X axis based on forward speed

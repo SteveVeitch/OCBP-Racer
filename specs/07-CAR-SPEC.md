@@ -380,21 +380,29 @@ Taillight Lamps: 2× PointLight, intensity 1.5, range 8
   Positions: Per-car (see section 4.4)
 ```
 
-## 9. Placeholder Assets
+## 9. Car Model Implementation
 
-### 9.1 Placeholder Approach
-- Use procedural box/lathe-based mesh (no external models)
-- 4 wheels per car with tire/rim detail
-- Headlights and taillights as emissive boxes + light sources
-- Distinct color and silhouette per car
-- Replace with GLTF models when available (post-MVP)
+### 9.1 GLTF Models (Current)
+Each car uses a GLTF model for detailed body geometry, loaded asynchronously at startup:
 
-### 9.2 Replacement Workflow
-1. Create/import GLTF model
-2. Place in `assets/models/cars/`
-3. Update CarFactory to load GLTF
-4. Adjust scale if needed
-5. Apply PBR textures
+| Car | GLTF Model | Source | License |
+|-----|-----------|--------|---------|
+| Rossini 488 | 2018 Ferrari 488 GT3 | Sketchfab (Ddiaz Design) | CC-BY-4.0 |
+| Weissach GT3 | 2009 Porsche 911 GT3 RSR | Sketchfab (OUTPISTON) | CC-BY-NC-SA-4.0 |
+| Kaiju GT-R | Nissan GTR 2016 | Sketchfab (David_Holiday) | CC-BY-4.0 |
+| Stingray Z06 | 2020 Chevrolet Corvette C8 | Sketchfab (OUTPISTON) | CC-BY-NC-SA-4.0 |
+
+### 9.2 Model Loading Pipeline
+1. `CarFactory.preloadModels()` — async, called during `Game.init()` after physics init
+2. Models cached in `modelCache: Map<string, CachedGLTFModel>`
+3. Each model scaled to match `TARGET_LENGTHS` per car (4.2–4.4m)
+4. Per-model overrides: Kaiju GT-R uses `scaleMultiplier: 2.6, yOffsetOverride: 0.15`
+5. Paint tinting: traverses model, applies car color to materials with `roughness < 0.5 && metalness > 0.3`
+6. Procedural wheels always added (CylinderGeometry) for spin animation
+7. Procedural SpotLights/PointLights added for headlights/taillights
+
+### 9.3 Fallback
+If GLTF fails to load, `CarFactory` falls back to the procedural box-based mesh profiles (Section 4.2).
 
 ## 10. Acceptance Criteria
 

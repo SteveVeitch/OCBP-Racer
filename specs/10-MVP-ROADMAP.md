@@ -22,13 +22,13 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 | 11 | Polish | ✅ Complete | Phase 10 |
 | 12 | Track System | ✅ Complete | Phase 10 |
 | 13 | Environment System | ✅ Complete | Phase 12 |
-| 14 | Car Renaming + Turbo Physics | 🔲 Pending | Phase 13 |
-| 15 | Per-Car Audio + Camera Views | 🔲 Pending | Phase 14 |
-| 16 | Scoring + Leaderboard | 🔲 Pending | Phase 14 |
-| 17 | Rebindable Controls + UI | 🔲 Pending | Phase 14 |
-| 18 | Typhoon Pass + Polish | 🔲 Pending | Phase 14 |
+| 14 | Car Renaming + Turbo Physics | ✅ Complete | Phase 13 |
+| 15 | Per-Car Audio + Camera Views | ✅ Complete | Phase 14 |
+| 16 | Scoring + Leaderboard | ✅ Complete | Phase 14 |
+| 17 | Rebindable Controls + UI | ✅ Complete | Phase 14 |
+| 18 | Typhoon Pass + Polish | ✅ Complete | Phase 14 |
 | 19 | Demo/Attract Mode | ✅ Complete | Phase 13 |
-| **Total** | | **~78% Complete** | |
+| **Total** | | **100% Complete** | |
 
 ## 3. Detailed Phases
 
@@ -382,135 +382,135 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 
 ### Phase 14: Car Renaming + Turbo Physics
 **Goal:** Rename cars to brand-inspired names, add per-car engine specs and turbo lag
-**Status:** 🔲 Pending
+**Status:** ✅ Complete
 **Dependencies:** Phase 13
 
-**Planned Tasks:**
-- [ ] Rename cars: Phantom GT → Rossini 488, Viper RS → Weissach GT3, Inferno SS → Kaiju GT-R, AeroVen TT → Stingray Z06
-- [ ] Add `EngineDefinition` interface to car configs
-- [ ] Add per-car engine specs (type, displacement, HP, redline, base/max frequency)
-- [ ] Add `turboLagTime` to CarConfig (0.0s for NA cars)
-- [ ] Implement turbo lag physics in CarController (boostLevel ramp, effective force scaling)
-- [ ] Update CarFactory with per-car mesh profiles (distinct silhouettes)
-- [ ] Update car selection UI with new names and engine badges
-- [ ] Update all test harness tests for new car IDs
-- [ ] Add headlights-on/off based on time-of-day (via EnvironmentManager)
+**Completed Tasks:**
+- [x] Rename cars: Phantom GT → Rossini 488, Viper RS → Weissach GT3, Inferno SS → Kaiju GT-R, AeroVen TT → Stingray Z06
+- [x] Add `EngineDefinition` interface to car configs
+- [x] Add per-car engine specs (type, displacement, HP, redline, base/max frequency)
+- [x] Add `turboLagTime` to CarConfig (0.0s for NA cars)
+- [x] Implement turbo lag physics in CarController (boostLevel ramp, effective force scaling)
+- [x] Update CarFactory with per-car mesh profiles (distinct silhouettes)
+- [x] Update car selection UI with new names and engine badges
+- [x] Update all test harness tests for new car IDs
+- [x] Add headlights-on/off based on time-of-day (via EnvironmentManager)
 
 **Acceptance Criteria:**
-- 4 cars renamed and identifiable
-- Turbo lag felt on Rossini 488 and Kaiju GT-R
-- NA cars (GT3, Z06) have instant throttle response
-- Each car has distinct visual silhouette
-- Headlights off on day tracks, on at night
-- All tests pass with new car IDs
+- 4 cars renamed and identifiable ✅
+- Turbo lag felt on Rossini 488 and Kaiju GT-R ✅
+- NA cars (GT3, Z06) have instant throttle response ✅
+- Each car has distinct visual silhouette ✅
+- Headlights off on day tracks, on at night ✅
+- All tests pass with new car IDs ✅
 
 ---
 
 ### Phase 15: Per-Car Audio + Camera Views
 **Goal:** Distinct engine sounds per car, turbo whistle, exhaust pops, 4 camera views
-**Status:** 🔲 Pending
+**Status:** ✅ Complete
 **Dependencies:** Phase 14
 
-**Planned Tasks:**
-- [ ] Implement per-car engine synthesis (different oscillator configs per engine type)
-- [ ] Implement turbo whistle synthesis (sine oscillator linked to boostLevel)
-- [ ] Implement turbo flutter (bandpass noise burst on throttle release)
-- [ ] Implement exhaust pops (noise bursts on deceleration)
-- [ ] Add RPM variation at redline (pitch wobble)
-- [ ] Implement 4 camera views: Chase, Windscreen, Hood, Bumper
-- [ ] Add camera view cycling via input (C key / Y button)
-- [ ] Add camera default setting in Settings menu
-- [ ] Store camera state per-race
+**Completed Tasks:**
+- [x] Implement per-car engine synthesis (different oscillator configs per engine type)
+- [x] Implement turbo whistle synthesis (sine oscillator linked to boostLevel)
+- [x] Implement turbo flutter (bandpass noise burst on throttle release)
+- [x] Implement exhaust pops (noise bursts on deceleration)
+- [x] Add RPM variation at redline (pitch wobble)
+- [x] Implement 4 camera views: Chase, Windscreen, Hood, Bumper
+- [x] Add camera view cycling via input (C key / Y button)
+- [x] Add camera default setting in Settings menu
+- [x] Store camera state per-race
 
 **Acceptance Criteria:**
-- Each car sounds distinct (V8 vs flat-6 vs V6)
-- Turbo whistle audible on turbo cars
-- Turbo flutter on throttle release
-- Exhaust pops on deceleration
-- 4 camera views work and feel distinct
-- Camera cycling works via input
-- Camera default persisted in settings
+- Each car sounds distinct (V8 vs flat-6 vs V6) ✅
+- Turbo whistle audible on turbo cars ✅
+- Turbo flutter on throttle release ✅
+- Exhaust pops on deceleration ✅
+- 4 camera views work and feel distinct ✅
+- Camera cycling works via input ✅
+- Camera default persisted in settings ✅
 
 ---
 
 ### Phase 16: Scoring + Leaderboard
 **Goal:** Points system, wall hit tracking, leaderboard persistence
-**Status:** 🔲 Pending
+**Status:** ✅ Complete
 **Dependencies:** Phase 14
 
-**Planned Tasks:**
-- [ ] Implement scoring: 10/7/5/2 points for 1st/2nd/3rd/4th
-- [ ] Track wall hits per race (cleanest metric)
-- [ ] Track top speed per race
-- [ ] Update race results screen (position, points, wall hits, top speed)
-- [ ] Implement per-track leaderboard (best time, wall hits, top speed per car)
-- [ ] Implement overall leaderboard (aggregated across tracks)
-- [ ] Add leaderboard screen (accessible from main menu)
-- [ ] Persist leaderboard to localStorage
-- [ ] Add mini-map (player + AI positions, track outline)
+**Completed Tasks:**
+- [x] Implement scoring: 10/7/5/2 points for 1st/2nd/3rd/4th
+- [x] Track wall hits per race (cleanest metric)
+- [x] Track top speed per race
+- [x] Update race results screen (position, points, wall hits, top speed)
+- [x] Implement per-track leaderboard (best time, wall hits, top speed per car)
+- [x] Implement overall leaderboard (aggregated across tracks)
+- [x] Add leaderboard screen (accessible from main menu)
+- [x] Persist leaderboard to localStorage
+- [x] Add mini-map (player + AI positions, track outline)
 
 **Acceptance Criteria:**
-- Points awarded correctly per position
-- Wall hits tracked and displayed
-- Top speed tracked and displayed
-- Per-track leaderboard shows best times
-- Overall leaderboard works
-- Leaderboard persisted to localStorage
-- Mini-map shows all car positions
+- Points awarded correctly per position ✅
+- Wall hits tracked and displayed ✅
+- Top speed tracked and displayed ✅
+- Per-track leaderboard shows best times ✅
+- Overall leaderboard works ✅
+- Leaderboard persisted to localStorage ✅
+- Mini-map shows all car positions ✅
 
 ---
 
 ### Phase 17: Rebindable Controls + UI
 **Goal:** All gameplay actions rebindable, settings persistence, fog toggle
-**Status:** 🔲 Pending
+**Status:** ✅ Complete
 **Dependencies:** Phase 14
 
-**Planned Tasks:**
-- [ ] Implement rebindable key system (all gameplay actions)
-- [ ] Add key binding UI to Settings menu
-- [ ] Implement conflict detection (swap on conflict)
-- [ ] Add fog toggle setting (on/off)
-- [ ] Add camera default setting (chase/wind/hood/bumper)
-- [ ] Persist all settings to localStorage
-- [ ] Add "Reset to Defaults" button for bindings
-- [ ] Handle window blur (clear keys, auto-pause)
-- [ ] Fix pause state machine (consistent transition to/from PAUSED)
+**Completed Tasks:**
+- [x] Implement rebindable key system (all gameplay actions)
+- [x] Add key binding UI to Settings menu
+- [x] Implement conflict detection (swap on conflict)
+- [x] Add fog toggle setting (on/off)
+- [x] Add camera default setting (chase/wind/hood/bumper)
+- [x] Persist all settings to localStorage
+- [x] Add "Reset to Defaults" button for bindings
+- [x] Handle window blur (clear keys, auto-pause)
+- [x] Fix pause state machine (consistent transition to/from PAUSED)
 
 **Acceptance Criteria:**
-- All gameplay actions can be remapped
-- Binding conflicts are handled (swap)
-- Bindings persist to localStorage
-- Fog toggle works
-- Camera default setting works
-- Window blur clears keys and auto-pauses
-- Pause state transitions are consistent
+- All gameplay actions can be remapped ✅
+- Binding conflicts are handled (swap) ✅
+- Bindings persist to localStorage ✅
+- Fog toggle works ✅
+- Camera default setting works ✅
+- Window blur clears keys and auto-pauses ✅
+- Pause state transitions are consistent ✅
 
 ---
 
 ### Phase 18: Typhoon Pass + Polish
 **Goal:** New mountain track, test harness layout, final polish
-**Status:** 🔲 Pending
+**Status:** ✅ Complete
 **Dependencies:** Phase 14
 
-**Planned Tasks:**
-- [ ] Add Typhoon Pass track definition (18 control points, elevation)
-- [ ] Implement elevation support in TrackBuilder (y-values in spline)
-- [ ] Add mountain decorations (pine trees, rocks, guardrails)
-- [ ] Add Typhoon Pass to track select UI
+**Completed Tasks:**
+- [x] Add Typhoon Pass track definition (18 control points, elevation)
+- [x] Implement elevation support in TrackBuilder (y-values in spline)
+- [x] Add mountain decorations (pine trees, rocks, guardrails)
+- [x] Add Typhoon Pass to track select UI
 - [x] Update test harness for multi-column layout
-- [ ] Add Typhoon Pass tests (spline, elevation, decorations)
-- [ ] Update test count (47 → 55+)
-- [ ] Final performance pass (ensure 60 FPS with all new features)
-- [ ] Update README.md with new features
+- [x] Add Typhoon Pass tests (spline, elevation, decorations)
+- [x] Update test count (47 → 79)
+- [x] Final performance pass (ensure 60 FPS with all new features)
+- [x] Update README.md with new features
 
 **Acceptance Criteria:**
-- Typhoon Pass loads and plays correctly
-- Elevation changes visible and affect driving
-- Mountain decorations render
-- Test harness uses multi-column layout
-- All tests pass (55+)
-- 60 FPS maintained
-- README reflects all new features
+- Typhoon Pass loads and plays correctly ✅
+- Elevation changes visible and affect driving ✅
+- Mountain decorations render ✅
+- Test harness uses multi-column layout ✅
+- All tests pass (79) ✅
+- 60 FPS maintained ✅
+- README reflects all new features ✅
 
 ---
 

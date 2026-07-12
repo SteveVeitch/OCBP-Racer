@@ -91,14 +91,25 @@ export class CarController {
   private findWheels(): void {
     const children = this.mesh.children
     const wheelGroups: THREE.Group[] = []
+
     for (const child of children) {
-      if (child instanceof THREE.Group && child.children.length >= 2) {
-        const hasTire = child.children.some(c =>
-          c instanceof THREE.Mesh && c.geometry.type === 'CylinderGeometry'
-        )
-        if (hasTire) wheelGroups.push(child)
+      if (child instanceof THREE.Group && child.userData.isWheel) {
+        wheelGroups.push(child)
       }
     }
+
+    if (wheelGroups.length < 4) {
+      wheelGroups.length = 0
+      for (const child of children) {
+        if (child instanceof THREE.Group && child.children.length >= 2) {
+          const hasTire = child.children.some(c =>
+            c instanceof THREE.Mesh && c.geometry.type === 'CylinderGeometry'
+          )
+          if (hasTire) wheelGroups.push(child)
+        }
+      }
+    }
+
     if (wheelGroups.length >= 4) {
       this.wheelFL = wheelGroups[0]
       this.wheelFR = wheelGroups[1]

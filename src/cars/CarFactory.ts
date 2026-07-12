@@ -148,6 +148,15 @@ interface CachedGLTFModel {
   yOffset: number
 }
 
+const GLTF_WHEEL_NAMES: Record<string, string[]> = {
+  'rossini-488': [
+    'gt3:LOD_A_TYRE_mm_tyre',      // FL
+    'gt3:LOD_A_TYRE_mm_tyre1',     // FR
+    'gt3:LOD_A_TYRE_REAR_mm_tyre', // RL
+    'gt3:LOD_A_TYRE_REAR_mm_tyre1' // RR
+  ],
+}
+
 const _box = new THREE.BoxGeometry(1, 1, 1)
 
 function addBox(group: THREE.Group, spec: BoxSpec, mats: Record<string, THREE.Material>): void {
@@ -231,6 +240,8 @@ export class CarFactory {
     const profile = PROFILES[definition.id]
     if (!profile) return group
 
+    let useProceduralWheels = true
+
     const cached = this.modelCache.get(definition.id)
     if (cached) {
       const model = cached.scene.clone(true)
@@ -256,6 +267,11 @@ export class CarFactory {
       })
 
       group.add(model)
+
+      const wheelNames = GLTF_WHEEL_NAMES[definition.id]
+      if (wheelNames && this.extractGLTFWheels(group, model, wheelNames)) {
+        useProceduralWheels = false
+      }
     } else {
       const mats = this.createMaterials(definition.color)
       for (const spec of profile.body) addBox(group, spec, mats)
@@ -265,9 +281,39 @@ export class CarFactory {
 
     const mats = this.createMaterials(definition.color)
     this.addLights(group, profile.body, mats)
-    this.addWheels(group, profile, mats)
+    if (useProceduralWheels) {
+      this.addWheels(group, profile, mats)
+    }
 
     return group
+  }
+
+  private extractGLTFWheels(root: THREE.Group, gltfScene: THREE.Group, wheelNames: string[]): boolean {
+    const _worldPos = new THREE.Vector3()
+
+    for (const name of wheelNames) {
+      let found: THREE.Object3D | undefined
+      gltfScene.traverse(child => {
+        if (child.name === name && !found) found = child
+      })
+      if (!found) return false
+
+      found.getWorldPosition(_worldPos)
+      root.worldToLocal(_worldPos)
+
+      const wheelGroup = new THREE.Group()
+      wheelGroup.userData.isWheel = true
+      wheelGroup.position.copy(_worldPos)
+
+      const clone = found.clone(true)
+      wheelGroup.add(clone)
+
+      found.parent?.remove(found)
+
+      root.add(wheelGroup)
+    }
+
+    return true
   }
 
   private createMaterials(color: number): Record<string, THREE.Material> {

@@ -91,7 +91,7 @@ Press **C** (or **Y**) to cycle through camera views:
 ### Game Flow
 
 ```
-Main Menu → Car Select → Track Select → Countdown → Race → Results → Repeat
+Main Menu → Car Select → Car Preview → Track Select → Countdown → Race → Results → Repeat
 ```
 
 ### Demo / Attract Mode
@@ -260,7 +260,7 @@ Each car uses a GLTF model for detailed body geometry with procedural wheels and
 - HTML/CSS overlay on Three.js canvas
 - Neon green (#00ff88) + hot pink (#ff3366) + gold (#ffcc00) design system
 - Rajdhani font (Google Fonts)
-- Screens: Main Menu, Car Select, Track Select, Countdown, HUD, Pause, Results, Settings, Leaderboard, Demo
+- Screens: Main Menu, Car Select, Car Preview, Track Select, Countdown, HUD, Pause, Results, Settings, Leaderboard, Demo
 - **Settings menu** — volume, sensitivity, graphics, fog toggle, camera default, key bindings
 - **Leaderboard** — per-track + overall best times, wall hits, top speed
 - **Mini-map** — player + AI positions during race

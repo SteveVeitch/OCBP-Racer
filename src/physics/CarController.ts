@@ -65,10 +65,10 @@ export class CarController {
   private boostLevel = 0
   private roadHeight = 0
 
-  private wheelFL!: THREE.Group
-  private wheelFR!: THREE.Group
-  private wheelRL!: THREE.Group
-  private wheelRR!: THREE.Group
+  private wheelFL!: THREE.Object3D
+  private wheelFR!: THREE.Object3D
+  private wheelRL!: THREE.Object3D
+  private wheelRR!: THREE.Object3D
   private envModifiers: EnvironmentModifiers = {
     gripMultiplier: 1.0,
     dragMultiplier: 1.0,
@@ -86,7 +86,7 @@ export class CarController {
     this.config = { ...DEFAULT_CONFIG, ...config }
     this.maxSpeedMS = this.config.maxSpeed * MS_PER_KMH
 
-    const gltfWheels = mesh.userData.gltfWheels as THREE.Group[] | undefined
+    const gltfWheels = mesh.userData.gltfWheels as THREE.Object3D[] | undefined
     if (gltfWheels && gltfWheels.length >= 4) {
       this.wheelFL = gltfWheels[0]
       this.wheelFR = gltfWheels[1]

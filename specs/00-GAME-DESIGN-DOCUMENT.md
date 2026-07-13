@@ -15,7 +15,7 @@ A browser-based street racing game featuring exotic sports cars with semi-realis
 ## 3. Core Gameplay Loop
 
 ```
-Select Car → Select Track → Race → See Results → Repeat
+Select Car → Preview Car → Select Track → Race → See Results → Repeat
 ```
 
 ### 3.1 Race Structure
@@ -126,13 +126,13 @@ See `05-AUDIO-SPEC.md` for detailed specifications.
 - RPM bar
 - Lap counter
 - Position indicator
-- Score (points earned)
 - Mini-map (player + AI positions)
 - Wrong way indicator
 
 ### 9.2 Menus
 - Main menu
 - Car selection (with engine badges)
+- Car preview (3D model + full spec card, Back/Continue)
 - Track selection (3-column grid, weather override)
 - Race results (position, points, wall hits, top speed)
 - Leaderboard (per-track + overall)

@@ -29,7 +29,9 @@
 ## 2. Game State Machine
 
 ```
-MENU → CAR_SELECT → TRACK_SELECT → COUNTDOWN → RACING → RESULTS → MENU
+MENU → CAR_SELECT → CAR_PREVIEW → TRACK_SELECT → COUNTDOWN → RACING → RESULTS → MENU
+                    ↕ Back                           ↕ Back
+                  CAR_SELECT                      CAR_PREVIEW
                                     ↕
                                 SETTINGS
                                 ↕
@@ -86,6 +88,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Click a car card to select it
 - Click "Next" → TRACK_SELECT
 - Click "Back" → MENU
+- Click "Next" → CAR_PREVIEW
 - Selected car has green border + glow
 
 **Car Cards Show:**
@@ -96,7 +99,44 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Turbo indicator (if applicable)
 - 4 stat bars: Power, Grip, Speed, Drift
 
-### 3.3 Track Select
+### 3.3 Car Preview
+
+**Layout:**
+```
+┌─────────────────────────────────────────┐
+│                                         │
+│         [3D car model rotating]         │
+│                                         │
+│  ┌────────────────────────────────────┐ │
+│  │  CAR NAME                          │ │
+│  │  Subtitle                          │ │
+│  │  Engine info                       │ │
+│  │  ████████ Power  ████████░░ Grip   │ │
+│  │  ████████ Speed  ████░░░░░░ Drift  │ │
+│  │  Top Speed: XXX km/h               │ │
+│  │  ───────────────────────────────── │ │
+│  │  Drag to rotate • Scroll to zoom   │ │
+│  │           [Back] [Continue]        │ │
+│  └────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+```
+
+**Elements:**
+| Element | Type | Action |
+|---------|------|--------|
+| 3D Car Model | Three.js preview scene | Rotates automatically, draggable |
+| Spec Box | Dark overlay card | Car name, stats, details |
+| Back | Button | → CAR_SELECT |
+| Continue | Button (primary) | → TRACK_SELECT |
+
+**Behavior:**
+- 3D car model rendered in dedicated preview scene (off-white background)
+- Camera orbits car at 30° elevation, auto-rotates CW
+- Mouse drag rotates manually (3s resume timeout)
+- Scroll zooms in/out (min 3, max 12)
+- Spec box shows full car stats with arcade styling
+
+### 3.4 Track Select
 
 **Layout:**
 ```
@@ -125,13 +165,15 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Default time-of-day
 - Default weather
 - Highlight selected track (green border)
+- Click "Back" → CAR_PREVIEW
+- Click "Start Race" → COUNTDOWN
 
 **Weather Override:**
 - Row of toggle buttons below track grid
 - Options: Auto (uses track default), Clear, Rain, Fog, Storm
 - Persisted to localStorage
 
-### 3.4 Countdown
+### 3.5 Countdown
 
 **Layout:**
 ```
@@ -151,7 +193,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Cars cannot move
 - Pause available during countdown (pauses countdown)
 
-### 3.5 In-Race HUD
+### 3.6 In-Race HUD
 
 **Layout:**
 ```
@@ -167,7 +209,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 │                                         │
 │ ┌──────────────┐           ┌──────────┐ │
 │ │   142 km/h   │           │    1st   │ │
-│ │  ▂▃▅▆▇█▇▅▃▂ │           │  10 pts  │ │
+│ │  ▂▃▅▆▇█▇▅▃▂ │           │          │ │
 │ └──────────────┘           └──────────┘ │
 │                                         │
 │          WRONG WAY (if applicable)      │
@@ -184,11 +226,10 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 | Speedometer | Bottom-left | Digital km/h (48px monospace) |
 | RPM Bar | Above speed | Gradient bar (0-100%) |
 | Position | Bottom-right | Position number + ordinal |
-| Score | Below position | Points earned (e.g. "10 pts") |
 | Mini-map | Top-right corner | Player + AI positions |
 | Wrong Way | Center | Pulsing "WRONG WAY" text |
 
-### 3.6 Pause Menu
+### 3.7 Pause Menu
 
 **Layout:**
 ```
@@ -214,7 +255,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Audio suspended while paused, resumed on unpause
 - Auto-pause when browser tab becomes hidden (visibilitychange API)
 
-### 3.7 Race Results
+### 3.8 Race Results
 
 **Layout:**
 ```
@@ -246,7 +287,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Top speed reached
 - Buttons: Race Again (→ restart), Main Menu (→ menu)
 
-### 3.8 Leaderboard Screen
+### 3.9 Leaderboard Screen
 
 **Layout:**
 ```
@@ -274,7 +315,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Sorted by total time (ascending)
 - Accessible from main menu and race results
 
-### 3.9 Settings Menu
+### 3.10 Settings Menu
 
 **Layout:**
 ```
@@ -338,7 +379,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - **Medium:** Bloom strength 0.4, half-resolution, pixel ratio 1
 - **High:** Bloom strength 0.6, full resolution, pixel ratio up to 2
 
-### 3.10 Demo Mode (Attract)
+### 3.11 Demo Mode (Attract)
 
 **Trigger:** 3-minute idle timer on MENU state (keyboard, mouse, and gamepad activity resets timer). Can be disabled via Settings.
 

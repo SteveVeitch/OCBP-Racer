@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import RAPIER from '@dimforge/rapier3d-compat'
 import { CarController, CarConfig } from '../physics/CarController'
-import { CarDefinition } from './CarConfigs'
+import { CarDefinition, CARS } from './CarConfigs'
 
 interface BoxSpec {
   w: number; h: number; d: number
@@ -142,6 +142,54 @@ const MODEL_OVERRIDES: Record<string, ModelOverride> = {
   'kaiju-gt-r': { scaleMultiplier: 2.0, yOffsetOverride: 0.15 },
 }
 
+interface LightPositions {
+  frontX: number
+  frontY: number
+  frontZ: number
+  rearX: number
+  rearY: number
+  rearZ: number
+  headlightSize: { w: number; h: number }
+  headlightCircle?: boolean
+  taillightSize: { w: number; h: number }
+  taillightCircle?: boolean
+}
+
+const LIGHT_OFFSETS: Record<string, LightPositions> = {
+  'rossini-488': {
+    frontX: 0.60, frontY: 0.59, frontZ: 1.73,
+    rearX: 0.72, rearY: 0.73, rearZ: -1.78,
+    headlightSize: { w: 0.04, h: 0.04 },
+    headlightCircle: true,
+    taillightSize: { w: 0.08, h: 0.08 },
+    taillightCircle: true,
+  },
+  'weissach-gt3': {
+    frontX: 0.60, frontY: 0.59, frontZ: 1.69,
+    rearX: 0.70, rearY: 0.73, rearZ: -1.74,
+    headlightSize: { w: 0.04, h: 0.04 },
+    headlightCircle: true,
+    taillightSize: { w: 0.08, h: 0.08 },
+    taillightCircle: true,
+  },
+  'kaiju-gt-r': {
+    frontX: 0.62, frontY: 0.59, frontZ: 1.77,
+    rearX: 0.75, rearY: 0.73, rearZ: -1.82,
+    headlightSize: { w: 0.04, h: 0.04 },
+    headlightCircle: true,
+    taillightSize: { w: 0.08, h: 0.08 },
+    taillightCircle: true,
+  },
+  'stingray-z06': {
+    frontX: 0.60, frontY: 0.57, frontZ: 1.69,
+    rearX: 0.72, rearY: 0.71, rearZ: -1.74,
+    headlightSize: { w: 0.04, h: 0.04 },
+    headlightCircle: true,
+    taillightSize: { w: 0.08, h: 0.08 },
+    taillightCircle: true,
+  },
+}
+
 interface CachedGLTFModel {
   scene: THREE.Group
   scale: number
@@ -228,6 +276,12 @@ export class CarFactory {
     return new CarController(body, mesh, definition.config)
   }
 
+  createPreviewMesh(carId: string): THREE.Group {
+    const definition = CARS.find(c => c.id === carId)
+    if (!definition) throw new Error(`Unknown car: ${carId}`)
+    return this.createCarMesh(definition)
+  }
+
   private createRigidBody(config: CarConfig): RAPIER.RigidBody {
     const desc = RAPIER.RigidBodyDesc.dynamic()
     desc.setTranslation(0, 0.5, 0)
@@ -248,8 +302,6 @@ export class CarFactory {
     const group = new THREE.Group()
     const profile = PROFILES[definition.id]
     if (!profile) return group
-
-    let useProceduralWheels = true
 
     const cached = this.modelCache.get(definition.id)
     if (cached) {
@@ -279,8 +331,8 @@ export class CarFactory {
 
       const wheelNames = GLTF_WHEEL_NAMES[definition.id]
       const rimNames = GLTF_RIM_NAMES[definition.id]
-      if (wheelNames && this.wrapGLTFWheels(group, model, wheelNames, rimNames)) {
-        useProceduralWheels = false
+      if (wheelNames) {
+        this.wrapGLTFWheels(group, model, wheelNames, rimNames)
       }
     } else {
       const mats = this.createMaterials(definition.color)
@@ -290,8 +342,8 @@ export class CarFactory {
     }
 
     const mats = this.createMaterials(definition.color)
-    this.addLights(group, profile.body, mats)
-    if (useProceduralWheels) {
+    this.addLights(group, profile.body, mats, definition.id)
+    if (!cached) {
       this.addWheels(group, profile, mats)
     }
 
@@ -299,31 +351,76 @@ export class CarFactory {
   }
 
   private wrapGLTFWheels(root: THREE.Group, gltfScene: THREE.Group, wheelNames: string[], rimNames: string[]): boolean {
-    const pivots: THREE.Group[] = []
+    const wheels: THREE.Object3D[] = []
+    const pos = new THREE.Vector3()
+    const quat = new THREE.Quaternion()
+    const scl = new THREE.Vector3()
 
     for (let i = 0; i < wheelNames.length; i++) {
       const tyreNode = this.findNode(gltfScene, wheelNames[i])
       if (!tyreNode?.parent) return false
 
-      const pivot = new THREE.Group()
-      tyreNode.parent.add(pivot)
-      tyreNode.parent.remove(tyreNode)
-      pivot.add(tyreNode)
+      const m = (tyreNode as any).matrix as THREE.Matrix4
+      m.decompose(pos, quat, scl)
+
+      this.centerNodeGeometry(tyreNode)
+
+      tyreNode.position.copy(pos)
+      tyreNode.rotation.set(0, 0, 0)
+      tyreNode.rotation.order = 'YXZ'
+      tyreNode.scale.copy(scl)
+      ;(tyreNode as any).matrixAutoUpdate = true
 
       const rimName = rimNames[i]
       if (rimName) {
         const rimNode = this.findNode(gltfScene, rimName)
         if (rimNode?.parent) {
+          this.centerNodeGeometry(rimNode)
+          rimNode.position.set(0, 0, 0)
+          rimNode.rotation.set(0, 0, 0)
+          rimNode.scale.set(1, 1, 1)
+          ;(rimNode as any).matrixAutoUpdate = true
           rimNode.parent.remove(rimNode)
-          pivot.add(rimNode)
+          tyreNode.add(rimNode)
         }
       }
 
-      pivots.push(pivot)
+      wheels.push(tyreNode)
     }
 
-    root.userData.gltfWheels = pivots
+    root.userData.gltfWheels = wheels
     return true
+  }
+
+  private centerNodeGeometry(node: THREE.Object3D, outCenter?: THREE.Vector3): void {
+    const box = new THREE.Box3()
+    let found = false
+
+    for (const child of node.children) {
+      if (child instanceof THREE.Mesh && child.geometry) {
+        const posAttr = child.geometry.attributes.position
+        if (!posAttr) continue
+        child.updateMatrix()
+        const cb = new THREE.Box3().setFromBufferAttribute(posAttr as THREE.BufferAttribute)
+        cb.applyMatrix4(child.matrix)
+        if (!found) { box.copy(cb); found = true } else box.union(cb)
+      }
+    }
+
+    if (!found) {
+      if (outCenter) outCenter.set(0, 0, 0)
+      return
+    }
+
+    const c = box.getCenter(outCenter ?? new THREE.Vector3())
+
+    for (const child of node.children) {
+      if (child instanceof THREE.Mesh) {
+        child.position.x -= c.x
+        child.position.y -= c.y
+        child.position.z -= c.z
+      }
+    }
   }
 
   private findNode(root: THREE.Object3D, name: string): THREE.Object3D | undefined {
@@ -354,22 +451,60 @@ export class CarFactory {
     }
   }
 
-  private addLights(group: THREE.Group, body: BoxSpec[], mats: Record<string, THREE.Material>): void {
-    const frontBumper = body.find(b => b.mat === 'grille')
-    const rearBumper = body.find(b => b.z < -2.0)
-    if (!frontBumper || !rearBumper) return
+  private addLights(group: THREE.Group, _body: BoxSpec[], mats: Record<string, THREE.Material>, carId?: string): void {
+    let fx: number, fy: number, fz: number
+    let rx: number, ry: number, rz: number
+    let hw: number, hh: number, tw: number, th: number
+    let circleRear = false
+    let circleFront = false
 
-    const fx = frontBumper.w * 0.29
-    const fy = frontBumper.y + frontBumper.h * 0.5
-    const fz = frontBumper.z + frontBumper.d * 0.5 + 0.02
-    const rx = rearBumper.w * 0.33
-    const ry = rearBumper.y + rearBumper.h * 0.2
-    const rz = rearBumper.z - rearBumper.d * 0.5 - 0.02
+    const offsets = carId ? LIGHT_OFFSETS[carId] : undefined
+    if (offsets) {
+      fx = offsets.frontX; fy = offsets.frontY; fz = offsets.frontZ
+      rx = offsets.rearX; ry = offsets.rearY; rz = offsets.rearZ
+      hw = offsets.headlightSize.w; hh = offsets.headlightSize.h
+      tw = offsets.taillightSize.w; th = offsets.taillightSize.h
+      circleRear = !!offsets.taillightCircle
+      circleFront = !!offsets.headlightCircle
+    } else {
+      const frontBumper = _body.find(b => b.mat === 'grille')
+      const rearBumper = _body.find(b => b.z < -2.0)
+      if (!frontBumper || !rearBumper) return
 
-    addBox(group, { w: 0.3, h: 0.12, d: 0.08, x: -fx, y: fy, z: fz, mat: 'headlight' }, mats)
-    addBox(group, { w: 0.3, h: 0.12, d: 0.08, x: fx, y: fy, z: fz, mat: 'headlight' }, mats)
-    addBox(group, { w: 0.25, h: 0.1, d: 0.06, x: -rx, y: ry, z: rz, mat: 'taillight' }, mats)
-    addBox(group, { w: 0.25, h: 0.1, d: 0.06, x: rx, y: ry, z: rz, mat: 'taillight' }, mats)
+      fx = frontBumper.w * 0.29
+      fy = frontBumper.y + frontBumper.h * 0.5
+      fz = frontBumper.z + frontBumper.d * 0.5 + 0.02
+      rx = rearBumper.w * 0.33
+      ry = rearBumper.y + rearBumper.h * 0.2
+      rz = rearBumper.z - rearBumper.d * 0.5 - 0.02
+      hw = 0.3; hh = 0.12; tw = 0.25; th = 0.1
+    }
+
+    if (circleFront) {
+      const geo = new THREE.SphereGeometry(hw, 16, 16)
+      const meshL = new THREE.Mesh(geo, mats.headlight)
+      meshL.position.set(-fx, fy, fz)
+      group.add(meshL)
+      const meshR = new THREE.Mesh(geo, mats.headlight)
+      meshR.position.set(fx, fy, fz)
+      group.add(meshR)
+    } else {
+      addBox(group, { w: hw, h: hh, d: 0.06, x: -fx, y: fy, z: fz, mat: 'headlight' }, mats)
+      addBox(group, { w: hw, h: hh, d: 0.06, x: fx, y: fy, z: fz, mat: 'headlight' }, mats)
+    }
+
+    if (circleRear) {
+      const geo = new THREE.SphereGeometry(tw, 16, 16)
+      const meshL = new THREE.Mesh(geo, mats.taillight)
+      meshL.position.set(-rx, ry, rz)
+      group.add(meshL)
+      const meshR = new THREE.Mesh(geo, mats.taillight)
+      meshR.position.set(rx, ry, rz)
+      group.add(meshR)
+    } else {
+      addBox(group, { w: tw, h: th, d: 0.05, x: -rx, y: ry, z: rz, mat: 'taillight' }, mats)
+      addBox(group, { w: tw, h: th, d: 0.05, x: rx, y: ry, z: rz, mat: 'taillight' }, mats)
+    }
 
     const hlL = new THREE.SpotLight(0xffeedd, 25, 60, 0.5, 0.4, 1.5)
     hlL.position.set(-fx, fy, fz)

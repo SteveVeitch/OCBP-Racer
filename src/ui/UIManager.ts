@@ -146,6 +146,11 @@ export class UIManager {
         to { transform: translateY(0); opacity: 1; }
       }
 
+      @keyframes slideRight {
+        from { transform: translateX(30px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+      }
+
       @keyframes pulse {
         0%, 100% { transform: scale(1); }
         50% { transform: scale(1.05); }
@@ -403,32 +408,6 @@ export class UIManager {
         font-size: 18px;
         color: var(--accent);
         vertical-align: super;
-      }
-
-      .hud-score {
-        position: absolute;
-        bottom: 30px;
-        left: 30px;
-        background: var(--bg-dark);
-        padding: 10px 20px;
-        border: 1px solid var(--border);
-        text-align: center;
-      }
-
-      .hud-score .score-label {
-        font-size: 11px;
-        color: var(--text-dim);
-        text-transform: uppercase;
-        letter-spacing: 2px;
-        display: block;
-      }
-
-      .hud-score .score-value {
-        font-family: 'Courier New', monospace;
-        font-size: 28px;
-        font-weight: 700;
-        color: var(--primary);
-        line-height: 1;
       }
 
       .hud-wrong-way {
@@ -823,6 +802,124 @@ export class UIManager {
         left: 26px;
         background: var(--primary);
       }
+
+      .car-preview-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-end;
+        pointer-events: none;
+        padding: 24px 32px;
+        animation: fadeIn 0.4s ease;
+      }
+
+      .car-preview-spec-box {
+        pointer-events: auto;
+        background: rgba(10, 10, 26, 0.92);
+        border: 2px solid var(--border);
+        padding: 28px 40px;
+        width: 400px;
+        max-width: 40%;
+        animation: slideRight 0.4s ease;
+      }
+
+      .car-preview-spec-name {
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 36px;
+        font-weight: 700;
+        color: var(--text);
+        text-transform: uppercase;
+        letter-spacing: 3px;
+        margin-bottom: 4px;
+      }
+
+      .car-preview-spec-subtitle {
+        font-size: 14px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+      }
+
+      .car-preview-spec-engine {
+        font-size: 15px;
+        color: var(--primary);
+        font-weight: 600;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .car-preview-spec-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+
+      .car-preview-stat-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 13px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+      }
+
+      .car-preview-stat-bar-bg {
+        width: 180px;
+        height: 6px;
+        background: rgba(255, 255, 255, 0.1);
+        position: relative;
+      }
+
+      .car-preview-stat-bar-fill {
+        height: 100%;
+        background: var(--primary);
+        transition: width 0.5s ease;
+      }
+
+      .car-preview-spec-details {
+        display: flex;
+        gap: 24px;
+        font-size: 13px;
+        color: var(--text-dim);
+        border-top: 1px solid var(--border);
+        padding-top: 12px;
+      }
+
+      .car-preview-buttons {
+        pointer-events: auto;
+        display: flex;
+        gap: 16px;
+        margin-top: 16px;
+        animation: slideRight 0.5s ease;
+      }
+
+      .car-preview-hint {
+        pointer-events: none;
+        font-family: 'Rajdhani', sans-serif;
+        font-size: 13px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        margin-top: 12px;
+        opacity: 0.6;
+      }
+
+      .car-preview-right-col {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        pointer-events: none;
+      }
     `
     document.head.appendChild(style)
   }
@@ -830,6 +927,7 @@ export class UIManager {
   private setupStateListeners(): void {
     this.state.on('MENU', () => this.showScreen('MENU'))
     this.state.on('CAR_SELECT', () => this.showScreen('CAR_SELECT'))
+    this.state.on('CAR_PREVIEW', () => this.showScreen('CAR_PREVIEW'))
     this.state.on('TRACK_SELECT', () => this.showScreen('TRACK_SELECT'))
     this.state.on('SETTINGS', () => this.showScreen('SETTINGS'))
     this.state.on('COUNTDOWN', () => this.showCountdown())
@@ -852,6 +950,9 @@ export class UIManager {
         break
       case 'CAR_SELECT':
         this.buildCarSelect(screen)
+        break
+      case 'CAR_PREVIEW':
+        this.buildCarPreview(screen)
         break
       case 'TRACK_SELECT':
         this.buildTrackSelect(screen)
@@ -1067,7 +1168,7 @@ export class UIManager {
     backBtn.onclick = () => this.state.transition('MENU')
 
     const nextBtn = this.createButton('Next', 'primary')
-    nextBtn.onclick = () => this.state.transition('TRACK_SELECT')
+    nextBtn.onclick = () => this.state.transition('CAR_PREVIEW')
 
     const buttons = document.createElement('div')
     buttons.style.display = 'flex'
@@ -1079,6 +1180,89 @@ export class UIManager {
     container.appendChild(grid)
     container.appendChild(buttons)
     overlay.appendChild(container)
+    parent.appendChild(overlay)
+  }
+
+  private buildCarPreview(parent: HTMLElement): void {
+    const car = CARS[this.selectedCarIndex]
+
+    const stats = [
+      { label: 'Power', value: car.config.engineForce / 8500 },
+      { label: 'Grip', value: car.config.peakGrip / 2.4 },
+      { label: 'Speed', value: car.config.maxSpeed / 265 },
+      { label: 'Drift', value: car.config.slipAngleLimit / 35 }
+    ]
+
+    const overlay = document.createElement('div')
+    overlay.className = 'car-preview-overlay'
+
+    const specBox = document.createElement('div')
+    specBox.className = 'car-preview-spec-box'
+
+    const name = document.createElement('div')
+    name.className = 'car-preview-spec-name'
+    name.textContent = car.name
+
+    const subtitle = document.createElement('div')
+    subtitle.className = 'car-preview-spec-subtitle'
+    subtitle.textContent = car.subtitle
+
+    const engine = document.createElement('div')
+    engine.className = 'car-preview-spec-engine'
+    engine.textContent = `${car.engine.displacement} ${car.engine.type} \u2022 ${car.engine.horsepower} HP`
+    if (car.config.turboLagTime > 0) {
+      const turboTag = document.createElement('span')
+      turboTag.className = 'turbo-badge'
+      turboTag.textContent = 'TURBO'
+      engine.appendChild(turboTag)
+    }
+
+    const statsContainer = document.createElement('div')
+    statsContainer.className = 'car-preview-spec-stats'
+    stats.forEach(stat => {
+      const pct = Math.round(Math.min(100, Math.max(5, stat.value * 100)))
+      const row = document.createElement('div')
+      row.className = 'car-preview-stat-row'
+      row.innerHTML = `
+        <span>${stat.label}</span>
+        <div class="car-preview-stat-bar-bg"><div class="car-preview-stat-bar-fill" style="width:${pct}%"></div></div>
+      `
+      statsContainer.appendChild(row)
+    })
+
+    const details = document.createElement('div')
+    details.className = 'car-preview-spec-details'
+    details.innerHTML = `
+      <span>Top Speed: ${car.config.maxSpeed.toFixed(0)} km/h</span>
+      <span>Power/Weight: ${(car.config.engineForce / car.config.mass).toFixed(2)} g</span>
+    `
+
+    specBox.appendChild(name)
+    specBox.appendChild(subtitle)
+    specBox.appendChild(engine)
+    specBox.appendChild(statsContainer)
+    specBox.appendChild(details)
+
+    const hint = document.createElement('div')
+    hint.className = 'car-preview-hint'
+    hint.textContent = 'Drag to rotate \u2022 Scroll to zoom'
+
+    const buttons = document.createElement('div')
+    buttons.className = 'car-preview-buttons'
+    const backBtn = this.createButton('Back')
+    backBtn.onclick = () => this.state.transition('CAR_SELECT')
+    const nextBtn = this.createButton('Continue', 'primary')
+    nextBtn.onclick = () => this.state.transition('TRACK_SELECT')
+    buttons.appendChild(backBtn)
+    buttons.appendChild(nextBtn)
+
+    const rightCol = document.createElement('div')
+    rightCol.className = 'car-preview-right-col'
+    rightCol.appendChild(specBox)
+    rightCol.appendChild(hint)
+    rightCol.appendChild(buttons)
+
+    overlay.appendChild(rightCol)
     parent.appendChild(overlay)
   }
 
@@ -1243,7 +1427,7 @@ export class UIManager {
     buttons.style.cssText = 'display:flex;gap:16px;margin-top:16px;'
 
     const backBtn = this.createButton('Back')
-    backBtn.onclick = () => this.state.transition('CAR_SELECT')
+    backBtn.onclick = () => this.state.transition('CAR_PREVIEW')
 
     const startBtn = this.createButton('Start Race', 'primary')
     startBtn.onclick = () => {
@@ -1576,10 +1760,6 @@ export class UIManager {
         <span class="pos-value" id="hud-position">1</span><span class="pos-suffix" id="hud-pos-suffix">st</span>
       </div>
       <div class="hud-wrong-way" id="hud-wrong-way">WRONG WAY</div>
-      <div class="hud-score">
-        <span class="score-label">Score</span>
-        <span class="score-value" id="hud-score">0</span>
-      </div>
     `
 
     this.container.appendChild(hud)
@@ -1594,7 +1774,6 @@ export class UIManager {
     position: number
     wrongWay: boolean
     rpm: number
-    score: number
   }): void {
     const speedEl = document.getElementById('hud-speed')
     const lapEl = document.getElementById('hud-lap')
@@ -1604,7 +1783,6 @@ export class UIManager {
     const posSuffix = document.getElementById('hud-pos-suffix')
     const wrongWay = document.getElementById('hud-wrong-way')
     const rpmFill = document.getElementById('hud-rpm')
-    const scoreEl = document.getElementById('hud-score')
 
     if (speedEl) speedEl.textContent = Math.round(data.speed).toString()
     if (lapEl) lapEl.textContent = `${Math.min(data.lap + 1, data.totalLaps)}/${data.totalLaps}`
@@ -1614,7 +1792,6 @@ export class UIManager {
     if (posSuffix) posSuffix.textContent = this.getOrdinalSuffix(data.position)
     if (wrongWay) wrongWay.classList.toggle('visible', data.wrongWay)
     if (rpmFill) rpmFill.style.width = `${Math.min(100, (data.rpm / 7500) * 100)}%`
-    if (scoreEl) scoreEl.textContent = data.score.toString()
   }
 
   showPause(): void {

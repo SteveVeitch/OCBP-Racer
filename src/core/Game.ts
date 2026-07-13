@@ -108,6 +108,15 @@ export class Game {
   private static readonly POINTS_TABLE = [10, 7, 5, 2]
   private miniMap: MiniMap | null = null
 
+  private previewScene: THREE.Scene | null = null
+  private previewCamera: THREE.PerspectiveCamera | null = null
+  private previewMesh: THREE.Group | null = null
+  private previewRotation = 0
+  private previewAutoRotateTimer = 0
+  private previewManualOverride = false
+  private previewComposer: EffectComposer | null = null
+  private previewZoomLevel = 6
+
   constructor() {
     this.state = new StateMachine()
     this.ui = new UIManager(this.state)
@@ -190,6 +199,7 @@ export class Game {
 
       log('Starting game loop...')
       this.setupAutoPause()
+      this.setupPreviewListeners()
       this.setupActivityListeners()
       this.lastActivityTime = performance.now() / 1000
       this.start()
@@ -258,6 +268,37 @@ export class Game {
     )
     this.composer.addPass(this.bloomPass)
     this.applyGraphicsQuality()
+  }
+
+  private setupPreviewListeners(): void {
+    this.state.on('CAR_PREVIEW', () => this.enterPreviewState())
+    this.state.on('CAR_SELECT', () => this.exitPreviewState())
+    this.state.on('TRACK_SELECT', () => this.exitPreviewState())
+
+    let dragging = false
+    let lastX = 0
+    const canvas = this.renderer.domElement
+
+    canvas.addEventListener('mousedown', (e: MouseEvent) => {
+      if (this.state.getCurrent() !== 'CAR_PREVIEW') return
+      dragging = true
+      lastX = e.clientX
+    })
+    canvas.addEventListener('mousemove', (e: MouseEvent) => {
+      if (!dragging || this.state.getCurrent() !== 'CAR_PREVIEW') return
+      const dx = e.clientX - lastX
+      lastX = e.clientX
+      this.previewRotation -= dx * 0.008
+      this.previewManualOverride = true
+      this.previewAutoRotateTimer = 3
+    })
+    canvas.addEventListener('mouseup', () => { dragging = false })
+    canvas.addEventListener('mouseleave', () => { dragging = false })
+
+    canvas.addEventListener('wheel', (e: WheelEvent) => {
+      if (this.state.getCurrent() !== 'CAR_PREVIEW') return
+      this.previewZoomLevel = Math.max(3, Math.min(12, this.previewZoomLevel + e.deltaY * 0.005))
+    }, { passive: true })
   }
 
   private setupAutoPause(): void {
@@ -525,6 +566,103 @@ export class Game {
     this.isDemo = false
   }
 
+  private enterPreviewState(): void {
+    if (!this.previewScene) {
+      this.previewScene = new THREE.Scene()
+      this.previewScene.background = new THREE.Color(0x0d1520)
+
+      this.previewCamera = new THREE.PerspectiveCamera(
+        40,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        100
+      )
+      this.previewCamera.position.set(3.5, 2.5, 4.5)
+      this.previewCamera.lookAt(0, 0.6, 0)
+
+      const ambient = new THREE.AmbientLight(0xffffff, 0.6)
+      this.previewScene.add(ambient)
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 1.8)
+      keyLight.position.set(5, 8, 5)
+      keyLight.castShadow = false
+      this.previewScene.add(keyLight)
+
+      const fillLight = new THREE.DirectionalLight(0x8899bb, 0.6)
+      fillLight.position.set(-4, 3, -2)
+      this.previewScene.add(fillLight)
+
+      const rimLight = new THREE.DirectionalLight(0xffffff, 0.8)
+      rimLight.position.set(-2, 2, -5)
+      this.previewScene.add(rimLight)
+
+      const groundGeom = new THREE.CircleGeometry(8, 64)
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: 0x1a1a2e,
+        roughness: 0.85,
+        metalness: 0.05
+      })
+      const ground = new THREE.Mesh(groundGeom, groundMat)
+      ground.rotation.x = -Math.PI / 2
+      ground.position.y = -0.01
+      this.previewScene.add(ground)
+
+      this.previewComposer = new EffectComposer(this.renderer)
+      this.previewComposer.addPass(new RenderPass(this.previewScene, this.previewCamera))
+      const bloom = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        0.4, 0.5, 0.7
+      )
+      this.previewComposer.addPass(bloom)
+    }
+
+    if (this.previewMesh) {
+      this.previewScene!.remove(this.previewMesh)
+      this.previewMesh = null
+    }
+
+    const carId = this.state.getSelectedCar()
+    this.previewMesh = this.physics.getCarFactory().createPreviewMesh(carId)
+    this.previewScene!.add(this.previewMesh)
+
+    this.previewRotation = 0
+    this.previewAutoRotateTimer = 0
+    this.previewManualOverride = false
+  }
+
+  private exitPreviewState(): void {
+    if (this.previewMesh && this.previewScene) {
+      this.previewScene.remove(this.previewMesh)
+      this.previewMesh = null
+    }
+  }
+
+  private updatePreview(dt: number): void {
+    if (!this.previewMesh) return
+
+    if (this.previewManualOverride) {
+      this.previewAutoRotateTimer -= dt
+      if (this.previewAutoRotateTimer <= 0) {
+        this.previewManualOverride = false
+      }
+    }
+
+    if (!this.previewManualOverride) {
+      this.previewRotation += dt * 0.4
+    }
+
+    const radius = this.previewZoomLevel
+    const height = 2.8
+    this.previewCamera!.position.set(
+      Math.sin(this.previewRotation) * radius,
+      height,
+      Math.cos(this.previewRotation) * radius
+    )
+    this.previewCamera!.lookAt(0, 0.6, 0)
+
+    this.previewComposer!.render()
+  }
+
   private clearRaceEntities(): void {
     if (this.miniMap) {
       this.miniMap.dispose()
@@ -572,7 +710,9 @@ export class Game {
 
     const currentState = this.state.getCurrent()
 
-    if (currentState === 'DEMO') {
+    if (currentState === 'CAR_PREVIEW') {
+      this.updatePreview(deltaTime)
+    } else if (currentState === 'DEMO') {
       this.accumulator += deltaTime
 
       while (this.accumulator >= this.PHYSICS_TIMESTEP) {
@@ -602,7 +742,9 @@ export class Game {
     }
 
     this.updateCamera()
-    this.render()
+    if (currentState !== 'CAR_PREVIEW') {
+      this.render()
+    }
 
     if (currentState === 'MENU' && !this.isDemo && this.state.getSettings().demoEnabled) {
       const now = performance.now() / 1000
@@ -838,8 +980,7 @@ export class Game {
       bestTime: this.raceData.bestLapTime,
       position: this.raceData.position,
       wrongWay: this.raceData.wrongWay,
-      rpm: this.car.getRPM(),
-      score: Game.POINTS_TABLE[this.raceData.position - 1] || 0
+      rpm: this.car.getRPM()
     })
   }
 
@@ -930,8 +1071,14 @@ export class Game {
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(w, h)
     this.composer.setSize(w, h)
+    if (this.previewCamera) {
+      this.previewCamera.aspect = w / h
+      this.previewCamera.updateProjectionMatrix()
+    }
+    if (this.previewComposer) {
+      this.previewComposer.setSize(w, h)
+    }
     this.bloomPass.resolution.set(w, h)
-    this.applyGraphicsQuality()
   }
 
   private applySettings(): void {

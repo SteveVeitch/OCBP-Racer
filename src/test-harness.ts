@@ -10,6 +10,7 @@ import { CARS, getCarById } from './cars/CarConfigs'
 import { CarFactory } from './cars/CarFactory'
 import { AIController } from './ai/AIController'
 import { AudioManager } from './audio/AudioManager'
+import { UIManager } from './ui/UIManager'
 import { TimeOfDayPresets } from './environment/TimeOfDayPresets'
 import { WeatherPresets } from './environment/WeatherPresets'
 import { combineModifiers } from './environment/EnvironmentModifiers'
@@ -951,6 +952,77 @@ export async function runTestHarness(): Promise<void> {
     const am = new AudioManager()
     assert(typeof am.playUIClick === 'function', 'playUIClick missing')
     assert(typeof am.playUIConfirm === 'function', 'playUIConfirm missing')
+  })
+
+  // ── Phase 19: Car Preview & HUD Score Removal ──
+  currentPhase = 'Phase 19: Car Preview & HUD Score Removal'
+  console.log('\n-- Phase 19: Car Preview & HUD Score Removal --')
+  test('StateMachine has CAR_PREVIEW state', () => {
+    const sm = new StateMachine()
+    sm.transition('CAR_SELECT')
+    sm.transition('CAR_PREVIEW')
+    assert(sm.getCurrent() === 'CAR_PREVIEW', `State: ${sm.getCurrent()}`)
+  })
+  test('CAR_PREVIEW transitions to TRACK_SELECT', () => {
+    const sm = new StateMachine()
+    sm.transition('CAR_SELECT')
+    sm.transition('CAR_PREVIEW')
+    sm.transition('TRACK_SELECT')
+    assert(sm.getCurrent() === 'TRACK_SELECT', `State: ${sm.getCurrent()}`)
+  })
+  test('CAR_PREVIEW transitions back to CAR_SELECT', () => {
+    const sm = new StateMachine()
+    sm.transition('CAR_SELECT')
+    sm.transition('CAR_PREVIEW')
+    sm.transition('CAR_SELECT')
+    assert(sm.getCurrent() === 'CAR_SELECT', `State: ${sm.getCurrent()}`)
+  })
+  test('TRACK_SELECT transitions back to CAR_PREVIEW', () => {
+    const sm = new StateMachine()
+    sm.transition('CAR_SELECT')
+    sm.transition('CAR_PREVIEW')
+    sm.transition('TRACK_SELECT')
+    sm.transition('CAR_PREVIEW')
+    assert(sm.getCurrent() === 'CAR_PREVIEW', `State: ${sm.getCurrent()}`)
+  })
+  test('CarFactory has createPreviewMesh method', () => {
+    const pf = new PhysicsWorld()
+    const factory = pf.getCarFactory()
+    assert(typeof factory.createPreviewMesh === 'function', 'createPreviewMesh missing')
+    pf.dispose()
+  })
+  test('CarFactory createPreviewMesh returns a Group', async () => {
+    const pf = new PhysicsWorld()
+    await pf.init()
+    const factory = pf.getCarFactory()
+    await factory.preloadModels()
+    const mesh = factory.createPreviewMesh('rossini-488')
+    assert(mesh !== null && mesh !== undefined, 'Mesh is null/undefined')
+    assert(typeof mesh === 'object', `Mesh type: ${typeof mesh}`)
+    pf.dispose()
+  })
+  test('createPreviewMesh works for all 4 cars', async () => {
+    const pf = new PhysicsWorld()
+    await pf.init()
+    const factory = pf.getCarFactory()
+    await factory.preloadModels()
+    for (const car of CARS) {
+      const mesh = factory.createPreviewMesh(car.id)
+      assert(mesh !== null && mesh !== undefined, `${car.name} mesh is null/undefined`)
+    }
+    pf.dispose()
+  })
+  test('CarPreview state type exists in GameState', () => {
+    const sm = new StateMachine()
+    sm.transition('CAR_SELECT')
+    sm.transition('CAR_PREVIEW')
+    const s = sm.getCurrent()
+    assert(s === 'CAR_PREVIEW', `State: ${s}`)
+  })
+  test('UIManager can be constructed', () => {
+    const sm = new StateMachine()
+    const ui = new UIManager(sm)
+    assert(ui !== null, 'UIManager construction failed')
   })
 
   // ── Summary ──

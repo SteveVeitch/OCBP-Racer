@@ -230,7 +230,7 @@ export class EnvironmentManager {
     await Promise.all(loadPromises)
   }
 
-  applyTimeOfDay(preset: TimeOfDayPreset): void {
+  applyTimeOfDay(preset: TimeOfDayPreset, envIntensity = 0.4): void {
     this.fogStartNear = preset.fogNear
     this.fogStartFar = preset.fogFar
     this.fogColor = preset.fogColor.clone()
@@ -240,7 +240,7 @@ export class EnvironmentManager {
       const envMap = this.hdrCache.get(preset.hdrPath)!
       this.scene.background = envMap
       this.scene.environment = envMap
-      this.scene.environmentIntensity = 0.4
+      this.scene.environmentIntensity = envIntensity
     } else {
       this.scene.background = preset.skyColor.clone()
       this.scene.environment = null

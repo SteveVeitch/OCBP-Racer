@@ -13,6 +13,7 @@ export interface TimeOfDayPreset {
   fogFar: number
   skyColor: THREE.Color
   temperatureCelsius: number
+  hdrPath?: string
 }
 
 export const TimeOfDayPresets: Record<string, TimeOfDayPreset> = {
@@ -28,7 +29,8 @@ export const TimeOfDayPresets: Record<string, TimeOfDayPreset> = {
     fogNear: 80,
     fogFar: 250,
     skyColor: new THREE.Color(0x2a2a4a),
-    temperatureCelsius: 14
+    temperatureCelsius: 14,
+    hdrPath: 'assets/hdr/dawn_industrial_1k.hdr'
   },
   day: {
     id: 'day',
@@ -42,7 +44,8 @@ export const TimeOfDayPresets: Record<string, TimeOfDayPreset> = {
     fogNear: 120,
     fogFar: 350,
     skyColor: new THREE.Color(0x5599dd),
-    temperatureCelsius: 22
+    temperatureCelsius: 22,
+    hdrPath: 'assets/hdr/day_puresky_1k.hdr'
   },
   dusk: {
     id: 'dusk',
@@ -56,7 +59,8 @@ export const TimeOfDayPresets: Record<string, TimeOfDayPreset> = {
     fogNear: 70,
     fogFar: 220,
     skyColor: new THREE.Color(0x332222),
-    temperatureCelsius: 18
+    temperatureCelsius: 18,
+    hdrPath: 'assets/hdr/sunset_1k.hdr'
   },
   night: {
     id: 'night',
@@ -70,6 +74,7 @@ export const TimeOfDayPresets: Record<string, TimeOfDayPreset> = {
     fogNear: 40,
     fogFar: 160,
     skyColor: new THREE.Color(0x050510),
-    temperatureCelsius: 10
+    temperatureCelsius: 10,
+    hdrPath: 'assets/hdr/night_1k.hdr'
   }
 }

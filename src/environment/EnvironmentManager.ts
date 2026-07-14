@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js'
 import { TimeOfDayPreset } from './TimeOfDayPresets'
 import { WeatherPreset } from './WeatherPresets'
 import { TerrainType } from '../track/TrackDefinitions'
@@ -178,6 +179,8 @@ export class EnvironmentManager {
   private groundMesh: THREE.Mesh | null = null
   private groundGeometry: THREE.PlaneGeometry | null = null
   private currentTerrain: TerrainType | null = null
+  private hdrCache = new Map<string, THREE.Texture>()
+  private pmremGenerator: THREE.PMREMGenerator | null = null
 
   private sharedUrbanBaseMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9, metalness: 0.05 })
   private sharedIndustrialBaseMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9, metalness: 0.1 })
@@ -206,6 +209,27 @@ export class EnvironmentManager {
     this.scene.background = new THREE.Color(0x050510)
   }
 
+  async initEnvironmentMaps(renderer: THREE.WebGLRenderer, presets: TimeOfDayPreset[]): Promise<void> {
+    this.pmremGenerator = new THREE.PMREMGenerator(renderer)
+    this.pmremGenerator.compileEquirectangularShader()
+
+    const loader = new RGBELoader()
+    const uniquePaths = [...new Set(presets.map(p => p.hdrPath).filter(Boolean))] as string[]
+
+    const loadPromises = uniquePaths.map(async (hdrPath) => {
+      try {
+        const texture = await loader.loadAsync(hdrPath)
+        const envMap = this.pmremGenerator!.fromEquirectangular(texture).texture
+        texture.dispose()
+        this.hdrCache.set(hdrPath, envMap)
+      } catch (err) {
+        console.warn(`Failed to load HDR: ${hdrPath}`, err)
+      }
+    })
+
+    await Promise.all(loadPromises)
+  }
+
   applyTimeOfDay(preset: TimeOfDayPreset): void {
     this.fogStartNear = preset.fogNear
     this.fogStartFar = preset.fogFar
@@ -220,7 +244,14 @@ export class EnvironmentManager {
       Math.sin(angle) * 80 + 20,
       30
     )
-    this.scene.background = preset.skyColor.clone()
+    if (preset.hdrPath && this.hdrCache.has(preset.hdrPath)) {
+      const envMap = this.hdrCache.get(preset.hdrPath)!
+      this.scene.background = envMap
+      this.scene.environment = envMap
+    } else {
+      this.scene.background = preset.skyColor.clone()
+      this.scene.environment = null
+    }
     this.updateFog()
   }
 
@@ -519,6 +550,12 @@ export class EnvironmentManager {
       this.groundGeometry = null
       this.currentTerrain = null
     }
+    for (const envMap of this.hdrCache.values()) {
+      envMap.dispose()
+    }
+    this.hdrCache.clear()
+    this.pmremGenerator?.dispose()
+    this.pmremGenerator = null
     this.scene.remove(this.ambientLight)
     this.scene.remove(this.directionalLight)
     this.sharedUrbanBaseMat.dispose()

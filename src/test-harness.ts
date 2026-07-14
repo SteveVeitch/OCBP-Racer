@@ -16,6 +16,7 @@ import { WeatherPresets } from './environment/WeatherPresets'
 import { combineModifiers } from './environment/EnvironmentModifiers'
 import { addLeaderboardEntry, getTrackLeaderboard, getOverallLeaderboard, clearLeaderboard } from './ui/LeaderboardManager'
 import { HUDGauges } from './ui/HUDGauges'
+import { EnvironmentManager } from './environment/EnvironmentManager'
 
 interface TestResult {
   name: string
@@ -1082,6 +1083,36 @@ export async function runTestHarness(): Promise<void> {
       assert(typeof car.engine.type === 'string', `${car.name} missing type`)
       assert(typeof car.engine.horsepower === 'number', `${car.name} missing horsepower`)
       assert(car.engine.horsepower > 100, `${car.name} horsepower too low: ${car.engine.horsepower}`)
+    }
+  })
+
+  // ── Phase 21: HDR Environment Maps ──
+  currentPhase = 'Phase 21: HDR Environment Maps'
+  console.log('\n-- Phase 21: HDR Environment Maps --')
+  test('All 4 TOD presets have hdrPath', () => {
+    const presets = Object.values(TimeOfDayPresets)
+    assert(presets.length === 4, `Expected 4 presets, got ${presets.length}`)
+    for (const p of presets) {
+      assert(typeof p.hdrPath === 'string' && p.hdrPath.length > 0, `${p.name} missing hdrPath`)
+    }
+  })
+  test('HDR paths reference assets/hdr/ directory', () => {
+    for (const p of Object.values(TimeOfDayPresets)) {
+      const hdrPath = p.hdrPath as string
+      assert(hdrPath.startsWith('assets/hdr/'), `${p.name} hdrPath not in assets/hdr/: ${hdrPath}`)
+      assert(hdrPath.endsWith('.hdr'), `${p.name} hdrPath not .hdr: ${hdrPath}`)
+    }
+  })
+  test('EnvironmentManager has initEnvironmentMaps method', () => {
+    assert(typeof EnvironmentManager.prototype.initEnvironmentMaps === 'function', 'initEnvironmentMaps missing')
+  })
+  test('TimeOfDayPreset interface includes hdrPath field', () => {
+    const samplePreset = TimeOfDayPresets.day
+    assert('hdrPath' in samplePreset, 'hdrPath not in preset object')
+  })
+  test('skyColor fallback still exists on all presets', () => {
+    for (const p of Object.values(TimeOfDayPresets)) {
+      assert(p.skyColor instanceof THREE.Color, `${p.name} missing skyColor`)
     }
   })
 

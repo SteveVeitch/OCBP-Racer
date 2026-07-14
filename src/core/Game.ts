@@ -159,6 +159,9 @@ export class Game {
 
       log('Setting up environment...')
       this.environment = new EnvironmentManager(this.scene)
+      log('Loading HDR environment maps...')
+      await this.environment.initEnvironmentMaps(this.renderer, Object.values(TimeOfDayPresets))
+      log('HDR maps loaded OK')
       this.applyEnvironment()
       log('Environment OK')
 

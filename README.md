@@ -54,7 +54,7 @@ Run the automated test suite:
 http://localhost:3000?test
 ```
 
-77 tests validate all game systems. Click the results overlay to start the game.
+93 tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 
@@ -201,6 +201,7 @@ Physics runs at a fixed 120 Hz timestep with accumulator pattern.
 ### Rendering
 
 - Dynamic time-of-day lighting (dawn/day/dusk/night)
+- **HDR environment maps** — Polyhaven CC0 skyboxes with image-based lighting for realistic car paint reflections
 - Weather effects (rain particles, fog density)
 - ACES Filmic tone mapping (exposure 1.4)
 - Ambient + hemisphere + directional lighting (dynamic via EnvironmentManager)
@@ -278,7 +279,9 @@ Each car uses a GLTF model for detailed body geometry with procedural wheels and
 ```
 OCBP Racer/
 ├── specs/                      # SDD specification documents
-├── assets/                     # GLTF car models (Sketchfab, CC licenses)
+├── assets/                     # Game assets
+│   ├── models/                 # GLTF car models (Sketchfab, CC licenses)
+│   └── hdr/                    # HDR environment maps (Polyhaven, CC0)
 ├── public/                     # Static assets (Rapier WASM)
 ├── src/
 │   ├── main.ts                 # Entry point

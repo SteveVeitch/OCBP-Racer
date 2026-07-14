@@ -37,6 +37,22 @@ outputColorSpace:     SRGBColorSpace
 - **Fog Toggle:** Can be disabled via settings for testing
 - When fog is off: `scene.fog = null`
 
+### 2.3 HDR Environment Maps
+- Loaded via `RGBELoader` from `three/examples/jsm/loaders/RGBELoader.js`
+- Processed through `THREE.PMREMGenerator` at startup for PBR environment reflections
+- Cached in `EnvironmentManager.hdrCache` (Map<string, THREE.Texture>)
+- Applied as both `scene.background` (skybox) and `scene.environment` (IBL reflections)
+- Falls back to flat `skyColor` if HDR fails to load
+- Source: Polyhaven.com (CC0 licensed), 1K resolution (~1.4-1.8 MB each)
+- Total HDR footprint: ~6 MB (4 files)
+
+| TOD Preset | HDR File | Source |
+|------------|----------|--------|
+| dawn | `dawn_industrial_1k.hdr` | Polyhaven "Paul Lobe Haus" |
+| day | `day_puresky_1k.hdr` | Polyhaven "Kloofendal 48d Partly Cloudy" |
+| dusk | `sunset_1k.hdr` | Polyhaven "Venice Sunset" |
+| night | `night_1k.hdr` | Polyhaven "Satara Night" |
+
 ## 3. Lighting Model
 
 ### 3.1 Lighting Presets (Per Time-of-Day)

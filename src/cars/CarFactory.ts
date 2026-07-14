@@ -136,10 +136,11 @@ const TARGET_LENGTHS: Record<string, number> = {
 interface ModelOverride {
   scaleMultiplier?: number
   yOffsetOverride?: number
+  hideRearGeometry?: boolean
 }
 
 const MODEL_OVERRIDES: Record<string, ModelOverride> = {
-  'kaiju-gt-r': { scaleMultiplier: 2.0, yOffsetOverride: 0.15 },
+  'kaiju-gt-r': { scaleMultiplier: 2.0, yOffsetOverride: 0.15, hideRearGeometry: true },
 }
 
 interface LightPositions {
@@ -326,6 +327,18 @@ export class CarFactory {
           }
         }
       })
+
+      const override = MODEL_OVERRIDES[definition.id]
+      if (override?.hideRearGeometry) {
+        model.updateMatrixWorld(true)
+        model.traverse(child => {
+          if (!(child instanceof THREE.Mesh) || !child.geometry) return
+          const wb = new THREE.Box3().setFromObject(child)
+          if (wb.isEmpty()) return
+          const wc = wb.getCenter(new THREE.Vector3())
+          if (wc.z < -3.0) child.visible = false
+        })
+      }
 
       group.add(model)
 

@@ -80,10 +80,11 @@ export class UIManager {
       const baseH = 1080
       const scaleX = w / baseW
       const scaleY = h / baseH
-      const scale = Math.max(Math.min(scaleX, scaleY), 0.5)
+      const scale = Math.max(scaleX, scaleY)
       this.container.style.transform = `scale(${scale})`
       this.container.style.width = `${baseW}px`
       this.container.style.height = `${baseH}px`
+      this.container.style.overflow = 'hidden'
     }
     updateScale()
     window.addEventListener('resize', updateScale)
@@ -823,8 +824,6 @@ export class UIManager {
         background: rgba(10, 10, 26, 0.92);
         border: 2px solid var(--border);
         padding: 28px 40px;
-        width: 400px;
-        max-width: 40%;
         animation: slideRight 0.4s ease;
       }
 
@@ -898,7 +897,8 @@ export class UIManager {
       .car-preview-buttons {
         pointer-events: auto;
         display: flex;
-        gap: 16px;
+        flex-direction: column;
+        gap: 10px;
         margin-top: 16px;
         animation: slideRight 0.5s ease;
       }
@@ -917,8 +917,10 @@ export class UIManager {
       .car-preview-right-col {
         display: flex;
         flex-direction: column;
-        align-items: flex-end;
+        align-items: stretch;
         pointer-events: none;
+        width: 400px;
+        max-width: 40%;
       }
     `
     document.head.appendChild(style)
@@ -1253,8 +1255,8 @@ export class UIManager {
     backBtn.onclick = () => this.state.transition('CAR_SELECT')
     const nextBtn = this.createButton('Continue', 'primary')
     nextBtn.onclick = () => this.state.transition('TRACK_SELECT')
-    buttons.appendChild(backBtn)
     buttons.appendChild(nextBtn)
+    buttons.appendChild(backBtn)
 
     const rightCol = document.createElement('div')
     rightCol.className = 'car-preview-right-col'

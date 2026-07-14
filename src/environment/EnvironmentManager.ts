@@ -234,16 +234,8 @@ export class EnvironmentManager {
     this.fogStartNear = preset.fogNear
     this.fogStartFar = preset.fogFar
     this.fogColor = preset.fogColor.clone()
-    this.ambientLight.color.copy(preset.ambientColor)
-    this.ambientLight.intensity = preset.ambientIntensity
-    this.directionalLight.color.copy(preset.directionalColor)
-    this.directionalLight.intensity = preset.directionalIntensity
-    const angle = THREE.MathUtils.degToRad(preset.directionalAngle)
-    this.directionalLight.position.set(
-      Math.cos(angle) * 80,
-      Math.sin(angle) * 80 + 20,
-      30
-    )
+    this.ambientLight.intensity = 0
+    this.directionalLight.intensity = 0
     if (preset.hdrPath && this.hdrCache.has(preset.hdrPath)) {
       const envMap = this.hdrCache.get(preset.hdrPath)!
       this.scene.background = envMap
@@ -368,9 +360,6 @@ export class EnvironmentManager {
       const geom = new THREE.BoxGeometry(w, h, d)
       const mat = new THREE.MeshStandardMaterial({
         map: winTex,
-        emissive: 0xffffff,
-        emissiveMap: winTex,
-        emissiveIntensity: 0.12,
         roughness: 0.85,
         metalness: 0.1
       })
@@ -496,9 +485,6 @@ export class EnvironmentManager {
       const geom = new THREE.BoxGeometry(w, h, d)
       const mat = new THREE.MeshStandardMaterial({
         map: winTex,
-        emissive: 0xffffff,
-        emissiveMap: winTex,
-        emissiveIntensity: 0.1,
         roughness: 0.8,
         metalness: 0.25
       })

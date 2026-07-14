@@ -357,8 +357,6 @@ export class Game {
           } else {
             child.material.dispose()
           }
-        } else if (child instanceof THREE.PointLight) {
-          child.dispose()
         }
       })
     }
@@ -374,9 +372,7 @@ export class Game {
     const sharedPoleMat = new THREE.MeshStandardMaterial({ color: 0x555555 })
     const sharedBulbGeom = new THREE.SphereGeometry(0.25, 8, 8)
     const sharedBulbMat = new THREE.MeshStandardMaterial({
-      color: 0xffcc88,
-      emissive: 0xffcc88,
-      emissiveIntensity: 1.2
+      color: 0xffcc88
     })
 
     for (let i = 0; i < count; i++) {
@@ -385,11 +381,6 @@ export class Game {
       const right = spline.getRightVector(t)
 
       const group = new THREE.Group()
-
-      const light = new THREE.PointLight(0xffcc88, 6.0, 50)
-      light.position.set(right.x * 8, 7, right.z * 8)
-      light.castShadow = false
-      group.add(light)
 
       const pole = new THREE.Mesh(sharedPoleGeom, sharedPoleMat)
       pole.position.set(right.x * 8, 3.5, right.z * 8)

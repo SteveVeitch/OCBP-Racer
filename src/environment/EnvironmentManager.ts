@@ -370,7 +370,7 @@ export class EnvironmentManager {
         map: winTex,
         emissive: 0xffffff,
         emissiveMap: winTex,
-        emissiveIntensity: 0.8,
+        emissiveIntensity: 0.12,
         roughness: 0.85,
         metalness: 0.1
       })
@@ -498,7 +498,7 @@ export class EnvironmentManager {
         map: winTex,
         emissive: 0xffffff,
         emissiveMap: winTex,
-        emissiveIntensity: 0.65,
+        emissiveIntensity: 0.1,
         roughness: 0.8,
         metalness: 0.25
       })

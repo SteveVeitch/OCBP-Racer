@@ -376,7 +376,7 @@ export class Game {
     const sharedBulbMat = new THREE.MeshStandardMaterial({
       color: 0xffcc88,
       emissive: 0xffcc88,
-      emissiveIntensity: 5
+      emissiveIntensity: 2.5
     })
 
     for (let i = 0; i < count; i++) {

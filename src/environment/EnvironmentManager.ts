@@ -240,9 +240,11 @@ export class EnvironmentManager {
       const envMap = this.hdrCache.get(preset.hdrPath)!
       this.scene.background = envMap
       this.scene.environment = envMap
+      this.scene.environmentIntensity = 0.4
     } else {
       this.scene.background = preset.skyColor.clone()
       this.scene.environment = null
+      this.scene.environmentIntensity = 1.0
     }
     this.updateFog()
   }

@@ -237,7 +237,7 @@ export class Game {
     this.renderer.shadowMap.enabled = true
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping
-    this.renderer.toneMappingExposure = 1.4
+    this.renderer.toneMappingExposure = 0.7
     this.renderer.outputColorSpace = THREE.SRGBColorSpace
     document.body.appendChild(this.renderer.domElement)
 

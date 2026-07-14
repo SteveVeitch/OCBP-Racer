@@ -92,7 +92,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Selected car has green border + glow
 
 **Car Cards Show:**
-- Color preview rectangle
+- Static 3/4 view 3D rendering of the car (rendered via Three.js, captured as image)
 - Car name
 - Subtitle ("The Prancing Horse", etc.)
 - Engine badge ("3.9L Twin-Turbo V8 • 661 HP") — no TURBO indicator
@@ -214,12 +214,15 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 │                    │ MAP  │             │
 │                    └──────┘             │
 │                                         │
-│ ┌──────────────┐           ┌──────────┐ │
-│ │   142 km/h   │           │    1st   │ │
-│ │  ▂▃▅▆▇█▇▅▃▂ │           │          │ │
-│ └──────────────┘           └──────────┘ │
+│ ┌─────────┐ ┌─────────┐ ┌─────────┐    │
+│ │  SPEEDO  │ │   REVS  │ │  BOOST  │    │
+│ │  160px   │ │  160px  │ │  160px  │    │
+│ └─────────┘ └─────────┘ └─────────┘    │
 │                                         │
 │          WRONG WAY (if applicable)      │
+│                          ┌──────────┐   │
+│                          │    1st   │   │
+│                          └──────────┘   │
 └─────────────────────────────────────────┘
 ```
 
@@ -230,11 +233,51 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 | Lap Counter | Top bar | "LAP 1/3" |
 | Timer | Top bar | Current race time |
 | Best Time | Top bar | Best lap time (or "--:--.--") |
-| Speedometer | Bottom-left | Digital km/h (48px monospace) |
-| RPM Bar | Above speed | Gradient bar (0-100%) |
+| Speedometer | Bottom-left | Canvas gauge, 160px diameter, analog dial |
+| Rev Counter | Bottom-left (right of speedo) | Canvas gauge, 160px diameter, analog dial |
+| Turbo Boost | Bottom-left (right of revs) | Canvas gauge, 160px diameter, only for turbo cars |
 | Position | Bottom-right | Position number + ordinal |
 | Mini-map | Top-right corner | Player + AI positions |
 | Wrong Way | Center | Pulsing "WRONG WAY" text |
+
+### 3.6.1 Speedometer Gauge
+
+- **Style:** Realistic analog, white-on-black
+- **Size:** 160×160px canvas
+- **Sweep:** 7 o'clock (210°) to 3 o'clock (330°) — 240° total arc
+- **Range:** 0 to maxSpeed × 1.1 (in current speed unit)
+- **Ticks:** Major ticks every 20 units, minor ticks every 10 units
+- **Numbers:** Major tick values displayed around rim
+- **Needle:** White, tapered, smooth animation
+- **Center:** Digital speed readout (current value)
+- **Label:** "km/h" or "MPH" below center
+
+### 3.6.2 Rev Counter Gauge
+
+- **Style:** Realistic analog, white-on-black, redline zone in red
+- **Size:** 160×160px canvas
+- **Sweep:** 7 o'clock (210°) to 1 o'clock (30°) — 300° total arc (clockwise through top)
+- **Range:** 0 to per-car redline × 1.1 (e.g., 8800 for Rossini)
+- **Ticks:** Major ticks every 1000 RPM, minor ticks every 500 RPM
+- **Redline zone:** Red arc from redline to max
+- **Numbers:** Major tick values displayed around rim
+- **Needle:** White, tapered, smooth animation
+- **Center:** Digital RPM readout
+- **Label:** "RPM" below center
+
+### 3.6.3 Turbo Boost Gauge
+
+- **Style:** Realistic analog, white-on-black, boost zone in cyan/blue
+- **Size:** 160×160px canvas
+- **Sweep:** 7 o'clock (210°) to 1 o'clock (30°) — 300° total arc
+- **Range:** 0% to 100% boost
+- **Data:** Throttle + turbo lag blend — boost rises with throttle, delayed by turboLagTime; decays at TURBO_DECAY_RATE when off throttle
+- **Ticks:** Major ticks at 0/25/50/75/100%
+- **Boost zone:** Cyan/blue arc above 75%
+- **Needle:** White, tapered, smooth animation
+- **Center:** Digital percentage readout
+- **Label:** "BOOST" below center
+- **Visibility:** Only shown for cars with turboLagTime > 0 (Rossini 488, Kaiju GT-R)
 
 ### 3.7 Pause Menu
 

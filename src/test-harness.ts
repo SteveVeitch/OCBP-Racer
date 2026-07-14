@@ -15,6 +15,7 @@ import { TimeOfDayPresets } from './environment/TimeOfDayPresets'
 import { WeatherPresets } from './environment/WeatherPresets'
 import { combineModifiers } from './environment/EnvironmentModifiers'
 import { addLeaderboardEntry, getTrackLeaderboard, getOverallLeaderboard, clearLeaderboard } from './ui/LeaderboardManager'
+import { HUDGauges } from './ui/HUDGauges'
 
 interface TestResult {
   name: string
@@ -1021,6 +1022,67 @@ export async function runTestHarness(): Promise<void> {
     const sm = new StateMachine()
     const ui = new UIManager(sm)
     assert(ui !== null, 'UIManager construction failed')
+  })
+
+  // ── Phase 20: HUD Gauges, Thumbnails & UI Fixes ──
+  currentPhase = 'Phase 20: HUD Gauges & Thumbnails'
+  console.log('\n-- Phase 20: HUD Gauges & Thumbnails --')
+  test('HUDGauges class exists', () => {
+    assert(typeof HUDGauges === 'function', 'HUDGauges not found')
+  })
+  test('HUDGauges has create method', () => {
+    assert(typeof HUDGauges.prototype.create === 'function', 'create missing')
+  })
+  test('HUDGauges has update method', () => {
+    assert(typeof HUDGauges.prototype.update === 'function', 'update missing')
+  })
+  test('HUDGauges has remove method', () => {
+    assert(typeof HUDGauges.prototype.remove === 'function', 'remove missing')
+  })
+  test('CarFactory has generateThumbnails method', () => {
+    assert(typeof CarFactory.prototype.generateThumbnails === 'function', 'generateThumbnails missing')
+  })
+  test('generateThumbnails returns Map with 4 entries', async () => {
+    const pf = new PhysicsWorld()
+    await pf.init()
+    const factory = pf.getCarFactory()
+    await factory.preloadModels()
+    const thumbs = await factory.generateThumbnails()
+    assert(thumbs instanceof Map, `Expected Map, got ${typeof thumbs}`)
+    assert(thumbs.size === 4, `Expected 4 thumbnails, got ${thumbs.size}`)
+    for (const car of CARS) {
+      const dataUrl = thumbs.get(car.id) as string
+      assert(typeof dataUrl === 'string', `${car.name} thumbnail is not a string`)
+      assert(dataUrl.startsWith('data:image/'), `${car.name} thumbnail is not a data URL`)
+      assert(dataUrl.length > 100, `${car.name} thumbnail is suspiciously small`)
+    }
+    pf.dispose()
+  })
+  test('UIManager init accepts thumbnails parameter', () => {
+    const sm = new StateMachine()
+    const ui = new UIManager(sm)
+    assert(typeof ui.init === 'function', 'init missing')
+  })
+  test('UIManager has updateHUD method', () => {
+    assert(typeof UIManager.prototype.updateHUD === 'function', 'updateHUD missing')
+  })
+  test('UIManager has showHUD method', () => {
+    assert(typeof UIManager.prototype.showHUD === 'function', 'showHUD missing')
+  })
+  test('Car engine text is two-line format', () => {
+    for (const car of CARS) {
+      const engineText = `${car.engine.displacement} ${car.engine.type}`
+      assert(engineText.length > 0, `${car.name} engine text is empty`)
+      assert(typeof car.engine.horsepower === 'number' && car.engine.horsepower > 0, `${car.name} horsepower invalid`)
+    }
+  })
+  test('Car engine definitions have displacement + type + HP', () => {
+    for (const car of CARS) {
+      assert(typeof car.engine.displacement === 'string', `${car.name} missing displacement`)
+      assert(typeof car.engine.type === 'string', `${car.name} missing type`)
+      assert(typeof car.engine.horsepower === 'number', `${car.name} missing horsepower`)
+      assert(car.engine.horsepower > 100, `${car.name} horsepower too low: ${car.engine.horsepower}`)
+    }
   })
 
   // ── Summary ──

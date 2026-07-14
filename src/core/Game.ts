@@ -146,6 +146,10 @@ export class Game {
       await this.physics.getCarFactory().preloadModels()
       log('Car models loaded OK')
 
+      log('Generating car thumbnails...')
+      const thumbnails = await this.physics.getCarFactory().generateThumbnails()
+      log('Car thumbnails OK')
+
       log('Creating track...')
       this.selectedTrackId = this.state.getSelectedTrack()
       const trackDef = getTrackById(this.selectedTrackId)
@@ -193,7 +197,8 @@ export class Game {
         onSettingsChanged: () => this.applySettings(),
         onRebindAction: (action, cb) => this.input.startListening(action, cb),
         onResetBindings: () => this.input.resetBindings(),
-        getBindings: () => this.input.getBindings()
+        getBindings: () => this.input.getBindings(),
+        thumbnails
       })
       log('UI initialized OK')
 
@@ -972,6 +977,7 @@ export class Game {
   }
 
   private updateHUD(): void {
+    const carDef = getCarById(this.state.getSelectedCar())
     this.ui.updateHUD({
       speed: this.car.getSpeed(),
       lap: this.track.getCurrentLap(),
@@ -980,7 +986,11 @@ export class Game {
       bestTime: this.raceData.bestLapTime,
       position: this.raceData.position,
       wrongWay: this.raceData.wrongWay,
-      rpm: this.car.getRPM()
+      rpm: this.car.getRPM(),
+      boost: this.car.getBoostLevel(),
+      redline: carDef.engine.redline,
+      maxSpeed: this.car.getMaxSpeed(),
+      hasTurbo: this.car.getConfig().turboLagTime > 0
     })
   }
 

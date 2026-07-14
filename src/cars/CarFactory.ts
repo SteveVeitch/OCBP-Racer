@@ -283,6 +283,72 @@ export class CarFactory {
     return this.createCarMesh(definition)
   }
 
+  async generateThumbnails(): Promise<Map<string, string>> {
+    const thumbnails = new Map<string, string>()
+    const size = 200
+    const height = 120
+
+    const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
+    renderer.setSize(size, height)
+    renderer.setPixelRatio(1)
+    renderer.toneMapping = THREE.ACESFilmicToneMapping
+    renderer.toneMappingExposure = 1.4
+
+    const scene = new THREE.Scene()
+    scene.background = new THREE.Color(0x1a1a2e)
+
+    const camera = new THREE.PerspectiveCamera(35, size / height, 0.1, 100)
+    camera.position.set(5, 3, 5)
+    camera.lookAt(0, 0.4, 0)
+
+    const ambient = new THREE.AmbientLight(0xffffff, 0.4)
+    scene.add(ambient)
+    const dir = new THREE.DirectionalLight(0xffffff, 1.2)
+    dir.position.set(5, 8, 5)
+    scene.add(dir)
+    const fill = new THREE.DirectionalLight(0x8888ff, 0.3)
+    fill.position.set(-3, 2, -3)
+    scene.add(fill)
+
+    for (const car of CARS) {
+      const cached = this.modelCache.get(car.id)
+      if (!cached) continue
+
+      const model = cached.scene.clone(true)
+      scene.add(model)
+
+      model.scale.set(1, 1, 1)
+      model.position.set(0, 0, 0)
+      model.rotation.set(0, 0, 0)
+      model.updateMatrixWorld(true)
+
+      const rawBox = new THREE.Box3().setFromObject(model)
+      const rawSize = rawBox.getSize(new THREE.Vector3())
+
+      const sx = rawSize.x > 0.001 ? 3.8 / rawSize.x : 1
+      const sy = rawSize.y > 0.001 ? 3.8 / rawSize.y : 1
+      const sz = rawSize.z > 0.001 ? 3.8 / rawSize.z : 1
+      const s = Math.min(sx, sy, sz)
+      model.scale.setScalar(s)
+      model.updateMatrixWorld(true)
+
+      const box = new THREE.Box3().setFromObject(model)
+      const center = box.getCenter(new THREE.Vector3())
+      model.position.set(-center.x, 0, -center.z)
+      model.updateMatrixWorld(true)
+
+      const grounded = new THREE.Box3().setFromObject(model)
+      model.position.y = -grounded.min.y + 0.1
+
+      renderer.render(scene, camera)
+      thumbnails.set(car.id, renderer.domElement.toDataURL('image/png'))
+      scene.remove(model)
+    }
+
+    renderer.dispose()
+    return thumbnails
+  }
+
   private createRigidBody(config: CarConfig): RAPIER.RigidBody {
     const desc = RAPIER.RigidBodyDesc.dynamic()
     desc.setTranslation(0, 0.5, 0)

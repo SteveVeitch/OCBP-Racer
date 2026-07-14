@@ -4,6 +4,7 @@ import { TRACKS } from '../track/TrackDefinitions'
 import { getTrackLeaderboard, getOverallLeaderboard, type LeaderboardEntry } from './LeaderboardManager'
 import { type KeyBindings, DEFAULT_KEY_BINDINGS } from '../input/InputManager'
 import { AudioManager } from '../audio/AudioManager'
+import { HUDGauges } from './HUDGauges'
 
 export class UIManager {
   private container!: HTMLDivElement
@@ -21,6 +22,8 @@ export class UIManager {
   private getBindings?: () => KeyBindings
   private selectedCarIndex = 0
   private selectedTrackIndex = 0
+  private hudGauges = new HUDGauges()
+  private thumbnails = new Map<string, string>()
 
   constructor(state: StateMachine) {
     this.state = state
@@ -38,6 +41,7 @@ export class UIManager {
     onRebindAction?: (action: keyof KeyBindings, callback: (action: keyof KeyBindings, keys: string[]) => void) => void
     onResetBindings?: () => void
     getBindings?: () => KeyBindings
+    thumbnails?: Map<string, string>
   }): void {
     this.audio = callbacks.audio
     this.onCarSelected = callbacks.onCarSelected
@@ -50,6 +54,7 @@ export class UIManager {
     this.onRebindAction = callbacks.onRebindAction
     this.onResetBindings = callbacks.onResetBindings
     this.getBindings = callbacks.getBindings
+    if (callbacks.thumbnails) this.thumbnails = callbacks.thumbnails
 
     this.container = document.createElement('div')
     this.container.id = 'ui-container'
@@ -362,31 +367,6 @@ export class UIManager {
         color: var(--primary);
       }
 
-      .hud-speed {
-        position: absolute;
-        bottom: 30px;
-        left: 30px;
-        background: var(--bg-dark);
-        padding: 15px 25px;
-        border: 1px solid var(--border);
-        text-align: center;
-      }
-
-      .hud-speed .speed-value {
-        font-family: 'Courier New', monospace;
-        font-size: 48px;
-        font-weight: 700;
-        color: var(--primary);
-        line-height: 1;
-      }
-
-      .hud-speed .speed-unit {
-        font-size: 12px;
-        color: var(--text-dim);
-        text-transform: uppercase;
-        letter-spacing: 2px;
-      }
-
       .hud-position {
         position: absolute;
         bottom: 30px;
@@ -567,22 +547,6 @@ export class UIManager {
         color: var(--text-dim);
         letter-spacing: 2px;
         text-transform: uppercase;
-      }
-
-      .rpm-bar {
-        position: absolute;
-        bottom: 90px;
-        left: 30px;
-        width: 160px;
-        height: 6px;
-        background: rgba(255, 255, 255, 0.1);
-        border: 1px solid var(--border);
-      }
-
-      .rpm-fill {
-        height: 100%;
-        background: linear-gradient(90deg, var(--primary), var(--accent), var(--secondary));
-        transition: width 0.05s linear;
       }
 
       .settings-panel {
@@ -1149,9 +1113,19 @@ export class UIManager {
         card.classList.add('selected')
       }
 
-      const colorPreview = document.createElement('div')
-      colorPreview.className = 'car-color-preview'
-      colorPreview.style.background = `#${car.color.toString(16).padStart(6, '0')}`
+      const thumbSrc = this.thumbnails.get(car.id)
+      if (thumbSrc) {
+        const thumbImg = document.createElement('img')
+        thumbImg.src = thumbSrc
+        thumbImg.style.cssText = 'width:100%;height:80px;object-fit:cover;object-position:center;margin-bottom:12px;display:block;border-radius:2px;'
+        card.appendChild(thumbImg)
+      } else {
+        const colorPreview = document.createElement('div')
+        colorPreview.className = 'car-color-preview'
+        colorPreview.style.background = `#${car.color.toString(16).padStart(6, '0')}`
+        colorPreview.style.height = '80px'
+        card.appendChild(colorPreview)
+      }
 
       const name = document.createElement('div')
       name.className = 'car-card-name'
@@ -1165,7 +1139,8 @@ export class UIManager {
       engineBadge.className = 'car-card-subtitle'
       engineBadge.style.color = 'var(--primary)'
       engineBadge.style.marginBottom = '12px'
-      engineBadge.textContent = `${car.engine.displacement} ${car.engine.type} \u2022 ${car.engine.horsepower} HP`
+      engineBadge.style.lineHeight = '1.4'
+      engineBadge.innerHTML = `${car.engine.displacement} ${car.engine.type}<br>${car.engine.horsepower} HP`
 
       const stats = [
         { label: 'Power', value: (car.config.engineForce / 950) * 0.85 },
@@ -1187,7 +1162,6 @@ export class UIManager {
         statsContainer.appendChild(row)
       })
 
-      card.appendChild(colorPreview)
       card.appendChild(name)
       card.appendChild(subtitle)
       card.appendChild(engineBadge)
@@ -1289,6 +1263,8 @@ export class UIManager {
 
     overlay.appendChild(rightCol)
     parent.appendChild(overlay)
+
+    parent.style.pointerEvents = 'none'
   }
 
   private buildTrackSelect(parent: HTMLElement): void {
@@ -1818,13 +1794,6 @@ export class UIManager {
           <span class="value" id="hud-best">--:--.--</span>
         </div>
       </div>
-      <div class="hud-speed">
-        <div class="speed-value" id="hud-speed">0</div>
-        <div class="speed-unit" id="hud-speed-unit">km/h</div>
-      </div>
-      <div class="rpm-bar">
-        <div class="rpm-fill" id="hud-rpm"></div>
-      </div>
       <div class="hud-position">
         <span class="pos-value" id="hud-position">1</span><span class="pos-suffix" id="hud-pos-suffix">st</span>
       </div>
@@ -1832,9 +1801,7 @@ export class UIManager {
     `
 
     this.container.appendChild(hud)
-
-    const unitEl = document.getElementById('hud-speed-unit')
-    if (unitEl) unitEl.textContent = this.speedUnitLabel()
+    this.hudGauges.create(hud)
   }
 
   updateHUD(data: {
@@ -1846,24 +1813,34 @@ export class UIManager {
     position: number
     wrongWay: boolean
     rpm: number
+    boost: number
+    redline: number
+    maxSpeed: number
+    hasTurbo: boolean
   }): void {
-    const speedEl = document.getElementById('hud-speed')
     const lapEl = document.getElementById('hud-lap')
     const timeEl = document.getElementById('hud-time')
     const bestEl = document.getElementById('hud-best')
     const posEl = document.getElementById('hud-position')
     const posSuffix = document.getElementById('hud-pos-suffix')
     const wrongWay = document.getElementById('hud-wrong-way')
-    const rpmFill = document.getElementById('hud-rpm')
 
-    if (speedEl) speedEl.textContent = this.convertSpeed(data.speed).toString()
     if (lapEl) lapEl.textContent = `${Math.min(data.lap + 1, data.totalLaps)}/${data.totalLaps}`
     if (timeEl) timeEl.textContent = this.formatTime(data.time)
     if (bestEl) bestEl.textContent = data.bestTime > 0 ? this.formatTime(data.bestTime) : '--:--.--'
     if (posEl) posEl.textContent = data.position.toString()
     if (posSuffix) posSuffix.textContent = this.getOrdinalSuffix(data.position)
     if (wrongWay) wrongWay.classList.toggle('visible', data.wrongWay)
-    if (rpmFill) rpmFill.style.width = `${Math.min(100, (data.rpm / 7500) * 100)}%`
+
+    this.hudGauges.update({
+      speed: data.speed,
+      maxSpeed: data.maxSpeed,
+      rpm: data.rpm,
+      redline: data.redline,
+      boost: data.boost,
+      hasTurbo: data.hasTurbo,
+      speedUnit: this.state.getSettings().speedUnit
+    })
   }
 
   showPause(): void {

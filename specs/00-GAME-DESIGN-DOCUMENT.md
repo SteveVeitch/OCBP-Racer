@@ -122,8 +122,9 @@ See `05-AUDIO-SPEC.md` for detailed specifications.
 ## 9. UI / HUD
 
 ### 9.1 In-Race HUD
-- Speedometer (digital)
-- RPM bar
+- Speedometer gauge (160px analog dial, realistic style)
+- Rev counter gauge (160px analog dial with redline zone)
+- Turbo boost gauge (160px analog dial, turbo cars only)
 - Lap counter
 - Position indicator
 - Mini-map (player + AI positions)
@@ -131,7 +132,7 @@ See `05-AUDIO-SPEC.md` for detailed specifications.
 
 ### 9.2 Menus
 - Main menu
-- Car selection (with engine badges)
+- Car selection (with 3D thumbnails, engine badges, stat bars)
 - Car preview (3D model + full spec card, Back/Continue)
 - Track selection (3-column grid, weather override)
 - Race results (position, points, wall hits, top speed)

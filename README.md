@@ -262,8 +262,10 @@ Each car uses a GLTF model for detailed body geometry with procedural wheels and
 - Neon green (#00ff88) + hot pink (#ff3366) + gold (#ffcc00) design system
 - Rajdhani font (Google Fonts)
 - Screens: Main Menu, Car Select, Car Preview, Track Select, Countdown, HUD, Pause, Results, Settings, Leaderboard, Demo
-- **Settings menu** — volume, sensitivity, graphics, fog toggle, camera default, key bindings
-- **Leaderboard** — per-track + overall best times, wall hits, top speed
+- **Car selection** — static 3D thumbnails, engine badges, stat bars
+- **HUD gauges** — realistic analog speedometer, rev counter, turbo boost gauge (160px canvas dials)
+- **Settings menu** — two-column arcade layout, volume, sensitivity, speed unit, graphics, fog toggle, camera default, key bindings
+- **Leaderboard** — per-track + overall best times, wall hits, top speed (75% width, vertical tabs)
 - **Mini-map** — player + AI positions during race
 - **Scoring** — 10/7/5/2 points per position
 - **Responsive scaling** — CSS transform scales UI to any resolution

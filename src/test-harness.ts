@@ -55,6 +55,7 @@ function assert(condition: boolean, msg: string): void {
 }
 
 export async function runTestHarness(): Promise<void> {
+  const savedLeaderboard = localStorage.getItem('ocbp-leaderboard')
   console.log('=== OCBP Racer Test Harness ===\n')
 
   // ── Phase 0: Project Setup ──
@@ -986,10 +987,7 @@ export async function runTestHarness(): Promise<void> {
     assert(sm.getCurrent() === 'CAR_PREVIEW', `State: ${sm.getCurrent()}`)
   })
   test('CarFactory has createPreviewMesh method', () => {
-    const pf = new PhysicsWorld()
-    const factory = pf.getCarFactory()
-    assert(typeof factory.createPreviewMesh === 'function', 'createPreviewMesh missing')
-    pf.dispose()
+    assert(typeof CarFactory.prototype.createPreviewMesh === 'function', 'createPreviewMesh missing')
   })
   test('CarFactory createPreviewMesh returns a Group', async () => {
     const pf = new PhysicsWorld()
@@ -1149,6 +1147,10 @@ export async function runTestHarness(): Promise<void> {
     </div>
   `
   document.body.appendChild(el)
+
+  if (savedLeaderboard) {
+    localStorage.setItem('ocbp-leaderboard', savedLeaderboard)
+  }
 
   if (failed === 0) {
     el.addEventListener('click', () => {

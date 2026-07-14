@@ -993,7 +993,7 @@ export class UIManager {
 
     const version = document.createElement('div')
     version.className = 'version-text'
-    version.textContent = 'v0.2.0'
+    version.textContent = 'v0.3.0'
 
     overlay.appendChild(title)
     overlay.appendChild(subtitle)
@@ -1014,11 +1014,16 @@ export class UIManager {
     title.style.marginBottom = '20px'
     title.textContent = 'LEADERBOARD'
 
-    const tabRow = document.createElement('div')
-    tabRow.style.cssText = 'display:flex;gap:8px;justify-content:center;margin-bottom:20px'
+    const panel = document.createElement('div')
+    panel.style.cssText = 'display:flex;width:75%;max-width:1440px;height:480px;background:var(--bg-darker);border:1px solid var(--border);overflow:hidden;'
+
+    const tabCol = document.createElement('div')
+    tabCol.style.cssText = 'width:140px;min-width:140px;border-right:1px solid var(--border);display:flex;flex-direction:column;padding:8px 0;overflow-y:auto;'
 
     const content = document.createElement('div')
-    content.style.cssText = 'max-height:500px;overflow-y:auto;width:100%'
+    content.style.cssText = 'flex:1;overflow-y:auto;padding:0;'
+
+    let activeTab: HTMLButtonElement | null = null
 
     const renderEntries = (entries: LeaderboardEntry[]) => {
       content.innerHTML = ''
@@ -1031,44 +1036,76 @@ export class UIManager {
       }
 
       const header = document.createElement('div')
-      header.style.cssText = 'display:grid;grid-template-columns:40px 1fr 100px 100px 80px 80px;gap:8px;padding:8px 12px;color:var(--text-dim);font-size:12px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border)'
-      header.innerHTML = '<span>#</span><span>Car</span><span>Time</span><span>Best Lap</span><span>Walls</span><span>Speed</span>'
+      header.style.cssText = 'display:grid;grid-template-columns:32px 1fr 80px 70px 60px;gap:6px;padding:10px 14px;color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg-darker);z-index:1;'
+      header.innerHTML = '<span>#</span><span>Car</span><span>Time</span><span>Walls</span><span>Speed</span>'
       content.appendChild(header)
 
-      entries.forEach((entry, i) => {
+      entries.slice(0, 10).forEach((entry, i) => {
         const carDef = CARS.find(c => c.id === entry.carId)
         const row = document.createElement('div')
-        row.style.cssText = `display:grid;grid-template-columns:40px 1fr 100px 100px 80px 80px;gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);${i === 0 ? 'color:var(--accent)' : ''}`
+        row.style.cssText = `display:grid;grid-template-columns:32px 1fr 80px 70px 60px;gap:6px;padding:8px 14px;border-bottom:1px solid var(--border);color:var(--text);${i === 0 ? 'color:var(--accent);' : ''}`
         row.innerHTML = `
           <span>${i + 1}</span>
-          <span>${carDef?.name ?? entry.carId}</span>
-          <span style="font-family:'Courier New',monospace">${this.formatTime(entry.totalTime)}</span>
-          <span style="font-family:'Courier New',monospace">${this.formatTime(entry.bestLapTime)}</span>
-          <span style="color:${entry.wallHits === 0 ? 'var(--primary)' : 'var(--secondary)'}">${entry.wallHits === 0 ? 'Clean' : entry.wallHits}</span>
-          <span style="font-family:'Courier New',monospace">${Math.round(entry.topSpeed)}</span>
+          <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${carDef?.name ?? entry.carId}</span>
+          <span style="font-family:'Courier New',monospace;font-size:12px">${this.formatTime(entry.totalTime)}</span>
+          <span style="color:${entry.wallHits === 0 ? 'var(--primary)' : 'var(--secondary)'};font-size:12px">${entry.wallHits === 0 ? 'Clean' : entry.wallHits}</span>
+          <span style="font-family:'Courier New',monospace;font-size:12px">${this.convertSpeed(entry.topSpeed)}<span style="color:var(--text-dim);font-size:10px"> ${this.speedUnitLabel()}</span></span>
         `
         content.appendChild(row)
       })
     }
 
-    const overallBtn = this.createButton('Overall', 'primary')
-    overallBtn.onclick = () => {
-      tabRow.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('primary'))
-      overallBtn.classList.add('primary')
-      renderEntries(getOverallLeaderboard())
+    const createTab = (label: string, isActive: boolean, onClick: () => void): HTMLButtonElement => {
+      const btn = document.createElement('button')
+      btn.style.cssText = `
+        background:${isActive ? 'rgba(0,255,136,0.1)' : 'transparent'};
+        border:none;
+        border-left:3px solid ${isActive ? 'var(--primary)' : 'transparent'};
+        color:${isActive ? 'var(--primary)' : 'var(--text-dim)'};
+        font-family:'Rajdhani',sans-serif;
+        font-size:13px;
+        font-weight:600;
+        text-transform:uppercase;
+        letter-spacing:1px;
+        padding:10px 14px;
+        cursor:pointer;
+        text-align:left;
+        transition:all 0.15s ease;
+        white-space:nowrap;
+      `
+      btn.textContent = label
+      btn.onmouseenter = () => {
+        if (btn !== activeTab) btn.style.color = 'var(--text)'
+      }
+      btn.onmouseleave = () => {
+        if (btn !== activeTab) btn.style.color = 'var(--text-dim)'
+      }
+      btn.onclick = () => {
+        if (activeTab) {
+          activeTab.style.background = 'transparent'
+          activeTab.style.borderLeftColor = 'transparent'
+          activeTab.style.color = 'var(--text-dim)'
+        }
+        activeTab = btn
+        btn.style.background = 'rgba(0,255,136,0.1)'
+        btn.style.borderLeftColor = 'var(--primary)'
+        btn.style.color = 'var(--primary)'
+        onClick()
+      }
+      return btn
     }
 
-    tabRow.appendChild(overallBtn)
+    const overallTab = createTab('Overall', true, () => renderEntries(getOverallLeaderboard()))
+    activeTab = overallTab
+    tabCol.appendChild(overallTab)
 
     TRACKS.forEach(track => {
-      const btn = this.createButton(track.name.substring(0, 10))
-      btn.onclick = () => {
-        tabRow.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('primary'))
-        btn.classList.add('primary')
-        renderEntries(getTrackLeaderboard(track.id))
-      }
-      tabRow.appendChild(btn)
+      const tab = createTab(track.name.substring(0, 12), false, () => renderEntries(getTrackLeaderboard(track.id)))
+      tabCol.appendChild(tab)
     })
+
+    panel.appendChild(tabCol)
+    panel.appendChild(content)
 
     const buttons = document.createElement('div')
     buttons.className = 'results-buttons'
@@ -1078,8 +1115,7 @@ export class UIManager {
     buttons.appendChild(backBtn)
 
     overlay.appendChild(title)
-    overlay.appendChild(tabRow)
-    overlay.appendChild(content)
+    overlay.appendChild(panel)
     overlay.appendChild(buttons)
     parent.appendChild(overlay)
 
@@ -1131,18 +1167,11 @@ export class UIManager {
       engineBadge.style.marginBottom = '12px'
       engineBadge.textContent = `${car.engine.displacement} ${car.engine.type} \u2022 ${car.engine.horsepower} HP`
 
-      if (car.config.turboLagTime > 0) {
-        const turboTag = document.createElement('span')
-        turboTag.className = 'turbo-badge'
-        turboTag.textContent = 'TURBO'
-        engineBadge.appendChild(turboTag)
-      }
-
       const stats = [
-        { label: 'Power', value: car.config.engineForce / 8500 },
-        { label: 'Grip', value: car.config.peakGrip / 2.4 },
-        { label: 'Speed', value: car.config.maxSpeed / 265 },
-        { label: 'Drift', value: car.config.slipAngleLimit / 35 }
+        { label: 'Power', value: (car.config.engineForce / 950) * 0.85 },
+        { label: 'Grip', value: (car.config.peakGrip / 2.4) * 0.85 },
+        { label: 'Speed', value: (car.config.maxSpeed / 265) * 0.85 },
+        { label: 'Drift', value: (car.config.slipAngleLimit / 35) * 0.85 }
       ]
 
       const statsContainer = document.createElement('div')
@@ -1152,7 +1181,7 @@ export class UIManager {
         row.innerHTML = `
           <span>${stat.label}</span>
           <div class="car-stat-bar">
-            <div class="car-stat-fill" style="width: ${stat.value * 100}%"></div>
+            <div class="car-stat-fill" style="width: ${Math.min(85, stat.value * 100)}%"></div>
           </div>
         `
         statsContainer.appendChild(row)
@@ -1189,10 +1218,10 @@ export class UIManager {
     const car = CARS[this.selectedCarIndex]
 
     const stats = [
-      { label: 'Power', value: car.config.engineForce / 8500 },
-      { label: 'Grip', value: car.config.peakGrip / 2.4 },
-      { label: 'Speed', value: car.config.maxSpeed / 265 },
-      { label: 'Drift', value: car.config.slipAngleLimit / 35 }
+      { label: 'Power', value: (car.config.engineForce / 950) * 0.85 },
+      { label: 'Grip', value: (car.config.peakGrip / 2.4) * 0.85 },
+      { label: 'Speed', value: (car.config.maxSpeed / 265) * 0.85 },
+      { label: 'Drift', value: (car.config.slipAngleLimit / 35) * 0.85 }
     ]
 
     const overlay = document.createElement('div')
@@ -1212,12 +1241,6 @@ export class UIManager {
     const engine = document.createElement('div')
     engine.className = 'car-preview-spec-engine'
     engine.textContent = `${car.engine.displacement} ${car.engine.type} \u2022 ${car.engine.horsepower} HP`
-    if (car.config.turboLagTime > 0) {
-      const turboTag = document.createElement('span')
-      turboTag.className = 'turbo-badge'
-      turboTag.textContent = 'TURBO'
-      engine.appendChild(turboTag)
-    }
 
     const statsContainer = document.createElement('div')
     statsContainer.className = 'car-preview-spec-stats'
@@ -1235,7 +1258,7 @@ export class UIManager {
     const details = document.createElement('div')
     details.className = 'car-preview-spec-details'
     details.innerHTML = `
-      <span>Top Speed: ${car.config.maxSpeed.toFixed(0)} km/h</span>
+      <span>Top Speed: ${this.convertSpeed(car.config.maxSpeed)} ${this.speedUnitLabel()}</span>
       <span>Power/Weight: ${(car.config.engineForce / car.config.mass).toFixed(2)} g</span>
     `
 
@@ -1455,13 +1478,23 @@ export class UIManager {
     overlay.className = 'ui-overlay'
 
     const panel = document.createElement('div')
-    panel.className = 'settings-panel'
+    panel.style.cssText = 'background:var(--bg-darker);border:1px solid var(--border);padding:40px 50px;animation:slideUp 0.3s ease;min-width:800px;max-width:900px;'
 
     const title = document.createElement('div')
     title.className = 'settings-title'
+
     title.textContent = 'Settings'
 
     const settings = this.state.getSettings()
+
+    const columns = document.createElement('div')
+    columns.style.cssText = 'display:flex;gap:0;'
+
+    const leftCol = document.createElement('div')
+    leftCol.style.cssText = 'flex:1;padding-right:30px;border-right:1px solid var(--border);'
+
+    const rightCol = document.createElement('div')
+    rightCol.style.cssText = 'flex:1;padding-left:30px;'
 
     const masterGroup = this.createSliderGroup('Master Volume', settings.masterVolume, 0, 1, 0.01, (v) => {
       this.state.updateSettings({ masterVolume: v })
@@ -1477,6 +1510,33 @@ export class UIManager {
       this.state.updateSettings({ steerSensitivity: v })
       this.onSettingsChanged?.()
     })
+
+    const speedUnitGroup = document.createElement('div')
+    speedUnitGroup.className = 'settings-group'
+
+    const speedUnitLabel = document.createElement('div')
+    speedUnitLabel.className = 'settings-label'
+    speedUnitLabel.textContent = 'Speed Unit'
+
+    const speedUnitOptions = document.createElement('div')
+    speedUnitOptions.className = 'settings-options'
+
+    const speedUnits: Array<'mph' | 'kph'> = ['mph', 'kph']
+    speedUnits.forEach(u => {
+      const btn = document.createElement('button')
+      btn.className = `settings-option ${settings.speedUnit === u ? 'active' : ''}`
+      btn.textContent = u.toUpperCase()
+      btn.onclick = () => {
+        this.state.updateSettings({ speedUnit: u })
+        this.onSettingsChanged?.()
+        speedUnitOptions.querySelectorAll('.settings-option').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+      }
+      speedUnitOptions.appendChild(btn)
+    })
+
+    speedUnitGroup.appendChild(speedUnitLabel)
+    speedUnitGroup.appendChild(speedUnitOptions)
 
     const graphicsGroup = document.createElement('div')
     graphicsGroup.className = 'settings-group'
@@ -1573,7 +1633,7 @@ export class UIManager {
 
     const controlsHeader = document.createElement('div')
     controlsHeader.className = 'settings-label'
-    controlsHeader.style.cssText = 'margin-top:16px;margin-bottom:8px;border-top:1px solid var(--border);padding-top:16px'
+    controlsHeader.style.cssText = 'margin-top:8px;margin-bottom:12px;'
     controlsHeader.textContent = 'Controls'
 
     const bindings = this.getBindings?.() ?? DEFAULT_KEY_BINDINGS
@@ -1587,7 +1647,7 @@ export class UIManager {
     ]
 
     const controlsGroup = document.createElement('div')
-    controlsGroup.style.cssText = 'margin-bottom:16px'
+    controlsGroup.style.cssText = 'margin-bottom:12px;'
 
     for (const [action, label] of actions) {
       const row = document.createElement('div')
@@ -1623,7 +1683,7 @@ export class UIManager {
     }
 
     const resetBtn = this.createButton('Reset to Defaults')
-    resetBtn.style.cssText = 'font-size:12px;padding:6px 16px;margin-top:8px;margin-bottom:16px'
+    resetBtn.style.cssText = 'font-size:12px;padding:6px 16px;margin-top:8px;'
     resetBtn.onclick = () => {
       this.onResetBindings?.()
       if (this.getBindings) {
@@ -1637,6 +1697,22 @@ export class UIManager {
         })
       }
     }
+
+    leftCol.appendChild(masterGroup)
+    leftCol.appendChild(engineGroup)
+    leftCol.appendChild(steerGroup)
+    leftCol.appendChild(speedUnitGroup)
+    leftCol.appendChild(graphicsGroup)
+    leftCol.appendChild(fogToggle)
+    leftCol.appendChild(cameraGroup)
+    leftCol.appendChild(demoToggle)
+
+    rightCol.appendChild(controlsHeader)
+    rightCol.appendChild(controlsGroup)
+    rightCol.appendChild(resetBtn)
+
+    columns.appendChild(leftCol)
+    columns.appendChild(rightCol)
 
     const buttons = document.createElement('div')
     buttons.className = 'settings-buttons'
@@ -1654,16 +1730,7 @@ export class UIManager {
     buttons.appendChild(backBtn)
 
     panel.appendChild(title)
-    panel.appendChild(masterGroup)
-    panel.appendChild(engineGroup)
-    panel.appendChild(steerGroup)
-    panel.appendChild(graphicsGroup)
-    panel.appendChild(cameraGroup)
-    panel.appendChild(fogToggle)
-    panel.appendChild(demoToggle)
-    panel.appendChild(controlsHeader)
-    panel.appendChild(controlsGroup)
-    panel.appendChild(resetBtn)
+    panel.appendChild(columns)
     panel.appendChild(buttons)
     overlay.appendChild(panel)
     parent.appendChild(overlay)
@@ -1753,7 +1820,7 @@ export class UIManager {
       </div>
       <div class="hud-speed">
         <div class="speed-value" id="hud-speed">0</div>
-        <div class="speed-unit">km/h</div>
+        <div class="speed-unit" id="hud-speed-unit">km/h</div>
       </div>
       <div class="rpm-bar">
         <div class="rpm-fill" id="hud-rpm"></div>
@@ -1765,6 +1832,9 @@ export class UIManager {
     `
 
     this.container.appendChild(hud)
+
+    const unitEl = document.getElementById('hud-speed-unit')
+    if (unitEl) unitEl.textContent = this.speedUnitLabel()
   }
 
   updateHUD(data: {
@@ -1786,7 +1856,7 @@ export class UIManager {
     const wrongWay = document.getElementById('hud-wrong-way')
     const rpmFill = document.getElementById('hud-rpm')
 
-    if (speedEl) speedEl.textContent = Math.round(data.speed).toString()
+    if (speedEl) speedEl.textContent = this.convertSpeed(data.speed).toString()
     if (lapEl) lapEl.textContent = `${Math.min(data.lap + 1, data.totalLaps)}/${data.totalLaps}`
     if (timeEl) timeEl.textContent = this.formatTime(data.time)
     if (bestEl) bestEl.textContent = data.bestTime > 0 ? this.formatTime(data.bestTime) : '--:--.--'
@@ -1888,7 +1958,7 @@ export class UIManager {
     const speedValue = document.createElement('div')
     speedValue.className = 'results-time'
     speedValue.style.fontSize = '28px'
-    speedValue.textContent = `${Math.round(results.topSpeed)} km/h`
+    speedValue.textContent = `${this.convertSpeed(results.topSpeed)} ${this.speedUnitLabel()}`
     speedStat.appendChild(speedLabel)
     speedStat.appendChild(speedValue)
 
@@ -2016,5 +2086,14 @@ export class UIManager {
     const s = ['th', 'st', 'nd', 'rd']
     const v = n % 100
     return s[(v - 20) % 10] || s[v] || s[0]
+  }
+
+  private convertSpeed(kmh: number): number {
+    const unit = this.state.getSettings().speedUnit
+    return unit === 'mph' ? Math.round(kmh * 0.621371) : Math.round(kmh)
+  }
+
+  private speedUnitLabel(): string {
+    return this.state.getSettings().speedUnit.toUpperCase()
   }
 }

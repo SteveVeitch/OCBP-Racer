@@ -54,7 +54,7 @@ Run the automated test suite:
 http://localhost:3000?test
 ```
 
-85 tests validate all game systems. Click the results overlay to start the game.
+77 tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 
@@ -161,6 +161,7 @@ Each track has distinct terrain-themed decorations (buildings, trees, rocks, ind
 | Master Volume | Overall audio volume |
 | Engine Volume | Engine + procedural sound volume |
 | Steer Sensitivity | Steering response curve |
+| Speed Unit | MPH or KPH display (internal always km/h) |
 | Graphics Quality | Bloom strength + pixel ratio (Low/Med/High) |
 | Fog Toggle | Enable/disable fog (for testing) |
 | Camera Default | Starting camera view |

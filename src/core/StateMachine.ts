@@ -29,6 +29,7 @@ export interface GameSettings {
   masterVolume: number
   engineVolume: number
   steerSensitivity: number
+  speedUnit: 'mph' | 'kph'
   graphicsQuality: 'low' | 'medium' | 'high'
   weatherOverride: string
   todOverride: string
@@ -42,6 +43,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   masterVolume: 1.0,
   engineVolume: 0.6,
   steerSensitivity: 1.0,
+  speedUnit: 'mph',
   graphicsQuality: 'high',
   weatherOverride: 'auto',
   todOverride: 'auto',

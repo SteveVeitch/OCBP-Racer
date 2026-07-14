@@ -95,8 +95,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Color preview rectangle
 - Car name
 - Subtitle ("The Prancing Horse", etc.)
-- Engine badge ("Twin-Turbo V8", "Flat-6 NA", etc.)
-- Turbo indicator (if applicable)
+- Engine badge ("3.9L Twin-Turbo V8 • 661 HP") — no TURBO indicator
 - 4 stat bars: Power, Grip, Speed, Drift
 
 ### 3.3 Car Preview
@@ -135,6 +134,14 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Mouse drag rotates manually (3s resume timeout)
 - Scroll zooms in/out (min 3, max 12)
 - Spec box shows full car stats with arcade styling
+- Engine info shown inline without TURBO badge
+- Power bar calibrated: highest-power car fills ~85% of bar width, others proportional
+
+**Power Bar Calibration:**
+- Normalize against `engineForce / 8500` (same formula as current)
+- Cap fill at 85% for the highest-power car (Weissach GT3 at 850/8500 = 10% → rescale)
+- Actually: find max power stat across all cars, set that car's fill to 85%, others proportional
+- Affects both car selection cards and car preview stat bars
 
 ### 3.4 Track Select
 
@@ -291,56 +298,72 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 
 **Layout:**
 ```
-┌─────────────────────────────────────────┐
-│                                         │
-│           LEADERBOARD                   │
-│                                         │
-│  Track: Midnight Circuit    [All Tracks]│
-│                                         │
-│  #  Car       Time      Clean  Speed    │
-│  1  Rossini   1:42.356   ●●○   248     │
-│  2  Weissach  1:43.112   ●●●   235     │
-│  3  Kaiju     1:44.890   ●○○   261     │
-│  4  Stingray  1:45.234   ●●○   265     │
-│                                         │
-│         [BACK]                          │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│                                                  │
+│              LEADERBOARD                         │
+│                                                  │
+│  ┌──────────┬───────────────────────────────────┐│
+│  │ OVERALL  │  #   Car        Time    Wall  MPH  ││
+│  │ Midnight │  1   Rossini    1:42    2     148  ││
+│  │ Sunset   │  2   Weissach   1:43    0     146  ││
+│  │ Thunder  │  3   Kaiju      1:44    3     155  ││
+│  │ Typhoon  │  4   Stingray   1:45    1     164  ││
+│  │ Neon     │                                          │
+│  │ Iron     │                                          │
+│  └──────────┴───────────────────────────────────┘│
+│                                                  │
+│                 [ BACK ]                         │
+└──────────────────────────────────────────────────┘
 ```
 
 **Leaderboard Features:**
+- Fixed dimensions: centered panel, 600px wide, 480px tall
+- Top 10 entries per track, top 20 overall
+- Tabs positioned vertically on the left side (not top)
+- All entries show full stats (time, walls, speed) — not just 1st place
+- Tabs styled as arcade sidebar with active state indicator
 - Per-track leaderboard (best times per track)
 - Overall leaderboard (best combined times)
-- Cleanest rating: ● = wall hit, ○ = clean segment
-- Top speed column
+- Top speed shown in the unit currently selected (MPH or KPH)
 - Sorted by total time (ascending)
 - Accessible from main menu and race results
+- Scrollable content area for entries beyond visible area
 
 ### 3.10 Settings Menu
 
-**Layout:**
+**Layout: Two-column arcade panel, centered**
 ```
-┌─────────────────────────────────────────┐
-│                                         │
-│           SETTINGS                      │
-│                                         │
-│  Master Volume    ████████░░  80%       │
-│  Engine Volume    ██████░░░░  60%       │
-│  Steer Sensitivity ████░░░░░  1.0x      │
-│  Graphics Quality  [Low] [Med] [High]   │
-│  Fog Toggle        [On] [Off]           │
-│  Camera Default    [Chase] [Wind/H/B]  │
-│                                         │
-│  ── CONTROLS ──                         │
-│  Throttle:     W / ↑        [Change]    │
-│  Brake:        S / ↓        [Change]    │
-│  Steer Left:   A / ←        [Change]    │
-│  Steer Right:  D / →        [Change]    │
-│  Pause:        Esc           [Change]    │
-│  Camera:       C             [Change]    │
-│  [Reset Defaults]                        │
-│                                         │
-│           [ BACK ]                      │
-└─────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                                                          │
+│                    SETTINGS                              │
+│                                                          │
+│  ┌─── AUDIO / GRAPHICS ───┐  ┌─── CONTROLS ──────────┐  │
+│  │                         │  │                        │  │
+│  │  Master Volume          │  │  Throttle:   W    [≡]  │  │
+│  │  ████████░░  80%        │  │  Brake:      S    [≡]  │  │
+│  │                         │  │  Steer L:    A    [≡]  │  │
+│  │  Engine Volume          │  │  Steer R:    D    [≡]  │  │
+│  │  ██████░░░░  60%        │  │  Pause:     Esc   [≡]  │  │
+│  │                         │  │  Camera:     C    [≡]  │  │
+│  │  Steer Sensitivity      │  │                        │  │
+│  │  ████░░░░░░  1.0x       │  │  [Reset Defaults]     │  │
+│  │                         │  │                        │  │
+│  │  Speed Unit             │  └────────────────────────┘  │
+│  │  [ MPH ] [ KPH ]        │                             │
+│  │                         │                             │
+│  │  Graphics Quality       │                             │
+│  │  [Low] [Med] [High]     │                             │
+│  │                         │                             │
+│  │  Fog Toggle  [On/Off]   │                             │
+│  │                         │                             │
+│  │  Camera Default         │                             │
+│  │  [Chase] [Wind/H/B]     │                             │
+│  │                         │                             │
+│  │  Demo Mode  [On/Off]    │                             │
+│  └─────────────────────────┘                             │
+│                                                          │
+│                      [ BACK ]                            │
+└──────────────────────────────────────────────────────────┘
 ```
 
 **Settings (GameSettings interface):**
@@ -350,11 +373,27 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 | Master Volume | Slider | 0-100% | 100% | Overall audio volume |
 | Engine Volume | Slider | 0-100% | 60% | Engine + procedural sound volume |
 | Steer Sensitivity | Slider | 0-200% | 100% | Steering response curve exponent (1.0-2.0) |
+| Speed Unit | Button group | MPH/KPH | MPH | Display unit for speed (internal always km/h) |
 | Graphics Quality | Button group | Low/Med/High | High | Bloom strength + pixel ratio |
-| Fog Toggle | Button group | On/Off | On | Enable/disable fog rendering |
+| Fog Toggle | Toggle | On/Off | On | Enable/disable fog rendering |
 | Camera Default | Button group | Chase/Wind/Hood/Bumper | Chase | Default camera view |
 | Demo Mode | Toggle | On/Off | On | Enable/disable attract mode after 3 min idle |
 | Key Bindings | Per-action | See 03-INPUT-SPEC | Defaults | Rebindable controls |
+
+**Speed Unit:**
+- Stores `speedUnit: 'mph' | 'kph'` in GameSettings (default: `'mph'`)
+- Internal physics always use km/h (`CarController.getSpeed()`)
+- Conversion applied at display: MPH = km/h * 0.621371, KPH = km/h
+- Affects: HUD speedometer, results top speed, leaderboard top speed
+- Does not affect physics, lap times, or any non-display values
+
+**Layout Behavior:**
+- Two vertical columns side-by-side, centered in the screen
+- Left column: Audio sliders + Speed Unit + Graphics + Fog + Camera + Demo Mode
+- Right column: Controls (key bindings) + Reset Defaults
+- Both columns inside a single arcade-styled border panel
+- Panel background: `var(--bg-darker)` with 1px border
+- Columns separated by a vertical divider line
 
 **Fog Toggle:**
 - Controls `scene.fog` visibility

@@ -409,7 +409,7 @@ export class Game {
     const timeOfDay = getTrackTimeOfDay(def, this.state.getSettings().todOverride)
     const weatherOverride = this.state.getSettings().weatherOverride
     const weather = getTrackWeather(def, weatherOverride)
-    this.environment.applyTimeOfDay(timeOfDay, def.id === 'midnight-circuit' ? 0.5 : 0.4)
+    this.environment.applyTimeOfDay(timeOfDay, def.id === 'midnight-circuit' ? 0.1 : 0.4)
     this.environment.applyWeather(weather)
     const mods = combineModifiers(
       weather.gripMultiplier,

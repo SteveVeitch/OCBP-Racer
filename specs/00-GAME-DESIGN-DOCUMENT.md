@@ -146,6 +146,7 @@ See `08-UI-SPEC.md` for detailed specifications.
 - Semi-realistic PBR rendering
 - Dynamic time-of-day lighting (dawn/day/dusk/night)
 - HDR environment maps for skybox backgrounds and image-based lighting (Polyhaven CC0)
+- PBR ground textures per terrain (ambientCG CC0) — color, normal, roughness maps
 - Weather effects (rain, fog, storm)
 - Exotic sports car focus
 - Clean, readable visuals over photorealism

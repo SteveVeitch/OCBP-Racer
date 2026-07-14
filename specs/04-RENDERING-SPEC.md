@@ -325,16 +325,22 @@ Geometry:       Cylinder (0.32 radius, 0.22 width)
 ## 6. Environment
 
 ### 6.1 Ground
-- Large plane (200×200)
-- Dark color (#111111)
+- Large plane (400×400)
 - Receives shadows
-- Y = 0
-- Terrain texture generated procedurally via HTML Canvas (noise-based asphalt pattern) — no external texture files
+- Y = -0.01
+- PBR ground textures per terrain type (ambientCG, CC0 license):
+  - **Urban**: Asphalt024B — cracked asphalt (Color + NormalDX + Roughness)
+  - **Coastal**: Ground022 — pebbles/river rock (Color + NormalDX + Roughness)
+  - **Mountain**: Rock026 — gray cliff rock, photogrammetry (Color + NormalDX + Roughness)
+  - **Industrial**: Concrete039 — broken brown concrete, photogrammetry (Color + NormalDX + Roughness)
+- Textures tiled at 40×40 repeat on a 1K map
+- Normal scale: 0.8 (subtle surface detail)
+- Falls back to procedural canvas textures if PBR fails to load
 
 ### 6.2 Track Decorations
-- Street lights along spline (poles + bulbs)
+- Street lights along spline (poles + bulb meshes, no light sources)
 - Terrain-appropriate decorations (buildings, trees, rocks, industrial structures)
-- Buildings have lit windows (random emissive yellow #ffdd88)
+- Buildings have visible window textures (no emissive)
 - Decoration count varies by track density parameter
 
 ### 6.3 Building Style

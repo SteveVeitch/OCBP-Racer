@@ -4,6 +4,29 @@ import { TimeOfDayPreset } from './TimeOfDayPresets'
 import { WeatherPreset } from './WeatherPresets'
 import { TerrainType } from '../track/TrackDefinitions'
 
+const PBR_GROUND_MAPS: Record<TerrainType, { color: string; normal: string; roughness: string }> = {
+  urban: {
+    color: 'assets/textures/urban/Asphalt024B_1K-JPG_Color.jpg',
+    normal: 'assets/textures/urban/Asphalt024B_1K-JPG_NormalDX.jpg',
+    roughness: 'assets/textures/urban/Asphalt024B_1K-JPG_Roughness.jpg'
+  },
+  coastal: {
+    color: 'assets/textures/coastal/Ground022_1K-JPG_Color.jpg',
+    normal: 'assets/textures/coastal/Ground022_1K-JPG_NormalDX.jpg',
+    roughness: 'assets/textures/coastal/Ground022_1K-JPG_Roughness.jpg'
+  },
+  mountain: {
+    color: 'assets/textures/mountain/Rock026_1K-JPG_Color.jpg',
+    normal: 'assets/textures/mountain/Rock026_1K-JPG_NormalDX.jpg',
+    roughness: 'assets/textures/mountain/Rock026_1K-JPG_Roughness.jpg'
+  },
+  industrial: {
+    color: 'assets/textures/industrial/Concrete039_1K-JPG_Color.jpg',
+    normal: 'assets/textures/industrial/Concrete039_1K-JPG_NormalDX.jpg',
+    roughness: 'assets/textures/industrial/Concrete039_1K-JPG_Roughness.jpg'
+  }
+}
+
 function createGroundTexture(terrain: TerrainType): THREE.CanvasTexture {
   const size = 512
   const canvas = document.createElement('canvas')
@@ -181,6 +204,7 @@ export class EnvironmentManager {
   private currentTerrain: TerrainType | null = null
   private hdrCache = new Map<string, THREE.Texture>()
   private pmremGenerator: THREE.PMREMGenerator | null = null
+  private pbrGroundCache = new Map<TerrainType, { map: THREE.Texture; normalMap: THREE.Texture; roughnessMap: THREE.Texture }>()
 
   private sharedUrbanBaseMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9, metalness: 0.05 })
   private sharedIndustrialBaseMat = new THREE.MeshStandardMaterial({ color: 0x2a2a2a, roughness: 0.9, metalness: 0.1 })
@@ -228,6 +252,28 @@ export class EnvironmentManager {
     })
 
     await Promise.all(loadPromises)
+  }
+
+  async loadGroundTextures(): Promise<void> {
+    const loader = new THREE.TextureLoader()
+    const terrains = Object.keys(PBR_GROUND_MAPS) as TerrainType[]
+    await Promise.all(terrains.map(async (terrain) => {
+      const paths = PBR_GROUND_MAPS[terrain]
+      try {
+        const [map, normalMap, roughnessMap] = await Promise.all([
+          loader.loadAsync(paths.color),
+          loader.loadAsync(paths.normal),
+          loader.loadAsync(paths.roughness)
+        ])
+        for (const t of [map, normalMap, roughnessMap]) {
+          t.wrapS = t.wrapT = THREE.RepeatWrapping
+          t.repeat.set(40, 40)
+        }
+        this.pbrGroundCache.set(terrain, { map, normalMap, roughnessMap })
+      } catch (err) {
+        console.warn(`Failed to load PBR textures for ${terrain}`, err)
+      }
+    }))
   }
 
   applyTimeOfDay(preset: TimeOfDayPreset, envIntensity = 0.4): void {
@@ -278,12 +324,25 @@ export class EnvironmentManager {
     }
 
     this.currentTerrain = terrain
-    const tex = createGroundTexture(terrain)
-    const mat = new THREE.MeshStandardMaterial({
-      map: tex,
-      roughness: 0.95,
-      metalness: 0.0
-    })
+    const pbr = this.pbrGroundCache.get(terrain)
+    let mat: THREE.MeshStandardMaterial
+    if (pbr) {
+      mat = new THREE.MeshStandardMaterial({
+        map: pbr.map,
+        normalMap: pbr.normalMap,
+        normalScale: new THREE.Vector2(0.8, 0.8),
+        roughnessMap: pbr.roughnessMap,
+        roughness: 1.0,
+        metalness: 0.0
+      })
+    } else {
+      const tex = createGroundTexture(terrain)
+      mat = new THREE.MeshStandardMaterial({
+        map: tex,
+        roughness: 0.95,
+        metalness: 0.0
+      })
+    }
     this.groundMesh = new THREE.Mesh(this.groundGeometry!, mat)
     this.groundMesh.rotation.x = -Math.PI / 2
     this.groundMesh.position.y = -0.01
@@ -532,12 +591,20 @@ export class EnvironmentManager {
       this.scene.remove(this.groundMesh)
       const mat = this.groundMesh.material as THREE.MeshStandardMaterial
       if (mat.map) mat.map.dispose()
+      if (mat.normalMap) mat.normalMap.dispose()
+      if (mat.roughnessMap) mat.roughnessMap.dispose()
       mat.dispose()
       this.groundGeometry?.dispose()
       this.groundMesh = null
       this.groundGeometry = null
       this.currentTerrain = null
     }
+    for (const pbr of this.pbrGroundCache.values()) {
+      pbr.map.dispose()
+      pbr.normalMap.dispose()
+      pbr.roughnessMap.dispose()
+    }
+    this.pbrGroundCache.clear()
     for (const envMap of this.hdrCache.values()) {
       envMap.dispose()
     }

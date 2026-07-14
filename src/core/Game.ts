@@ -162,6 +162,9 @@ export class Game {
       log('Loading HDR environment maps...')
       await this.environment.initEnvironmentMaps(this.renderer, Object.values(TimeOfDayPresets))
       log('HDR maps loaded OK')
+      log('Loading PBR ground textures...')
+      await this.environment.loadGroundTextures()
+      log('PBR ground textures loaded OK')
       this.applyEnvironment()
       log('Environment OK')
 

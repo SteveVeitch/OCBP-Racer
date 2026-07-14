@@ -202,6 +202,7 @@ Physics runs at a fixed 120 Hz timestep with accumulator pattern.
 
 - Dynamic time-of-day lighting (dawn/day/dusk/night)
 - **HDR environment maps** — Polyhaven CC0 skyboxes with image-based lighting for realistic car paint reflections
+- **PBR ground textures** — ambientCG CC0 materials per terrain (asphalt, rock, concrete, pebbles) with color/normal/roughness maps
 - Weather effects (rain particles, fog density)
 - ACES Filmic tone mapping (exposure 1.4)
 - Ambient + hemisphere + directional lighting (dynamic via EnvironmentManager)
@@ -281,7 +282,8 @@ OCBP Racer/
 ├── specs/                      # SDD specification documents
 ├── assets/                     # Game assets
 │   ├── models/                 # GLTF car models (Sketchfab, CC licenses)
-│   └── hdr/                    # HDR environment maps (Polyhaven, CC0)
+│   ├── hdr/                    # HDR environment maps (Polyhaven, CC0)
+│   └── textures/               # PBR ground textures (ambientCG, CC0)
 ├── public/                     # Static assets (Rapier WASM)
 ├── src/
 │   ├── main.ts                 # Entry point

@@ -201,13 +201,13 @@ Physics runs at a fixed 120 Hz timestep with accumulator pattern.
 ### Rendering
 
 - Dynamic time-of-day lighting (dawn/day/dusk/night)
-- **HDR environment maps** — Polyhaven CC0 skyboxes with image-based lighting for realistic car paint reflections
+- **HDR environment maps** — ambientCG 4K EXR skyboxes with image-based lighting for realistic car paint reflections
 - **PBR ground textures** — ambientCG CC0 materials per terrain (asphalt, rock, concrete, pebbles) with color/normal/roughness maps
 - Weather effects (rain particles, fog density)
-- ACES Filmic tone mapping (exposure 1.4)
-- Ambient + hemisphere + directional lighting (dynamic via EnvironmentManager)
-- 20+ street lights per track (point lights, warm orange)
-- Car headlights (spot lights, intensity 8) — off on day tracks
+- ACES Filmic tone mapping (exposure 0.7)
+- Ambient + directional lighting (dynamic via EnvironmentManager presets)
+- 20+ street lights per track (point lights, warm orange) — night tracks only
+- Car headlights/taillights — toggleable, off on day tracks
 - Car taillights (point lights, red)
 - **Bloom post-processing** (UnrealBloomPass)
 - **Camera wall collision** — raycast prevents camera clipping

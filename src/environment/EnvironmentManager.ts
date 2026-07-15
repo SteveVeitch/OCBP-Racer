@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { RGBELoader } from 'three/examples/jsm/loaders/RGBELoader.js'
+import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader.js'
 import { TimeOfDayPreset } from './TimeOfDayPresets'
 import { WeatherPreset } from './WeatherPresets'
 import { TerrainType } from '../track/TrackDefinitions'
@@ -237,17 +238,35 @@ export class EnvironmentManager {
     this.pmremGenerator = new THREE.PMREMGenerator(renderer)
     this.pmremGenerator.compileEquirectangularShader()
 
-    const loader = new RGBELoader()
+    const hdrLoader = new RGBELoader()
+    const exrLoader = new EXRLoader()
+
+    const pathOffsets = new Map<string, number>()
+    for (const p of presets) {
+      if (p.hdrPath && p.hdrVerticalOffset && !pathOffsets.has(p.hdrPath)) {
+        pathOffsets.set(p.hdrPath, p.hdrVerticalOffset)
+      }
+    }
+
     const uniquePaths = [...new Set(presets.map(p => p.hdrPath).filter(Boolean))] as string[]
 
     const loadPromises = uniquePaths.map(async (hdrPath) => {
       try {
-        const texture = await loader.loadAsync(hdrPath)
+        const isExr = hdrPath.endsWith('.exr')
+        const texture = isExr
+          ? await exrLoader.loadAsync(hdrPath)
+          : await hdrLoader.loadAsync(hdrPath)
+        const offset = pathOffsets.get(hdrPath)
+        if (offset) {
+          texture.wrapS = THREE.RepeatWrapping
+          texture.wrapT = THREE.RepeatWrapping
+          texture.offset.y = offset
+        }
         const envMap = this.pmremGenerator!.fromEquirectangular(texture).texture
         texture.dispose()
         this.hdrCache.set(hdrPath, envMap)
       } catch (err) {
-        console.warn(`Failed to load HDR: ${hdrPath}`, err)
+        console.warn(`Failed to load environment map: ${hdrPath}`, err)
       }
     })
 
@@ -280,8 +299,16 @@ export class EnvironmentManager {
     this.fogStartNear = preset.fogNear
     this.fogStartFar = preset.fogFar
     this.fogColor = preset.fogColor.clone()
-    this.ambientLight.intensity = 0
-    this.directionalLight.intensity = 0
+    this.ambientLight.color.copy(preset.ambientColor)
+    this.ambientLight.intensity = preset.ambientIntensity
+    this.directionalLight.color.copy(preset.directionalColor)
+    this.directionalLight.intensity = preset.directionalIntensity
+    const angle = (preset.directionalAngle * Math.PI) / 180
+    this.directionalLight.position.set(
+      Math.cos(angle) * 50,
+      80,
+      Math.sin(angle) * 30
+    )
     if (preset.hdrPath && this.hdrCache.has(preset.hdrPath)) {
       const envMap = this.hdrCache.get(preset.hdrPath)!
       this.scene.background = envMap

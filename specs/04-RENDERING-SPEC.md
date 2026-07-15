@@ -48,10 +48,14 @@ outputColorSpace:     SRGBColorSpace
 
 | TOD Preset | HDR File | Source |
 |------------|----------|--------|
-| dawn | `dawn_industrial_1k.hdr` | Polyhaven "Paul Lobe Haus" |
-| day | `day_puresky_1k.hdr` | Polyhaven "Kloofendal 48d Partly Cloudy" |
-| dusk | `sunset_1k.hdr` | Polyhaven "Venice Sunset" |
-| night | `night_1k.hdr` | Polyhaven "Satara Night" |
+| dawn | `dawn_1k.exr` | ambientCG "Morning Sky HDRI 014 B" (CC0) |
+| day | `day_1k.exr` | ambientCG "Day Sky HDRI 063 B" (CC0) |
+| dusk | `dusk_1k.exr` | ambientCG "Evening Sky HDRI 016 A" (CC0) |
+| night | `night_1k.exr` | ambientCG "Night Sky HDRI 003" (CC0) |
+
+All 4 HDRs are EXR format, loaded via `EXRLoader` from `three/addons/loaders/EXRLoader.js`. File extension is auto-detected: `.exr` → EXRLoader, `.hdr` → RGBELoader.
+
+Night preset uses `hdrVerticalOffset: 0.15` to push the equirectangular horizon below the game horizon, preventing the sky from dominating the top half of the screen.
 
 ## 3. Lighting Model
 
@@ -59,40 +63,40 @@ outputColorSpace:     SRGBColorSpace
 
 #### Night (Default)
 ```
-Ambient Light:       #6688aa, intensity 1.2
-Hemisphere Light:    sky #8899bb, ground #445566, intensity 0.8
-Directional Light:   #99aacc, intensity 1.5, position (50, 80, 30)
-Fog Color:           #0d1520
-Headlights:          ON
-Street Lights:       ON (warm orange point lights)
+Ambient Light:       #222244, intensity 0.6
+Directional Light:   #4444ff, intensity 0.6, position (50, 80, 30)
+Fog Color:           #0a0a15, near 40, far 160
+Headlights:          ON (CarController.setHeadlights(true))
+Street Lights:       ON (point lights, intensity 5, warm orange, distance 30)
+                     + emissive bulb meshes (emissiveIntensity 6.0)
+HDR vertical offset: 0.15 (pushes horizon down)
 ```
 
 #### Dawn
 ```
-Ambient Light:       #aa8866, intensity 1.0
-Hemisphere Light:    sky #cc9977, ground #554433, intensity 0.7
-Directional Light:   #ffaa77, intensity 1.2, position (30, 20, 40)
-Fog Color:           #2a1a0a
-Headlights:          ON
+Ambient Light:       #7a5a3a, intensity 0.11
+Directional Light:   #ffaa55, intensity 0.22, angle 15
+Fog Color:           #5a3a2a, near 80, far 250
+Headlights:          ON (CarController.setHeadlights(true))
 Street Lights:       OFF
 ```
 
 #### Day
 ```
-Ambient Light:       #aabbcc, intensity 1.4
-Hemisphere Light:    sky #bbccdd, ground #667788, intensity 0.9
-Directional Light:   #ffffff, intensity 2.0, position (40, 100, 30)
-Fog Color:           #8899aa
-Headlights:          OFF
+Ambient Light:       #aabbcc, intensity 0.18
+Directional Light:   #ffffff, intensity 0.38, angle 60
+Fog Color:           #bbccdd, near 120, far 350
+Headlights:          OFF (CarController.setHeadlights(false))
 Street Lights:       OFF
 ```
 
 #### Dusk
 ```
-Ambient Light:       #cc8866, intensity 1.1
-Hemisphere Light:    sky #dd9977, ground #554433, intensity 0.75
-Directional Light:   #ff8844, intensity 1.3, position (20, 15, 50)
-Fog Color:           #1a0a00
+Ambient Light:       #774433, intensity 0.11
+Directional Light:   #ff7733, intensity 0.2, angle 10
+Fog Color:           #553322, near 70, far 220
+Headlights:          ON (CarController.setHeadlights(true))
+Street Lights:       OFF
 Headlights:          ON
 Street Lights:       ON
 ```

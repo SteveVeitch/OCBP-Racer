@@ -1100,7 +1100,7 @@ export async function runTestHarness(): Promise<void> {
     for (const p of Object.values(TimeOfDayPresets)) {
       const hdrPath = p.hdrPath as string
       assert(hdrPath.startsWith('assets/hdr/'), `${p.name} hdrPath not in assets/hdr/: ${hdrPath}`)
-      assert(hdrPath.endsWith('.hdr'), `${p.name} hdrPath not .hdr: ${hdrPath}`)
+      assert(hdrPath.endsWith('.hdr') || hdrPath.endsWith('.exr'), `${p.name} hdrPath not .hdr/.exr: ${hdrPath}`)
     }
   })
   test('EnvironmentManager has initEnvironmentMaps method', () => {
@@ -1113,6 +1113,50 @@ export async function runTestHarness(): Promise<void> {
   test('skyColor fallback still exists on all presets', () => {
     for (const p of Object.values(TimeOfDayPresets)) {
       assert(p.skyColor instanceof THREE.Color, `${p.name} missing skyColor`)
+    }
+  })
+
+  // ── Phase 22: EXR Support, Lighting Presets, Car Headlights ──
+  currentPhase = 'Phase 22: Lighting & Headlight Overrides'
+  console.log('\n-- Phase 22: Lighting & Headlight Overrides --')
+  test('TimeOfDayPreset includes hdrVerticalOffset field', () => {
+    const preset = TimeOfDayPresets.night
+    assert('hdrVerticalOffset' in preset, 'hdrVerticalOffset not in TimeOfDayPreset')
+    assert(typeof preset.hdrVerticalOffset === 'number', 'hdrVerticalOffset not a number')
+  })
+  test('Night preset has hdrVerticalOffset 0.15', () => {
+    assert(TimeOfDayPresets.night.hdrVerticalOffset === 0.15, `Expected 0.15, got ${TimeOfDayPresets.night.hdrVerticalOffset}`)
+  })
+  test('Dawn, day, dusk presets have no hdrVerticalOffset', () => {
+    for (const id of ['dawn', 'day', 'dusk']) {
+      const p = TimeOfDayPresets[id]
+      assert(p.hdrVerticalOffset === undefined || p.hdrVerticalOffset === 0, `${id} should have no hdrVerticalOffset`)
+    }
+  })
+  test('All presets have ambient and directional light values', () => {
+    for (const p of Object.values(TimeOfDayPresets)) {
+      assert(typeof p.ambientIntensity === 'number' && p.ambientIntensity > 0, `${p.name} missing ambientIntensity`)
+      assert(typeof p.directionalIntensity === 'number' && p.directionalIntensity > 0, `${p.name} missing directionalIntensity`)
+      assert(p.ambientColor instanceof THREE.Color, `${p.name} missing ambientColor`)
+      assert(p.directionalColor instanceof THREE.Color, `${p.name} missing directionalColor`)
+    }
+  })
+  test('Night preset has elevated ambient/directional (0.6)', () => {
+    const n = TimeOfDayPresets.night
+    assert(n.ambientIntensity === 0.6, `Expected night ambient 0.6, got ${n.ambientIntensity}`)
+    assert(n.directionalIntensity === 0.6, `Expected night directional 0.6, got ${n.directionalIntensity}`)
+  })
+  test('CarController has setHeadlights method', () => {
+    assert(typeof CarController.prototype.setHeadlights === 'function', 'setHeadlights missing')
+  })
+  test('All 4 HDR files use .exr extension', () => {
+    for (const p of Object.values(TimeOfDayPresets)) {
+      assert(p.hdrPath!.endsWith('.exr'), `${p.name} HDR not .exr: ${p.hdrPath}`)
+    }
+  })
+  test('All HDR paths contain 1k resolution suffix', () => {
+    for (const p of Object.values(TimeOfDayPresets)) {
+      assert(p.hdrPath!.includes('1k'), `${p.name} HDR missing 1k in path: ${p.hdrPath}`)
     }
   })
 

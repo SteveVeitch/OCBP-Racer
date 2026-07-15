@@ -370,12 +370,16 @@ export class Game {
     const spline = this.track.getSpline()
     const def = this.track.getDefinition()
     const count = def.streetLightDensity
+    const tod = getTrackTimeOfDay(def, this.state.getSettings().todOverride)
+    const isNight = tod.id === 'night'
 
     const sharedPoleGeom = new THREE.CylinderGeometry(0.1, 0.12, 7, 6)
     const sharedPoleMat = new THREE.MeshStandardMaterial({ color: 0x555555 })
     const sharedBulbGeom = new THREE.SphereGeometry(0.25, 8, 8)
     const sharedBulbMat = new THREE.MeshStandardMaterial({
-      color: 0xffcc88
+      color: 0xffcc88,
+      emissive: isNight ? new THREE.Color(0xffcc88) : new THREE.Color(0x000000),
+      emissiveIntensity: isNight ? 6.0 : 0
     })
 
     for (let i = 0; i < count; i++) {
@@ -392,6 +396,12 @@ export class Game {
       const bulb = new THREE.Mesh(sharedBulbGeom, sharedBulbMat)
       bulb.position.set(right.x * 8, 7.2, right.z * 8)
       group.add(bulb)
+
+      if (isNight) {
+        const light = new THREE.PointLight(0xffcc88, 5, 30, 2)
+        light.position.set(right.x * 8, 7.0, right.z * 8)
+        group.add(light)
+      }
 
       group.position.set(point.x, 0, point.z)
       this.scene.add(group)
@@ -412,7 +422,7 @@ export class Game {
     const timeOfDay = getTrackTimeOfDay(def, this.state.getSettings().todOverride)
     const weatherOverride = this.state.getSettings().weatherOverride
     const weather = getTrackWeather(def, weatherOverride)
-    this.environment.applyTimeOfDay(timeOfDay, def.id === 'midnight-circuit' ? 4 : 0.4)
+    this.environment.applyTimeOfDay(timeOfDay, def.id === 'midnight-circuit' ? 0.15 : 0.4)
     this.renderer.toneMappingExposure = 0.7
     this.environment.applyWeather(weather)
     const mods = combineModifiers(
@@ -438,6 +448,8 @@ export class Game {
     this.clearRaceEntities()
 
     const trackDef = getTrackById(this.selectedTrackId)
+    const resolvedDef = trackDef || TRACKS[0]
+    const timeOfDay = getTrackTimeOfDay(resolvedDef, this.state.getSettings().todOverride)
     if (trackDef && trackDef.id !== this.track.getDefinition().id) {
       this.cleanupStreetLights()
       this.track.cleanup(this.scene, this.physics.getWorld())
@@ -459,7 +471,6 @@ export class Game {
     this.car.setLookAt(startRot)
     this.car.resetPhysics()
     this.car.syncMesh()
-    const resolvedDef = trackDef || TRACKS[0]
     const weather = getTrackWeather(resolvedDef, this.state.getSettings().weatherOverride)
     const mods = combineModifiers(
       weather.gripMultiplier,
@@ -468,6 +479,7 @@ export class Game {
       weather.steerMultiplier
     )
     this.car.setEnvironmentModifiers(mods)
+    this.car.setHeadlights(timeOfDay.id !== 'day')
     this.cameraController.reset()
     const defaultCamera = this.state.getSettings().cameraDefault
     this.cameraController.setView(defaultCamera)
@@ -498,6 +510,7 @@ export class Game {
       const aiDifficulty = this.state.getSettings().aiDifficulty
       const aiController = new AIController(aiCar, this.track.getSpline(), aiDifficulty, allCars)
       aiCar.setEnvironmentModifiers(mods)
+      aiCar.setHeadlights(timeOfDay.id !== 'day')
       this.aiCars.push(aiCar)
       this.aiControllers.push(aiController)
     }
@@ -1159,6 +1172,7 @@ export class Game {
     aiCar.resetPhysics()
     aiCar.syncMesh()
     aiCar.setEnvironmentModifiers(mods)
+    aiCar.setHeadlights(randomTod.id !== 'day')
     this.aiCars = [aiCar]
     this.aiControllers = [new AIController(aiCar, this.track.getSpline(), 'beginner', [aiCar])]
 

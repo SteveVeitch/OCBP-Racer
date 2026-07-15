@@ -464,6 +464,17 @@ export class CarController {
     }
   }
 
+  setHeadlights(on: boolean): void {
+    this.mesh.traverse((child) => {
+      if (child instanceof THREE.SpotLight) {
+        child.intensity = on ? 25 : 0
+      }
+      if (child instanceof THREE.PointLight) {
+        child.intensity = on ? 1.5 : 0
+      }
+    })
+  }
+
   setRoadHeight(h: number): void {
     this.roadHeight = h
   }

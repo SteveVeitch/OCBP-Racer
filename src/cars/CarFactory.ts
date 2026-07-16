@@ -123,7 +123,7 @@ const GLTF_PATHS: Record<string, string> = {
   'rossini-488': '/assets/models/2018_ferrari_488_gt3/scene.gltf',
   'weissach-gt3': '/assets/models/2019_porsche_911_gt3_rs_weissach/scene.gltf',
   'kaiju-gt-r': '/assets/models/2018_nissan_gtr/scene.gltf',
-  'stingray-z06': '/assets/models/2020_chevrolet_corvette_c8/scene.gltf',
+  'stingray-z06': '/assets/models/2021_chevrolet_corvette_c8_widebody_vouno/scene.gltf',
 }
 
 const TARGET_LENGTHS: Record<string, number> = {
@@ -209,6 +209,12 @@ const GLTF_WHEEL_NAMES: Record<string, string[]> = {
     '3DWheel Front R',   // FR
     '3DWheel Rear L',    // RL
     '3DWheel Rear R',    // RR
+  ],
+  'stingray-z06': [
+    'group1_03',   // FL
+    'group2_05',   // FR
+    'group3_07',   // RL
+    'group4_09',   // RR
   ],
 }
 

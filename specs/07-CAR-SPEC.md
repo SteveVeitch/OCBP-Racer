@@ -176,8 +176,8 @@ Reverse speed = 35% of max speed.
 
 ## 4. Car Model Requirements
 
-### 4.1 Geometry (Enhanced Procedural)
-Each car has a **distinct procedural silhouette** — not the same box shape with different colors. All built from Three.js primitives (BoxGeometry, CylinderGeometry, LatheGeometry) with no external models.
+### 4.1 Geometry (GLTF Primary, Procedural Fallback)
+Each car uses a detailed GLTF model from Sketchfab for visual fidelity. A procedural box-based fallback is used if GLTF loading fails. GLTF models are auto-scaled to match `TARGET_LENGTHS` per car.
 
 ### 4.2 Per-Car Mesh Profiles
 
@@ -268,7 +268,7 @@ Positions vary per car profile:
 | Car | Length | Width | Height | Wheelbase |
 |-----|--------|-------|--------|-----------|
 | Rossini 488 | 4.3m | 1.9m | 1.20m | 2.55m |
-| Weissach GT3 | 4.2m | 1.85m | 1.25m | 2.45m |
+| Weissach GT3 | 4.6m | 1.85m | 1.25m | 2.45m |
 | Kaiju GT-R | 4.4m | 2.0m | 1.22m | 2.65m |
 | Stingray Z06 | 4.2m | 1.88m | 1.18m | 2.50m |
 
@@ -285,12 +285,11 @@ Positions vary per car profile:
 
 ### 5.2 Card Layout
 Each car card shows:
-- Color preview rectangle
+- 3D thumbnail rendering of the GLTF model
 - Car name
 - Subtitle ("The Prancing Horse", etc.)
-- Engine badge ("Twin-Turbo V8", "Flat-6 NA", etc.)
+- Engine badge ("3.9L Twin-Turbo V8 • 661 HP") — no TURBO indicator
 - 4 stat bars (Power, Grip, Speed, Drift)
-- Turbo indicator (if applicable)
 
 ## 6. Car Data Format
 

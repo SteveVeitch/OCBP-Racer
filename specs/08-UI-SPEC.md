@@ -55,7 +55,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 │           [ START RACE ]                │
 │           [ SETTINGS ]                  │
 │                                         │
-│           v0.2.0                        │
+│           v0.3.0                        │
 └─────────────────────────────────────────┘
 ```
 
@@ -66,7 +66,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 | Subtitle | Text | "STREET RACING" |
 | Start Race | Button (primary) | → CAR_SELECT |
 | Settings | Button | → SETTINGS |
-| Version | Text | "v0.2.0" |
+| Version | Text | "v0.3.0" |
 
 ### 3.2 Car Select
 
@@ -175,9 +175,19 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Click "Back" → CAR_PREVIEW
 - Click "Start Race" → COUNTDOWN
 
+**AI Difficulty Override:**
+- Row of toggle buttons below track grid (same row as weather)
+- Options: Easy, Normal, Hard, Expert (default: Normal)
+- Persisted to localStorage
+
 **Weather Override:**
 - Row of toggle buttons below track grid
 - Options: Auto (uses track default), Clear, Rain, Fog, Storm
+- Persisted to localStorage
+
+**Time-of-Day Override:**
+- Row of toggle buttons below weather row
+- Options: Auto (uses track default), Dawn, Day, Dusk, Night
 - Persisted to localStorage
 
 ### 3.5 Countdown

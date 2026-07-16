@@ -10,13 +10,43 @@
 
 ### 2.1 Models (3D Geometry)
 
-| Category | Format | Source | MVP | Post-MVP |
-|----------|--------|--------|-----|----------|
-| Cars | GLTF/GLB | Blender/Maya | Box placeholders | Detailed models |
-| Track | Procedural | Generated in code | N/A | Pre-authored |
-| Buildings | GLTF/GLB | Blender | Simple boxes | Detailed models |
-| Barriers | GLTF/GLB | Blender | Simple boxes | Detailed models |
-| Decorations | GLTF/GLB | Blender | None | Street props |
+| Category | Format | Source | Status |
+|----------|--------|--------|--------|
+| Cars | GLTF | Sketchfab (CC-BY-4.0) | **Done** — 4 models |
+| Track | Procedural | Generated in code | **Done** — spline + TrackBuilder |
+| HDR Maps | EXR/HDR | ambientCG (CC0) | **Done** — 4 maps |
+| Ground Textures | JPG | ambientCG (CC0) | **Done** — 4 terrain types |
+| Buildings | GLTF | TBD | Post-MVP |
+| Decorations | GLTF | TBD | Post-MVP |
+
+### 2.1.1 Car GLTF Models (Current)
+
+| Car | GLTF Model | Artist | License | Folder |
+|-----|-----------|--------|---------|--------|
+| Rossini 488 | 2018 Ferrari 488 GT3 | Ddiaz Design | CC-BY-4.0 | `assets/models/2018_ferrari_488_gt3/` |
+| Weissach GT3 | 2022 Porsche 911 GT3 (992) | Ddiaz Design | CC-BY-4.0 | `assets/models/2022_porsche_911_gt3_992/` |
+| Kaiju GT-R | Nissan GT-R R35 Nismo | vecarz | CC-BY-4.0 | `assets/models/nissan_gt-r_r35_nismo__www.vecarz.com/` |
+| Stingray Z06 | 2020 Chevrolet Corvette C8 Stingray | Ddiaz Design | CC-BY-4.0 | `assets/models/2020_chevrolet_corvette_c8_stingray/` |
+
+**Attribution Requirement:** All CC-BY-4.0 models require attribution in `README.md` with links to original source and license.
+
+### 2.1.2 HDR Environment Maps
+
+| Time of Day | File | Source | License |
+|-------------|------|--------|---------|
+| Dawn | `dawn_1k.exr` | ambientCG | CC0 |
+| Day | `day_1k.exr` | ambientCG | CC0 |
+| Dusk | `dusk_1k.exr` | ambientCG | CC0 |
+| Night | `night_1k.exr` | ambientCG | CC0 |
+
+### 2.1.3 PBR Ground Textures
+
+| Terrain | Source | License | Files |
+|---------|--------|---------|-------|
+| Urban | ambientCG | CC0 | Color, NormalDX, Roughness (1K JPG) |
+| Coastal | ambientCG | CC0 | Color, NormalDX, Roughness (1K JPG) |
+| Mountain | ambientCG | CC0 | Color, NormalDX, Roughness (1K JPG) |
+| Industrial | ambientCG | CC0 | Color, NormalDX, Roughness (1K JPG) |
 
 ### 2.2 Textures
 
@@ -93,16 +123,22 @@ Structure:
 
 ### 4.2 Model Requirements
 
-#### Car Models
+#### Car Models (GLTF)
 ```
-Polygon Budget:    10,000 - 30,000 triangles
-Scale:            Real-world (meters)
-Origin:           Center of car, ground level
-Forward:          -Z axis (Three.js convention)
-UV Unwrapped:     Yes
-Material:         Single PBR material per car
-Naming:           phantom_gt.glb, viper_rs.glb, etc.
+Format:          GLTF (.gltf, not .glb)
+Scale:           Real-world (meters), auto-scaled to TARGET_LENGTHS
+Origin:          Center of car, ground level
+Forward:         -Z axis (Three.js convention)
+Materials:       PBR (metalness/roughness workflow)
+Loading:         GLTFLoader → modelCache → per-car overrides
+Fallback:        Procedural box mesh if GLTF fails
 ```
+
+**Per-model overrides:**
+- `scaleMultiplier` — extra scale factor (Kaiju GT-R: 2.6, others: 1.0)
+- `yOffsetOverride` — vertical offset (Kaiju GT-R: 0.15)
+- `glftWheelNames` — wheel group names to spin (empty = no spin)
+- `gltfRimNames` — rim group names (optional)
 
 #### Track Models
 ```
@@ -182,27 +218,38 @@ progress = loadedAssets / totalAssets;
 ```
 assets/
 ├── models/
-│   └── cars/
-│       ├── phantom_gt.glb
-│       ├── viper_rs.glb
-│       ├── inferno_ss.glb
-│       └── aeroven_tt.glb
+│   ├── 2018_ferrari_488_gt3/
+│   │   └── scene.gltf           ← Rossini 488 (Ddiaz Design, CC-BY-4.0)
+│   ├── 2022_porsche_911_gt3_992/
+│   │   └── scene.gltf           ← Weissach GT3 (Ddiaz Design, CC-BY-4.0)
+│   ├── nissan_gt-r_r35_nismo__www.vecarz.com/
+│   │   └── scene.gltf           ← Kaiju GT-R (vecarz, CC-BY-4.0)
+│   └── 2020_chevrolet_corvette_c8_stingray/
+│       └── scene.gltf           ← Stingray Z06 (Ddiaz Design, CC-BY-4.0)
+│
+├── hdr/
+│   ├── dawn_1k.exr              ← ambientCG, CC0
+│   ├── day_1k.exr               ← ambientCG, CC0
+│   ├── dusk_1k.exr              ← ambientCG, CC0
+│   └── night_1k.exr             ← ambientCG, CC0
 │
 ├── textures/
-│   ├── cars/
-│   │   ├── phantom_gt_albedo.png
-│   │   ├── phantom_gt_normal.png
-│   │   ├── phantom_gt_roughness_metal.png
-│   │   └── ... (same for each car)
-│   │
-│   ├── track/
-│   │   ├── asphalt_albedo.png
-│   │   ├── asphalt_normal.png
-│   │   ├── concrete_albedo.png
-│   │   └── concrete_normal.png
-│   │
-│   └── env/
-│       └── city_night_hdr.hdr
+│   ├── urban/
+│   │   ├── Urban Construction Color 1K.jpg
+│   │   ├── Urban Construction NormalDX 1K.jpg
+│   │   └── Urban Construction Roughness 1K.jpg
+│   ├── coastal/
+│   │   ├── Coastal Sand Color 1K.jpg
+│   │   ├── Coastal Sand NormalDX 1K.jpg
+│   │   └── Coastal Sand Roughness 1K.jpg
+│   ├── mountain/
+│   │   ├── Mountain Ground Color 1K.jpg
+│   │   ├── Mountain Ground NormalDX 1K.jpg
+│   │   └── Mountain Ground Roughness 1K.jpg
+│   └── industrial/
+│       ├── Industrial Metal Floor Color 1K.jpg
+│       ├── Industrial Metal Floor NormalDX 1K.jpg
+│       └── Industrial Metal Floor Roughness 1K.jpg
 │
 ├── audio/
 │   ├── engine/
@@ -211,7 +258,7 @@ assets/
 │   └── ui/
 │
 └── fonts/
-    └── rajdhani.woff2
+    └── Rajdhani-SemiBold.woff2  ← Google Fonts, SIL OFL 1.1
 ```
 
 ## 7. Asset Creation Tools

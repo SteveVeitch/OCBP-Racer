@@ -54,7 +54,7 @@ Run the automated test suite:
 http://localhost:3000?test
 ```
 
-93 tests validate all game systems. Click the results overlay to start the game.
+118 tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 
@@ -287,7 +287,7 @@ OCBP Racer/
 ├── public/                     # Static assets (Rapier WASM)
 ├── src/
 │   ├── main.ts                 # Entry point
-│   ├── test-harness.ts         # 79 automated tests
+│   ├── test-harness.ts         # 118 automated tests
 │   ├── core/
 │   │   ├── Game.ts             # Main game loop + race logic
 │   │   └── StateMachine.ts     # Game state transitions
@@ -387,6 +387,14 @@ Car body models are sourced from Sketchfab under Creative Commons licenses:
 | Weissach GT3 | [2022 Porsche 911 GT3 (992)](https://sketchfab.com/3d-models/2022-porsche-911-gt3-992-ba01afbaf32846e598db315be3507db3) | Ddiaz Design | CC-BY-4.0 |
 | Kaiju GT-R | [Nissan GT-R R35 Nismo](https://sketchfab.com/3d-models/nissan-gt-r-r35-nismo-wwwvecarzcom-9cfbe4727b7f4af0a11772687c4a1f59) | vecarz | CC-BY-4.0 |
 | Stingray Z06 | [2020 Chevrolet Corvette C8 Stingray](https://sketchfab.com/3d-models/2020-chevrolet-corvette-c8-stingray-f59b9f961c9b48c9b0f8cb59c6a345aa) | Ddiaz Design | CC-BY-4.0 |
+
+## Other 3rd-Party Assets
+
+| Asset | Source | Author | License |
+|-------|--------|--------|---------|
+| HDR Environment Maps | [ambientCG](https://ambientcg.com/) (dawn, day, dusk, night) | ambientCG | CC0 1.0 |
+| PBR Ground Textures | [ambientCG](https://ambientcg.com/) (urban, coastal, mountain, industrial) | ambientCG | CC0 1.0 |
+| Rajdhani Font | [Google Fonts](https://fonts.google.com/specimen/Rajdhani) | Indian Type Foundry | SIL OFL 1.1 |
 
 ## License
 

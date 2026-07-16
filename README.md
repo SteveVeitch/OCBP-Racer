@@ -384,9 +384,9 @@ Car body models are sourced from Sketchfab under Creative Commons licenses:
 | Car | Model | Author | License |
 |-----|-------|--------|---------|
 | Rossini 488 | [2018 Ferrari 488 GT3](https://sketchfab.com/3d-models/2018-ferrari-488-gt3-bb14ee3833564f349a317d704a506cd3) | Ddiaz Design | CC-BY-4.0 |
-| Weissach GT3 | [2019 Porsche 911 (991.2) GT3 RS Weissach Package](https://sketchfab.com/3d-models/2019-porsche-911-9912-gt3-rs-weissach-package-1ab438e7fc444fedb6f1ee255f21902a) | Ddiaz Design | CC-BY-NC-SA-4.0 |
-| Kaiju GT-R | [Nissan GTR 2016](https://sketchfab.com/3d-models/nissan-gtr-2016-605ec596d44c4f88bd9b088c60250e37) | David_Holiday | CC-BY-4.0 |
-| Stingray Z06 | [2021 Chevrolet Corvette C8 Widebody "Vouno"](https://sketchfab.com/3d-models/2021-chevrolet-corvette-c8-widebody-vouno-d2b8f2346be84292a248fb720cf42d04) | Ddiaz Design | CC-BY-4.0 |
+| Weissach GT3 | [2022 Porsche 911 GT3 (992)](https://sketchfab.com/3d-models/2022-porsche-911-gt3-992-ba01afbaf32846e598db315be3507db3) | Ddiaz Design | CC-BY-4.0 |
+| Kaiju GT-R | [Nissan GT-R R35 Nismo](https://sketchfab.com/3d-models/nissan-gt-r-r35-nismo-wwwvecarzcom-9cfbe4727b7f4af0a11772687c4a1f59) | vecarz | CC-BY-4.0 |
+| Stingray Z06 | [2020 Chevrolet Corvette C8 Stingray](https://sketchfab.com/3d-models/2020-chevrolet-corvette-c8-stingray-f59b9f961c9b48c9b0f8cb59c6a345aa) | Ddiaz Design | CC-BY-4.0 |
 
 ## License
 

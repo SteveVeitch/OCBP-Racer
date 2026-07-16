@@ -383,9 +383,9 @@ Each car uses a GLTF model for detailed body geometry, loaded asynchronously at 
 | Car | GLTF Model | Source | License |
 |-----|-----------|--------|---------|
 | Rossini 488 | 2018 Ferrari 488 GT3 | Sketchfab (Ddiaz Design) | CC-BY-4.0 |
-| Weissach GT3 | 2009 Porsche 911 GT3 RSR | Sketchfab (OUTPISTON) | CC-BY-NC-SA-4.0 |
-| Kaiju GT-R | Nissan GTR 2016 | Sketchfab (David_Holiday) | CC-BY-4.0 |
-| Stingray Z06 | 2020 Chevrolet Corvette C8 | Sketchfab (OUTPISTON) | CC-BY-NC-SA-4.0 |
+| Weissach GT3 | 2022 Porsche 911 GT3 (992) | Sketchfab (Ddiaz Design) | CC-BY-4.0 |
+| Kaiju GT-R | Nissan GT-R R35 Nismo | Sketchfab (vecarz) | CC-BY-4.0 |
+| Stingray Z06 | 2020 Chevrolet Corvette C8 Stingray | Sketchfab (Ddiaz Design) | CC-BY-4.0 |
 
 ### 9.2 Model Loading Pipeline
 1. `CarFactory.preloadModels()` — async, called during `Game.init()` after physics init

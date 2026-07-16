@@ -121,14 +121,14 @@ const PROFILES: Record<string, CarMeshProfile> = {
 
 const GLTF_PATHS: Record<string, string> = {
   'rossini-488': '/assets/models/2018_ferrari_488_gt3/scene.gltf',
-  'weissach-gt3': '/assets/models/2019_porsche_911_gt3_rs_weissach/scene.gltf',
-  'kaiju-gt-r': '/assets/models/2018_nissan_gtr/scene.gltf',
-  'stingray-z06': '/assets/models/2021_chevrolet_corvette_c8_widebody_vouno/scene.gltf',
+  'weissach-gt3': '/assets/models/2022_porsche_911_gt3_992/scene.gltf',
+  'kaiju-gt-r': '/assets/models/nissan_gt-r_r35_nismo__www.vecarz.com/scene.gltf',
+  'stingray-z06': '/assets/models/2020_chevrolet_corvette_c8_stingray/scene.gltf',
 }
 
 const TARGET_LENGTHS: Record<string, number> = {
   'rossini-488': 4.3,
-  'weissach-gt3': 4.2,
+  'weissach-gt3': 4.6,
   'kaiju-gt-r': 4.4,
   'stingray-z06': 4.2,
 }
@@ -136,11 +136,9 @@ const TARGET_LENGTHS: Record<string, number> = {
 interface ModelOverride {
   scaleMultiplier?: number
   yOffsetOverride?: number
-  hideRearGeometry?: boolean
 }
 
 const MODEL_OVERRIDES: Record<string, ModelOverride> = {
-  'kaiju-gt-r': { scaleMultiplier: 2.0, yOffsetOverride: 0.15, hideRearGeometry: true },
 }
 
 interface LightPositions {
@@ -204,17 +202,13 @@ const GLTF_WHEEL_NAMES: Record<string, string[]> = {
     'gt3:LOD_A_TYRE_REAR_mm_tyre', // RL
     'gt3:LOD_A_TYRE_REAR_mm_tyre1______' // RR
   ],
-  'weissach-gt3': [
-    '3DWheel Front L',   // FL
-    '3DWheel Front R',   // FR
-    '3DWheel Rear L',    // RL
-    '3DWheel Rear R',    // RR
-  ],
+  'weissach-gt3': [],
+  'kaiju-gt-r': [],
   'stingray-z06': [
-    'group1_03',   // FL
-    'group2_05',   // FR
-    'group3_07',   // RL
-    'group4_09',   // RR
+    'Front Left Wheel',    // FL
+    'Front Right Wheel',   // FR
+    'Rear Left Wheel',     // RL
+    'Rear Right Wheel',    // RR
   ],
 }
 
@@ -407,15 +401,11 @@ export class CarFactory {
       })
 
       const override = MODEL_OVERRIDES[definition.id]
-      if (override?.hideRearGeometry) {
-        model.updateMatrixWorld(true)
-        model.traverse(child => {
-          if (!(child instanceof THREE.Mesh) || !child.geometry) return
-          const wb = new THREE.Box3().setFromObject(child)
-          if (wb.isEmpty()) return
-          const wc = wb.getCenter(new THREE.Vector3())
-          if (wc.z < -3.0) child.visible = false
-        })
+      if (override?.scaleMultiplier) {
+        model.scale.multiplyScalar(override.scaleMultiplier)
+      }
+      if (override?.yOffsetOverride !== undefined) {
+        model.position.y = override.yOffsetOverride
       }
 
       group.add(model)
@@ -441,7 +431,7 @@ export class CarFactory {
     return group
   }
 
-  private wrapGLTFWheels(root: THREE.Group, gltfScene: THREE.Group, wheelNames: string[], rimNames: string[]): boolean {
+  private wrapGLTFWheels(root: THREE.Group, gltfScene: THREE.Group, wheelNames: string[], rimNames?: string[]): boolean {
     const wheels: THREE.Object3D[] = []
     const pos = new THREE.Vector3()
     const quat = new THREE.Quaternion()
@@ -462,7 +452,7 @@ export class CarFactory {
       tyreNode.scale.copy(scl)
       ;(tyreNode as any).matrixAutoUpdate = true
 
-      const rimName = rimNames[i]
+      const rimName = rimNames?.[i]
       if (rimName) {
         const rimNode = this.findNode(gltfScene, rimName)
         if (rimNode?.parent) {

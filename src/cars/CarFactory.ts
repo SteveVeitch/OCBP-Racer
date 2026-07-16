@@ -121,7 +121,7 @@ const PROFILES: Record<string, CarMeshProfile> = {
 
 const GLTF_PATHS: Record<string, string> = {
   'rossini-488': '/assets/models/2018_ferrari_488_gt3/scene.gltf',
-  'weissach-gt3': '/assets/models/2009_porsche_911_gt3_rsr/scene.gltf',
+  'weissach-gt3': '/assets/models/2019_porsche_911_gt3_rs_weissach/scene.gltf',
   'kaiju-gt-r': '/assets/models/2018_nissan_gtr/scene.gltf',
   'stingray-z06': '/assets/models/2020_chevrolet_corvette_c8/scene.gltf',
 }
@@ -203,6 +203,12 @@ const GLTF_WHEEL_NAMES: Record<string, string[]> = {
     'gt3:LOD_A_TYRE_mm_tyre1',     // FR
     'gt3:LOD_A_TYRE_REAR_mm_tyre', // RL
     'gt3:LOD_A_TYRE_REAR_mm_tyre1______' // RR
+  ],
+  'weissach-gt3': [
+    '3DWheel Front L',   // FL
+    '3DWheel Front R',   // FR
+    '3DWheel Rear L',    // RL
+    '3DWheel Rear R',    // RR
   ],
 }
 

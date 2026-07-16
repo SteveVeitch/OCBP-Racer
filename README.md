@@ -384,7 +384,7 @@ Car body models are sourced from Sketchfab under Creative Commons licenses:
 | Car | Model | Author | License |
 |-----|-------|--------|---------|
 | Rossini 488 | [2018 Ferrari 488 GT3](https://sketchfab.com/3d-models/2018-ferrari-488-gt3-bb14ee3833564f349a317d704a506cd3) | Ddiaz Design | CC-BY-4.0 |
-| Weissach GT3 | [2009 Porsche 911 GT3 RSR](https://sketchfab.com/3d-models/2009-porsche-911-gt3-rsr-94e85a7b980d4088bc3c2c0a9822e981) | OUTPISTON | CC-BY-NC-SA-4.0 |
+| Weissach GT3 | [2019 Porsche 911 (991.2) GT3 RS Weissach Package](https://sketchfab.com/3d-models/2019-porsche-911-9912-gt3-rs-weissach-package-1ab438e7fc444fedb6f1ee255f21902a) | Ddiaz Design | CC-BY-NC-SA-4.0 |
 | Kaiju GT-R | [Nissan GTR 2016](https://sketchfab.com/3d-models/nissan-gtr-2016-605ec596d44c4f88bd9b088c60250e37) | David_Holiday | CC-BY-4.0 |
 | Stingray Z06 | [2020 Chevrolet Corvette C8](https://sketchfab.com/3d-models/2020-chevrolet-corvette-c8-06d0f3f8c108476fb9452e18f3ecb382) | OUTPISTON | CC-BY-NC-SA-4.0 |
 

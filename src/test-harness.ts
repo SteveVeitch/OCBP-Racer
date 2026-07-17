@@ -1218,6 +1218,29 @@ export async function runTestHarness(): Promise<void> {
     assert(blueCars.length === 4, `Blue channel should have 4 cars, got ${blueCars.length}`)
   })
 
+  // ── Phase 25: Engine Audio Samples ──
+  currentPhase = 'Phase 25: Engine Audio Samples'
+  console.log('\n-- Phase 25: Engine Audio Samples --')
+  test('AudioManager has loadEngineSamples method', () => {
+    const audio = new AudioManager()
+    assert(typeof audio.loadEngineSamples === 'function', 'loadEngineSamples should be a function')
+  })
+  test('AudioManager has sample cache', () => {
+    const audio = new AudioManager()
+    assert('sampleCache' in audio, 'AudioManager should have sampleCache')
+  })
+  test('CarController has getThrottle method', () => {
+    const fn = CarController.prototype.getThrottle
+    assert(typeof fn === 'function', 'getThrottle should exist on CarController')
+  })
+  test('ENGINE_SAMPLE_PATHS covers all 4 cars', () => {
+    const carIds = ['rossini-488', 'weissach-gt3', 'kaiju-gt-r', 'stingray-z06']
+    for (const id of carIds) {
+      const car = CARS.find(c => c.id === id)
+      assert(car !== undefined, `Car ${id} not found in CARS`)
+    }
+  })
+
   // ── Summary ──
   console.log('\n=== Results ===')
   const passed = results.filter(r => r.passed).length

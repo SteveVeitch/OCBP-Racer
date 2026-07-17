@@ -13,15 +13,19 @@
 AudioManager
 ├── AudioContext (Web Audio API)
 ├── masterGain (master volume)
-├── Engine Synthesis (per-car config)
-│   ├── Primary Oscillator (sawtooth/square, car-specific)
-│   ├── Secondary Oscillator (sub-harmonic, car-specific)
-│   ├── Engine Filter (lowpass, Q varies by car)
-│   ├── Engine Gain (volume envelope)
-│   └── Turbo Synthesis (if car has turbo)
-│       ├── Turbo Whistle Oscillator (sine, 2-8kHz)
-│       ├── Turbo Flutter Noise (bandpass noise)
-│       └── Turbo Gain (boost-linked envelope)
+├── Engine Sample Playback (per-car)
+│   ├── engineIdleBuffer (AudioBuffer — idle loop WAV)
+│   ├── engineAccelBuffer (AudioBuffer — accel loop WAV)
+│   ├── engineIdleSource (AudioBufferSourceNode, looped)
+│   ├── engineAccelSource (AudioBufferSourceNode, looped)
+│   ├── engineIdleGain (crossfade mixer)
+│   ├── engineAccelGain (crossfade mixer)
+│   ├── engineFilter (lowpass, 600-2000Hz)
+│   └── sampleCache (Map<carId, {idle, accel}>)
+├── Turbo Synthesis (if car has turbo)
+│   ├── turboWhistleOsc (sine, 3-8kHz)
+│   ├── turboWhistleFilter (bandpass)
+│   └── turboWhistleGain (boost-linked envelope)
 ├── Tire Screech Synthesis
 │   ├── screechSource (looping white noise buffer)
 │   ├── screechFilter (bandpass, 1.5-3.5kHz)
@@ -30,9 +34,6 @@ AudioManager
 │   ├── windSource (looping white noise buffer)
 │   ├── windFilter (lowpass, 200-800Hz)
 │   └── windGain (volume envelope)
-├── Exhaust Synthesis
-│   ├── popsBuffer (pre-generated noise bursts)
-│   └── popsGain (volume envelope)
 └── One-Shot Synthesis
     ├── Collision (noise burst + sine, decaying)
     └── UI (sine/square oscillator tones)
@@ -40,10 +41,11 @@ AudioManager
 
 ### 1.3 Lifecycle
 ```
-init()              → Creates AudioContext + masterGain
-startRaceAudio()    → Creates fresh engine/screech/wind nodes per race
-stopRaceAudio()     → Fades out + stops all continuous oscillators (50ms)
-ensureContext()     → Auto-resumes suspended AudioContext (browser policy)
+init()                   → Creates AudioContext + masterGain
+loadEngineSamples(carId) → Fetches & decodes idle + accel WAVs for car, caches in sampleCache
+startRaceAudio()         → Loads samples if needed, creates sample-based engine + screech/wind nodes
+stopRaceAudio()          → Fades out + stops all continuous nodes (50ms)
+ensureContext()          → Auto-resumes suspended AudioContext (browser policy)
 ```
 
 ### 1.4 Browser Audio Policy
@@ -56,61 +58,73 @@ ensureContext()     → Auto-resumes suspended AudioContext (browser policy)
 
 ### 2.1 Engine Sound
 
-Engine synthesis is **per-car** based on `EngineDefinition` in the car config. Each engine type produces a distinct sonic character.
+Engine sound is **sample-based** using WAV loops per car, with real-time pitch-shifting via `playbackRate`.
 
-#### Synthesis Method (Per-Car)
-
-Each engine has two oscillators mixed together, filtered for warmth:
-
-**Oscillator 1 (Primary):**
-- Waveform: per-car (see table below)
-- Frequency: `baseFrequency + (rpm / redline) × (maxFrequency - baseFrequency)`
-
-**Oscillator 2 (Sub-harmonic):**
-- Waveform: per-car (see table below)
-- Frequency: 0.5× primary frequency
-- Volume: 0.15
-
-**Filter:**
-- Type: Lowpass
-- Q: 2
-- Cutoff: follows primary frequency × 1.5
-
-#### Per-Car Engine Profiles
-
-| Car | Engine Type | Primary Wave | Secondary Wave | Base Freq | Max Freq |
-|-----|-------------|-------------|----------------|-----------|----------|
-| Rossini 488 | V8 Turbo | sawtooth | sawtooth | 35 Hz | 220 Hz |
-| Weissach GT3 | Flat-6 NA | triangle | sawtooth | 40 Hz | 260 Hz |
-| Kaiju GT-R | V6 Turbo | square | sawtooth | 30 Hz | 200 Hz |
-| Stingray Z06 | V8 NA | sawtooth | triangle | 32 Hz | 240 Hz |
-
-#### RPM-to-Frequency Mapping
+#### Sample Loading
 ```
-frequency = baseFrequency + (rpm / redline) × (maxFrequency - baseFrequency)
-
-Rossini 488:   35 Hz (idle) → 220 Hz (redline 8000)
-Weissach GT3:  40 Hz (idle) → 260 Hz (redline 8500)
-Kaiju GT-R:    30 Hz (idle) → 200 Hz (redline 7200)
-Stingray Z06:  32 Hz (idle) → 240 Hz (redline 8600)
+ENGINE_SAMPLE_PATHS = {
+  'rossini-488':  { idle: 'assets/audio/engines/rossini-488/idle.wav',  accel: 'assets/audio/engines/rossini-488/accel.wav' },
+  'weissach-gt3': { idle: 'assets/audio/engines/weissach-gt3/idle.wav', accel: 'assets/audio/engines/weissach-gt3/accel.wav' },
+  'kaiju-gt-r':   { idle: 'assets/audio/engines/kaiju-gt-r/idle.wav',   accel: 'assets/audio/engines/kaiju-gt-r/accel.wav' },
+  'stingray-z06': { idle: 'assets/audio/engines/stingray-z06/idle.wav', accel: 'assets/audio/engines/stingray-z06/accel.wav' }
+}
 ```
+
+#### Playback Method (Per-Car)
+Two AudioBufferSourceNodes loop simultaneously, crossfaded by RPM:
+
+**Idle Loop:**
+- Source: idle.wav (synthesized engine at low RPM)
+- Loop: true
+- Base playbackRate: 0.7
+- Crossfade: full volume when rpmRatio < 0.3
+
+**Accel Loop:**
+- Source: accel.wav (synthesized engine at high RPM)
+- Loop: true
+- Base playbackRate: 0.7
+- Crossfade: full volume when rpmRatio > 0.7
+
+**Crossfade:**
+```
+crossfadeStart = 0.3  (30% of redline)
+crossfadeEnd   = 0.7  (70% of redline)
+idleMix  = 1 - t      (t = 0→1 in crossfade zone)
+accelMix = t
+```
+
+**Pitch Shifting:**
+```
+playbackRate = 0.7 + rpmRatio × 0.8   (range: 0.7× to 1.5×)
+```
+
+#### Per-Car Sample Sources
+
+| Car | Engine Type | Idle Source | Accel Source |
+|-----|-------------|-------------|--------------|
+| Rossini 488 | V8 Turbo | motorseamless01 (OpenGameArt CC0) | motorseamless03 |
+| Weissach GT3 | Flat-6 NA | motorseamless05 | motorseamless07 |
+| Kaiju GT-R | V6 Turbo | motorseamless09 | motorseamless11 |
+| Stingray Z06 | V8 NA | motorseamless02 | motorseamless04 |
 
 #### RPM Variation at Top End
-When RPM approaches redline (>90% redline), a subtle pitch wobble is added:
+When RPM approaches redline (>92% redline), a pitch wobble is added:
 ```
-if (rpm / redline > 0.9):
-    wobbleAmount = 0.02 × sin(time × 15)  // ±2% pitch wobble at 15Hz
-    frequency *= (1 + wobbleAmount)
+if (rpm / redline > 0.92):
+    overRev = (rpmRatio - 0.92) / 0.08
+    wobble = sin(rpm × 0.05) × overRev × 0.03
+    playbackRate += wobble
 ```
 
 #### Playback Rules
 ```
 Trigger:      Continuous (while race active)
 Playback:     Created fresh per race via startRaceAudio()
-Frequency:    Per-car RPM mapping (see table)
-Filter:       Lowpass, cutoff follows frequency
-Volume:       0.05 + (rpm / redline) × engineVolume
+Pitch:        Per-car RPM-to-playbackRate mapping
+Filter:       Lowpass, 600-2000Hz (follows RPM)
+Volume:       engineVolume (0.6 default)
 Ramp:         setTargetAtTime with 50ms time constant
+Sample Cache: Samples cached per carId to avoid re-fetching
 ```
 
 ### 2.2 Turbo Sound (Turbo Cars Only)
@@ -120,15 +134,15 @@ Only active for cars with `aspiration === 'turbo'` (Rossini 488, Kaiju GT-R).
 #### Turbo Whistle
 ```
 Type:           Sine oscillator
-Frequency:      2000 + boostLevel × 6000 Hz (2-8kHz range)
-Volume:         boostLevel × 0.06 × engineVolume
+Frequency:      3000 + boostLevel × 5000 Hz (3-8kHz range)
+Volume:         boostLevel × 0.12 × engineVolume
 Ramp:           setTargetAtTime with 100ms time constant
 ```
 
 #### Turbo Flutter (Blow-Off)
 Triggered when throttle is released while turbo is spooled:
 ```
-Trigger:        Throttle goes from >0.5 to <0.1 while boostLevel > 0.5
+Trigger:        boostLevel > 0.3 and prevThrottle was > 0 while throttle is now 0
 Sound:          Bandpass-filtered noise burst
 Filter Freq:    3000 Hz (decaying to 800 Hz over 0.3s)
 Filter Q:       5
@@ -146,23 +160,23 @@ Turbo whistle volume and frequency follow boostLevel
 ### 2.3 Exhaust Pops & Bangs
 
 #### Synthesis Method
-- Pre-generated buffer of 8-12 short noise bursts (5-15ms each)
-- Lowpass filtered at 2000Hz for warmth
-- Triggered during deceleration or gear shifts (simulated)
+- Real-time square oscillator bursts (1-2 per trigger)
+- Highpass filtered at 600Hz for bite
+- Triggered during deceleration
 
 #### Trigger Conditions
 ```
-Exhaust Pop Triggers (any of):
-  1. Throttle released from >70% while RPM > 50% redline
-  2. Speed drops rapidly (>20 km/h deceleration in 0.5s)
-  3. Random chance during engine braking (1% per frame when braking + high RPM)
+Exhaust Pop Triggers:
+  prevThrottle > 0 AND throttle == 0 AND rpmRatio > 0.4
+  Min interval: 0.15s between pops
 
 Pop Parameters:
-  Duration:     30-80ms per burst
-  Frequency:    800-1500 Hz (randomized per pop)
-  Volume:       0.04-0.08 × engineVolume
-  Decay:        Exponential, 0.05s time constant
-  Polys:        Up to 3 simultaneous pops
+  Count:        1-2 pops per trigger (random)
+  Delay:        40ms between pops
+  Frequency:    200-500 Hz (randomized per pop)
+  Volume:       0.06 × engineVolume
+  Decay:        Exponential, 0.05s
+  Filter:       Highpass 600Hz
 ```
 
 ### 2.4 Tire Screech

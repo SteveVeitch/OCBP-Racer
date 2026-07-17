@@ -54,7 +54,7 @@ Run the automated test suite:
 http://localhost:3000?test
 ```
 
-127 tests validate all game systems. Click the results overlay to start the game.
+131 tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 
@@ -418,6 +418,7 @@ Car body models are sourced from Sketchfab under Creative Commons licenses:
 |-------|--------|--------|---------|
 | HDR Environment Maps | [ambientCG](https://ambientcg.com/) (dawn, day, dusk, night) | ambientCG | CC0 1.0 |
 | PBR Ground Textures | [ambientCG](https://ambientcg.com/) (urban, coastal, mountain, industrial) | ambientCG | CC0 1.0 |
+| Engine Audio Samples | [OpenGameArt](https://opengameart.org/content/some-sounds) (motorseamless01-13) | Ziph | CC0 1.0 |
 | Rajdhani Font | [Google Fonts](https://fonts.google.com/specimen/Rajdhani) | Indian Type Foundry | SIL OFL 1.1 |
 
 ## License

@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The test harness is an automated in-browser test suite that validates all game systems. It runs 127 tests across 25 phases (Phase 0–24), covering project setup through car release channels.
+The test harness is an automated in-browser test suite that validates all game systems. It runs 131 tests across 26 phases (Phase 0–25), covering project setup through engine audio samples.
 
 ## 2. Accessing the Test Harness
 
@@ -403,7 +403,16 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 | 126 | All other cars are blue releases | Sync | Checks cars 2-4 have releaseChannel 'blue' |
 | 127 | getCarsForReleaseChannel filters correctly | Sync | Filters green channel → only rossini-488; blue → all 4 |
 
-**Total: 127 tests** (Phases 0–24)
+### Phase 25: Engine Audio Samples (4 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 128 | AudioManager has loadEngineSamples method | Sync | Checks loadEngineSamples exists on prototype |
+| 129 | AudioManager has sample cache | Sync | Checks sampleCache property exists |
+| 130 | CarController has getThrottle method | Sync | Checks getThrottle exists on CarController prototype |
+| 131 | ENGINE_SAMPLE_PATHS covers all 4 cars | Sync | Verifies all 4 car IDs exist in CARS |
+
+**Total: 131 tests** (Phases 0–25)
 
 ## 6. Test Dependencies
 
@@ -418,7 +427,7 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 | AIController | 36, 37, 38, 39, 40 |
 | InputManager | 22, 23, 75–79 |
 | StateMachine | 41–46, 67, 68, 80, 86–89, 93 |
-| AudioManager | 32–35, 85 |
+| AudioManager | 32–35, 85, 128, 129 |
 | CameraController | 13, 14, 63–66 |
 | EnvironmentManager | 108 |
 | TimeOfDayPresets | 56, 57, 106, 109, 111–115, 117, 118 |

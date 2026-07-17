@@ -1,11 +1,22 @@
 import { EngineDefinition } from '../cars/CarConfigs'
 
+const ENGINE_SAMPLE_PATHS: Record<string, { idle: string; accel: string }> = {
+  'rossini-488': { idle: 'assets/audio/engines/rossini-488/idle.wav', accel: 'assets/audio/engines/rossini-488/accel.wav' },
+  'weissach-gt3': { idle: 'assets/audio/engines/weissach-gt3/idle.wav', accel: 'assets/audio/engines/weissach-gt3/accel.wav' },
+  'kaiju-gt-r': { idle: 'assets/audio/engines/kaiju-gt-r/idle.wav', accel: 'assets/audio/engines/kaiju-gt-r/accel.wav' },
+  'stingray-z06': { idle: 'assets/audio/engines/stingray-z06/idle.wav', accel: 'assets/audio/engines/stingray-z06/accel.wav' }
+}
+
 export class AudioManager {
   private ctx: AudioContext | null = null
   private masterGain: GainNode | null = null
   private engineGain: GainNode | null = null
-  private engineOsc: OscillatorNode | null = null
-  private engineOsc2: OscillatorNode | null = null
+  private engineIdleBuffer: AudioBuffer | null = null
+  private engineAccelBuffer: AudioBuffer | null = null
+  private engineIdleSource: AudioBufferSourceNode | null = null
+  private engineAccelSource: AudioBufferSourceNode | null = null
+  private engineIdleGain: GainNode | null = null
+  private engineAccelGain: GainNode | null = null
   private engineFilter: BiquadFilterNode | null = null
   private screechGain: GainNode | null = null
   private screechFilter: BiquadFilterNode | null = null
@@ -22,8 +33,10 @@ export class AudioManager {
   private stopTimeout: ReturnType<typeof setTimeout> | null = null
 
   private currentEngine: EngineDefinition | null = null
+  private currentCarId: string | null = null
   private prevThrottle = 0
   private lastPopTime = 0
+  private sampleCache: Map<string, { idle: AudioBuffer; accel: AudioBuffer }> = new Map()
 
   async init(): Promise<void> {
     try {
@@ -48,15 +61,42 @@ export class AudioManager {
     return this.initialized
   }
 
-  private initEngine(engine?: EngineDefinition): void {
-    if (!this.ctx || !this.masterGain) return
+  async loadEngineSamples(carId: string): Promise<void> {
+    if (!this.ctx) return
+    if (this.sampleCache.has(carId)) return
 
-    if (this.engineOsc) {
-      try { this.engineOsc.stop() } catch { /* already stopped */ }
-      try { this.engineOsc2?.stop() } catch { /* already stopped */ }
+    const paths = ENGINE_SAMPLE_PATHS[carId]
+    if (!paths) {
+      console.warn(`[AudioManager] No engine samples for car: ${carId}`)
+      return
     }
 
+    try {
+      const [idleResponse, accelResponse] = await Promise.all([
+        fetch(paths.idle),
+        fetch(paths.accel)
+      ])
+      const [idleArrayBuffer, accelArrayBuffer] = await Promise.all([
+        idleResponse.arrayBuffer(),
+        accelResponse.arrayBuffer()
+      ])
+      const [idleBuffer, accelBuffer] = await Promise.all([
+        this.ctx.decodeAudioData(idleArrayBuffer),
+        this.ctx.decodeAudioData(accelArrayBuffer)
+      ])
+      this.sampleCache.set(carId, { idle: idleBuffer, accel: accelBuffer })
+    } catch (err) {
+      console.warn(`[AudioManager] Failed to load engine samples for ${carId}:`, err)
+    }
+  }
+
+  private initEngineSampled(engine?: EngineDefinition, carId?: string): void {
+    if (!this.ctx || !this.masterGain) return
+
+    this.stopEngineSources()
+
     this.currentEngine = engine ?? null
+    this.currentCarId = carId ?? null
 
     this.engineGain = this.ctx.createGain()
     this.engineGain.gain.value = 0
@@ -68,21 +108,44 @@ export class AudioManager {
     this.engineFilter.Q.value = 2
     this.engineFilter.connect(this.engineGain)
 
-    this.engineOsc = this.ctx.createOscillator()
-    this.engineOsc.type = engine?.primaryWaveform ?? 'sawtooth'
-    this.engineOsc.frequency.value = engine?.baseFrequency ?? 40
-    this.engineOsc.connect(this.engineFilter)
-    this.engineOsc.start()
+    const cached = carId ? this.sampleCache.get(carId) : null
+    if (!cached) return
 
-    this.engineOsc2 = this.ctx.createOscillator()
-    this.engineOsc2.type = engine?.secondaryWaveform ?? 'square'
-    this.engineOsc2.frequency.value = (engine?.baseFrequency ?? 40) * 0.5
+    this.engineIdleBuffer = cached.idle
+    this.engineAccelBuffer = cached.accel
 
-    const gain2 = this.ctx.createGain()
-    gain2.gain.value = 0.15
-    this.engineOsc2.connect(gain2)
-    gain2.connect(this.engineGain)
-    this.engineOsc2.start()
+    this.engineIdleGain = this.ctx.createGain()
+    this.engineIdleGain.gain.value = 1
+    this.engineIdleGain.connect(this.engineFilter)
+
+    this.engineAccelGain = this.ctx.createGain()
+    this.engineAccelGain.gain.value = 0
+    this.engineAccelGain.connect(this.engineFilter)
+
+    this.engineIdleSource = this.ctx.createBufferSource()
+    this.engineIdleSource.buffer = this.engineIdleBuffer
+    this.engineIdleSource.loop = true
+    this.engineIdleSource.playbackRate.value = 0.8
+    this.engineIdleSource.connect(this.engineIdleGain)
+    this.engineIdleSource.start()
+
+    this.engineAccelSource = this.ctx.createBufferSource()
+    this.engineAccelSource.buffer = this.engineAccelBuffer
+    this.engineAccelSource.loop = true
+    this.engineAccelSource.playbackRate.value = 0.8
+    this.engineAccelSource.connect(this.engineAccelGain)
+    this.engineAccelSource.start()
+  }
+
+  private stopEngineSources(): void {
+    try { this.engineIdleSource?.stop() } catch { /* already stopped */ }
+    try { this.engineAccelSource?.stop() } catch { /* already stopped */ }
+    this.engineIdleSource = null
+    this.engineAccelSource = null
+    this.engineIdleGain = null
+    this.engineAccelGain = null
+    this.engineIdleBuffer = null
+    this.engineAccelBuffer = null
   }
 
   private initTurboWhistle(): void {
@@ -169,19 +232,21 @@ export class AudioManager {
     this.windSource.start()
   }
 
-  startRaceAudio(engine?: EngineDefinition): void {
+  async startRaceAudio(engine?: EngineDefinition, carId?: string): Promise<void> {
     if (!this.ensureContext()) return
 
     if (this.stopTimeout !== null) {
       clearTimeout(this.stopTimeout)
       this.stopTimeout = null
-      try { this.engineOsc?.stop() } catch { /* ignore */ }
-      try { this.engineOsc2?.stop() } catch { /* ignore */ }
-      this.engineOsc = null
-      this.engineOsc2 = null
     }
 
-    this.initEngine(engine)
+    this.stopEngineSources()
+
+    if (carId) {
+      await this.loadEngineSamples(carId)
+    }
+
+    this.initEngineSampled(engine, carId)
     this.initTurboWhistle()
     this.initTireScreech()
     this.initWindNoise()
@@ -200,22 +265,22 @@ export class AudioManager {
       }
     }
 
-    const localEngineOsc = this.engineOsc
-    const localEngineOsc2 = this.engineOsc2
+    const localIdleSource = this.engineIdleSource
+    const localAccelSource = this.engineAccelSource
     const localScreech = this.screechSource
     const localWind = this.windSource
     const localTurbo = this.turboWhistleOsc
 
-    this.engineOsc = null
-    this.engineOsc2 = null
+    this.engineIdleSource = null
+    this.engineAccelSource = null
     this.screechSource = null
     this.windSource = null
     this.turboWhistleOsc = null
 
     this.stopTimeout = setTimeout(() => {
       this.stopTimeout = null
-      try { localEngineOsc?.stop() } catch { /* ignore */ }
-      try { localEngineOsc2?.stop() } catch { /* ignore */ }
+      try { localIdleSource?.stop() } catch { /* ignore */ }
+      try { localAccelSource?.stop() } catch { /* ignore */ }
       try { localScreech?.stop() } catch { /* ignore */ }
       try { localWind?.stop() } catch { /* ignore */ }
       try { localTurbo?.stop() } catch { /* ignore */ }
@@ -223,28 +288,59 @@ export class AudioManager {
   }
 
   playEngine(rpm: number, _throttle: number, boostLevel: number = 0): void {
-    if (!this.ensureContext() || !this.engineOsc || !this.engineOsc2 || !this.engineGain) return
+    if (!this.ensureContext() || !this.engineGain) return
 
     const engine = this.currentEngine
-    const baseFreq = engine?.baseFrequency ?? 40
-    const maxFreq = engine?.maxFrequency ?? 200
     const redline = engine?.redline ?? 7500
-
     const rpmRatio = Math.min(rpm / redline, 1)
-    const freq = baseFreq + rpmRatio * (maxFreq - baseFreq)
+
+    const now = this.ctx!.currentTime
+
+    if (this.engineIdleSource && this.engineAccelSource && this.engineIdleGain && this.engineAccelGain) {
+      const crossfadeStart = 0.3
+      const crossfadeEnd = 0.7
+
+      let idleMix: number
+      let accelMix: number
+
+      if (rpmRatio <= crossfadeStart) {
+        idleMix = 1
+        accelMix = 0
+      } else if (rpmRatio >= crossfadeEnd) {
+        idleMix = 0
+        accelMix = 1
+      } else {
+        const t = (rpmRatio - crossfadeStart) / (crossfadeEnd - crossfadeStart)
+        idleMix = 1 - t
+        accelMix = t
+      }
+
+      this.engineIdleGain.gain.setTargetAtTime(idleMix * this.engineVolume, now, 0.05)
+      this.engineAccelGain.gain.setTargetAtTime(accelMix * this.engineVolume, now, 0.05)
+
+      const basePlaybackRate = 0.7
+      const maxPlaybackRate = 1.5
+      const playbackRate = basePlaybackRate + rpmRatio * (maxPlaybackRate - basePlaybackRate)
+
+      this.engineIdleSource.playbackRate.setTargetAtTime(playbackRate, now, 0.05)
+      this.engineAccelSource.playbackRate.setTargetAtTime(playbackRate, now, 0.05)
+    }
+
+    const vol = this.engineGain.gain.value > 0 ? this.engineGain.gain.value : 0.05 + rpmRatio * this.engineVolume
+    this.engineGain.gain.setTargetAtTime(vol, now, 0.05)
 
     let wobble = 0
     if (rpmRatio > 0.92) {
       const overRev = (rpmRatio - 0.92) / 0.08
-      wobble = Math.sin(rpm * 0.05) * overRev * 8
+      wobble = Math.sin(rpm * 0.05) * overRev * 0.03
+      const currentRate = 0.7 + rpmRatio * 0.8
+      if (this.engineIdleSource) {
+        this.engineIdleSource.playbackRate.setTargetAtTime(currentRate + wobble, now, 0.02)
+      }
+      if (this.engineAccelSource) {
+        this.engineAccelSource.playbackRate.setTargetAtTime(currentRate + wobble, now, 0.02)
+      }
     }
-
-    const now = this.ctx!.currentTime
-    this.engineOsc.frequency.setTargetAtTime(freq + wobble, now, 0.05)
-    this.engineOsc2.frequency.setTargetAtTime((freq + wobble) * 0.5, now, 0.05)
-
-    const vol = 0.05 + rpmRatio * this.engineVolume
-    this.engineGain.gain.setTargetAtTime(vol, now, 0.05)
 
     const filterFreq = 600 + rpmRatio * 1400
     this.engineFilter!.frequency.setTargetAtTime(filterFreq, now, 0.05)
@@ -461,6 +557,7 @@ export class AudioManager {
       clearTimeout(this.stopTimeout)
       this.stopTimeout = null
     }
+    this.sampleCache.clear()
     this.ctx?.close()
   }
 }

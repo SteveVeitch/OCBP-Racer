@@ -442,6 +442,10 @@ export class CarController {
     return this.boostLevel
   }
 
+  getThrottle(): number {
+    return this.throttleLevel
+  }
+
   getConfig(): CarConfig {
     return this.config
   }

@@ -544,7 +544,7 @@ export class Game {
 
     try {
       this.audio.stopRaceAudio()
-      this.audio.startRaceAudio(getCarById(carId).engine)
+      this.audio.startRaceAudio(getCarById(carId).engine, carId)
     } catch (err) {
       logError('Audio init failed (non-fatal):', err)
     }
@@ -1042,8 +1042,9 @@ export class Game {
     const slipAngle = this.car.getSlipAngle()
     const gripCoeff = this.car.getGripCoefficient()
     const boostLevel = this.car.getBoostLevel()
+    const throttle = this.car.getThrottle()
 
-    this.audio.playEngine(rpm, 0, boostLevel)
+    this.audio.playEngine(rpm, throttle, boostLevel)
 
     if (slipAngle > 5 && gripCoeff < this.car.getConfig().peakGrip * 0.8) {
       const screechIntensity = Math.min(1, (slipAngle - 5) / 15)

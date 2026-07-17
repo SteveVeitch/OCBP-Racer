@@ -16,9 +16,11 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo [3/4] Copying GLTF models...
+echo [3/4] Copying assets...
 if not exist dist\assets\models mkdir dist\assets\models
 xcopy /s /e /q assets\models\* dist\assets\models\
+if not exist dist\assets\audio mkdir dist\assets\audio
+xcopy /s /e /q assets\audio\* dist\assets\audio\
 
 echo [4/4] Done!
 echo.

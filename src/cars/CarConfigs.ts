@@ -19,6 +19,7 @@ export interface CarDefinition {
   config: CarConfig
   description: string
   engine: EngineDefinition
+  releaseChannel: 'green' | 'blue'
 }
 
 export const CARS: CarDefinition[] = [
@@ -51,7 +52,8 @@ export const CARS: CarDefinition[] = [
       slipAnglePeak: 8,
       slipAngleLimit: 25,
       turboLagTime: 0.15
-    }
+    },
+    releaseChannel: 'green'
   },
   {
     id: 'weissach-gt3',
@@ -82,7 +84,8 @@ export const CARS: CarDefinition[] = [
       slipAnglePeak: 6,
       slipAngleLimit: 20,
       turboLagTime: 0.0
-    }
+    },
+    releaseChannel: 'blue'
   },
   {
     id: 'kaiju-gt-r',
@@ -113,7 +116,8 @@ export const CARS: CarDefinition[] = [
       slipAnglePeak: 12,
       slipAngleLimit: 35,
       turboLagTime: 0.25
-    }
+    },
+    releaseChannel: 'blue'
   },
   {
     id: 'stingray-z06',
@@ -144,7 +148,8 @@ export const CARS: CarDefinition[] = [
       slipAnglePeak: 7,
       slipAngleLimit: 22,
       turboLagTime: 0.0
-    }
+    },
+    releaseChannel: 'blue'
   }
 ]
 
@@ -152,4 +157,9 @@ export function getCarById(id: string): CarDefinition {
   const car = CARS.find(c => c.id === id)
   if (!car) throw new Error(`Unknown car: ${id}`)
   return car
+}
+
+export function getCarsForReleaseChannel(channel: 'green' | 'blue'): CarDefinition[] {
+  if (channel === 'blue') return CARS
+  return CARS.filter(c => c.releaseChannel === 'green')
 }

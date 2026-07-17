@@ -54,7 +54,7 @@ Run the automated test suite:
 http://localhost:3000?test
 ```
 
-123 tests validate all game systems. Click the results overlay to start the game.
+127 tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 
@@ -173,10 +173,17 @@ Settings are persisted to localStorage.
 
 ## Release Channels
 
-Tracks are released in two channels:
+Cars and tracks are released in two channels:
 
-- **Green (released):** Available to all players. Currently: Midnight Circuit.
+- **Green (released):** Available to all players.
 - **Blue (unreleased):** In development, only visible when Release Channel is set to "Blue" in Settings.
+
+| Car | Channel |
+|-----|---------|
+| Rossini 488 | Green |
+| Weissach GT3 | Blue |
+| Kaiju GT-R | Blue |
+| Stingray Z06 | Blue |
 
 | Track | Channel |
 |-------|---------|

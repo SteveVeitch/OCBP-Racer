@@ -465,10 +465,10 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 
 **Release Channel:**
 - `releaseChannel: 'green' | 'blue'` in GameSettings (default: `'green'`)
-- **Green:** Only released tracks appear in Track Select (Midnight Circuit)
-- **Blue:** All tracks appear, including unreleased tracks marked with a blue badge
-- Each track has a `releaseChannel` field (`'green'` or `'blue'`)
-- Track Select filters tracks based on this setting
+- **Green:** Only released cars and tracks appear in Car Select and Track Select (Rossini 488, Midnight Circuit)
+- **Blue:** All cars and tracks appear
+- Each car and track has a `releaseChannel` field (`'green'` or `'blue'`)
+- Car Select and Track Select filter based on this setting
 - Persisted to localStorage
 
 **Behavior:**

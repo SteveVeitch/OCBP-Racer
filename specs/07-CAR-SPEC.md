@@ -10,6 +10,13 @@
 
 ## 2. Car Roster
 
+| Car | Release Channel |
+|-----|----------------|
+| Rossini 488 | Green |
+| Weissach GT3 | Blue |
+| Kaiju GT-R | Blue |
+| Stingray Z06 | Blue |
+
 ### 2.1 Rossini 488 — "The Prancing Horse"
 
 **Style:** Italian Mid-Engine Exotic

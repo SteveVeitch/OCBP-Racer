@@ -6,7 +6,7 @@ import { CameraController } from './rendering/CameraController'
 import { Track } from './track/Track'
 import { TRACKS, getTracksForReleaseChannel } from './track/TrackDefinitions'
 import { StateMachine } from './core/StateMachine'
-import { CARS, getCarById } from './cars/CarConfigs'
+import { CARS, getCarById, getCarsForReleaseChannel } from './cars/CarConfigs'
 import { CarFactory } from './cars/CarFactory'
 import { AIController } from './ai/AIController'
 import { AudioManager } from './audio/AudioManager'
@@ -1190,6 +1190,32 @@ export async function runTestHarness(): Promise<void> {
     assert(greenTracks[0].id === 'midnight-circuit', `Green channel should be midnight-circuit, got ${greenTracks[0].id}`)
     const blueTracks = getTracksForReleaseChannel('blue')
     assert(blueTracks.length === 6, `Blue channel should have 6 tracks, got ${blueTracks.length}`)
+  })
+
+  // ── Phase 24: Car Release Channels ──
+  currentPhase = 'Phase 24: Car Release Channels'
+  console.log('\n-- Phase 24: Car Release Channels --')
+  test('CarDefinition includes releaseChannel field', () => {
+    for (const car of CARS) {
+      assert('releaseChannel' in car, `${car.id} missing releaseChannel`)
+      assert(car.releaseChannel === 'green' || car.releaseChannel === 'blue', `${car.id} invalid releaseChannel: ${car.releaseChannel}`)
+    }
+  })
+  test('Rossini 488 is green release', () => {
+    const rc = CARS.find(c => c.id === 'rossini-488')!
+    assert(rc.releaseChannel === 'green', `Expected rossini-488 green, got ${rc.releaseChannel}`)
+  })
+  test('All other cars are blue releases', () => {
+    for (const car of CARS.filter(c => c.id !== 'rossini-488')) {
+      assert(car.releaseChannel === 'blue', `${car.id} expected blue, got ${car.releaseChannel}`)
+    }
+  })
+  test('getCarsForReleaseChannel filters correctly', () => {
+    const greenCars = getCarsForReleaseChannel('green')
+    assert(greenCars.length === 1, `Green channel should have 1 car, got ${greenCars.length}`)
+    assert(greenCars[0].id === 'rossini-488', `Green channel should be rossini-488, got ${greenCars[0].id}`)
+    const blueCars = getCarsForReleaseChannel('blue')
+    assert(blueCars.length === 4, `Blue channel should have 4 cars, got ${blueCars.length}`)
   })
 
   // ── Summary ──

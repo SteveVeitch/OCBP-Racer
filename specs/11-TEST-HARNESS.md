@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The test harness is an automated in-browser test suite that validates all game systems. It runs 123 tests across 24 phases (Phase 0–23), covering project setup through release channels.
+The test harness is an automated in-browser test suite that validates all game systems. It runs 127 tests across 25 phases (Phase 0–24), covering project setup through car release channels.
 
 ## 2. Accessing the Test Harness
 
@@ -96,7 +96,7 @@ The overlay is a flexbox-centered container with a CSS grid inside for phase col
 ║  ... (remaining phases) ...                               ║
 ║                                                           ║
 ║  ─────────────────────────────────────────                ║
-║         123/123 PASSED                                    ║
+║         127/127 PASSED                                    ║
 ║                                                           ║
 ║            CLICK ANYWHERE TO START                        ║
 ╚═══════════════════════════════════════════════════════════╝
@@ -151,7 +151,7 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 - Centered below grid, separated by a green border-top
 - Green (#00ff88) with glow if all pass
 - Red (#ff4444) with glow if any fail
-- Format: `123/123 PASSED` or `121/123 PASSED — 2 FAILED`
+- Format: `127/127 PASSED` or `125/127 PASSED — 2 FAILED`
 - Red background if any fail
 
 ## 5. Test Inventory
@@ -394,7 +394,16 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 | 122 | GameSettings includes releaseChannel field | Sync | Checks default settings has releaseChannel 'green' |
 | 123 | getTracksForReleaseChannel filters correctly | Sync | Filters green channel → only midnight-circuit; blue → all 6 |
 
-**Total: 123 tests** (Phases 0–23)
+### Phase 24: Car Release Channels (4 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 124 | CarDefinition includes releaseChannel field | Sync | Checks all 4 cars have releaseChannel |
+| 125 | Rossini 488 is green release | Sync | Checks rossini-488 has releaseChannel 'green' |
+| 126 | All other cars are blue releases | Sync | Checks cars 2-4 have releaseChannel 'blue' |
+| 127 | getCarsForReleaseChannel filters correctly | Sync | Filters green channel → only rossini-488; blue → all 4 |
+
+**Total: 127 tests** (Phases 0–24)
 
 ## 6. Test Dependencies
 
@@ -404,7 +413,6 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 | Three.js | 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 30, 57, 106–110 |
 | Rapier.js | 7, 8, 9, 10, 11, 12, 21, 30, 36, 37, 47, 48 |
 | CarFactory | 8, 9, 10, 11, 12, 30, 47, 48, 91, 92, 99, 100 |
-| CarConfigs | 2, 3, 24–29, 83–85, 104, 105 |
 | Track | 15–21, 36–40, 47, 48, 55 |
 | SplinePath | 16, 17, 21 |
 | AIController | 36, 37, 38, 39, 40 |
@@ -418,6 +426,7 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 | LeaderboardManager | 69–72 |
 | HUDGauges | 95–98 |
 | TrackDefinitions | 119–121, 123 |
+| CarConfigs | 2, 3, 24–29, 83–85, 104, 105, 124–127 |
 
 ### 6.2 Async Tests
 Tests 7–12, 21, 30, 31, 36–40, 47, 48, 55, 62, 74, 91, 92, 100 require async execution because they initialize Rapier.js WASM or load GLTF models. Each physics test creates and disposes its own PhysicsWorld instance.
@@ -476,8 +485,14 @@ npm run dev
   ✓ GameSettings includes releaseChannel field
   ✓ getTracksForReleaseChannel filters correctly
 
+-- Phase 24: Car Release Channels --
+  ✓ CarDefinition includes releaseChannel field
+  ✓ Rossini 488 is green release
+  ✓ All other cars are blue releases
+  ✓ getCarsForReleaseChannel filters correctly
+
 === Results ===
-123 passed, 0 failed, 123 total
+127 passed, 0 failed, 127 total
 ```
 
 ## 8. Failure Handling

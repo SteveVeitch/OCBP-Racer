@@ -1,5 +1,5 @@
 import { StateMachine, AIDifficulty } from '../core/StateMachine'
-import { CARS } from '../cars/CarConfigs'
+import { CARS, getCarsForReleaseChannel } from '../cars/CarConfigs'
 import { TRACKS, getTracksForReleaseChannel } from '../track/TrackDefinitions'
 import { getTrackLeaderboard, getOverallLeaderboard, type LeaderboardEntry } from './LeaderboardManager'
 import { type KeyBindings, DEFAULT_KEY_BINDINGS } from '../input/InputManager'
@@ -1102,7 +1102,9 @@ export class UIManager {
     const grid = document.createElement('div')
     grid.className = 'car-grid'
 
-    CARS.forEach((car, index) => {
+    const availableCars = getCarsForReleaseChannel(this.state.getSettings().releaseChannel)
+
+    availableCars.forEach((car, index) => {
       const card = document.createElement('div')
       card.className = `car-card ${index === this.selectedCarIndex ? 'selected' : ''}`
       card.onclick = () => {
@@ -1189,7 +1191,8 @@ export class UIManager {
   }
 
   private buildCarPreview(parent: HTMLElement): void {
-    const car = CARS[this.selectedCarIndex]
+    const availableCars = getCarsForReleaseChannel(this.state.getSettings().releaseChannel)
+    const car = availableCars[this.selectedCarIndex]
 
     const stats = [
       { label: 'Power', value: (car.config.engineForce / 950) * 0.85 },

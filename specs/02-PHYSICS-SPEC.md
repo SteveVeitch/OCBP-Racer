@@ -2,11 +2,12 @@
 
 ## 1. Philosophy
 
-**"Arcade-Realistic" = FlatOut / Burnout feel**
+**"Arcade-Sim Hybrid" — FlatOut meets Gran Turismo Lite**
 
-- Cars feel weighty and physical
-- Grip breaks predictably — you can learn to control slides
-- Forgiving: the car fights to stay on the road
+- Cars feel weighty with visible weight transfer
+- Grip breaks predictably — rear steps out under power (controllable oversteer)
+- Forgiving but rewarding: skillful driving is noticeably faster
+- Speed-dependent steering: tight at low speed, relaxed at high speed
 - Fun first: if it feels right but isn't physically accurate, keep the feel
 
 ## 2. Physics Engine
@@ -20,7 +21,7 @@
 Gravity:              -9.81 m/s² (Y-axis down)
 Fixed Timestep:       1/120 Hz (8.33ms)
 Linear Damping:       1.0 (on car bodies)
-Angular Damping:      5.0 (on car bodies)
+Angular Damping:      2.0 (on car bodies — allows natural yaw)
 Collider Friction:    0.8 (car), varies (barriers)
 ```
 
@@ -35,7 +36,7 @@ Collider Friction:    0.8 (car), varies (barriers)
 ### 3.2 Car Body
 - Represented as a Rapier dynamic rigid body
 - Shape: Box collider (1.0 × 0.5 × 2.0)
-- Mass set via `setAdditionalMass()` per car config
+- Mass set via `setAdditionalMass()` per car config — affects all impulse-based forces
 - Ground enforced: car snapped to y=0.5, vertical velocity zeroed each tick
 
 ### 3.3 Force Application Model
@@ -44,8 +45,10 @@ Each physics tick, the car controller applies forces as **impulses (N·s per ste
 
 ```
 1. ENGINE FORCE (forward)
-   - Applied at car center in forward direction
-   - Force = ThrottlePercent × EngineForce × ForceMultiplier
+   - Applied at car center
+   - Direction: blends between forward vector and velocity direction based on slip
+     (enables power oversteer — rear steps out under throttle in a corner)
+   - Force = ThrottlePercent × EngineForce × ForceMultiplier × TurboBoost
    - ForceMultiplier = max(0, 1 - speedRatio × 0.9)
    - SpeedRatio = currentSpeed / maxSpeed
    - Force diminishes toward zero as car approaches top speed
@@ -60,10 +63,12 @@ Each physics tick, the car controller applies forces as **impulses (N·s per ste
      - Capped at 35% of maxSpeed (reverse speed limit)
 
 3. STEERING
-   - Rotates car body around Y-axis
-   - Steering angle lerps toward target at rate: dt × 10
-   - Turn rate = steerAngle × speedFactor × SteerSpeed
-   - SpeedFactor = min(speed / 3, 1) — no turning at standstill
+   - Rotates car body around Y-axis (direct rotation, not torque)
+   - Speed-dependent: steering authority reduces at high speed
+     - HighSpeedFactor = 1 / (1 + speed × 0.03)
+   - Turn rate = steerAngle × speedFactor × highSpeedFactor × SteerSpeed
+   - speedFactor = min(speed / 3, 1) — reduced steering at standstill
+   - Angular velocity is NOT zeroed — car can sustain yaw through corners
    - Steering direction flips when reversing (forwardSpeed < 0)
 
 4. DRAG FORCE (opposes motion, LINEAR)
@@ -75,8 +80,8 @@ Each physics tick, the car controller applies forces as **impulses (N·s per ste
    - Applied as downward impulse
 
 6. GRIP / SLIP MODEL (lateral stability)
-   - Replaces old auto-correct system
-   - Lateral force governed by slip angle → grip coefficient curve
+   - Mass-proportional: heavier cars have more grip
+   - Speed-attenuated: grip reduces at high speed (car can slide more)
    - Active when speed > 0.5 m/s and slip angle > 0°
    - See section 3.4 for full model
 
@@ -93,7 +98,8 @@ Grip is modeled through the interaction of:
 - **Peak grip coefficient** — determines maximum lateral force
 - **Slip angle peak** — slip angle at which grip is maximum
 - **Slip angle limit** — slip angle beyond which car loses control
-- **Grip force factor** — global scaling (GRIP_FORCE_FACTOR = 0.15)
+- **Mass-proportional grip** — force scales with car mass (heavier = more grip)
+- **Speed attenuation** — grip reduces at high speed to allow slides
 
 ```
                    Grip
@@ -127,43 +133,81 @@ else if (slipAngle < slipAngleLimit):
 else:
     gripCoeff = 0
 
-lateralForce = sign × gripCoeff × speed × GRIP_FORCE_FACTOR
+speedGripScale = 1 / (1 + speed × 0.02)  // reduces grip at high speed
+lateralForce = sign × gripCoeff × mass × 0.001 × speedGripScale × gripMultiplier
 ```
 
-The lateral force is applied as an impulse in the car's right direction to counteract sliding. When grip is high, the car resists sliding. When grip drops, the car slides freely.
+At high speed, grip is reduced, allowing the car to slide more in corners.
+At low speed, full grip applies proportional to car mass.
 
 **Key constants:**
 ```
-GRIP_FORCE_FACTOR = 0.15
-THROTTLE_RAMP_UP  = 2.5 /sec
+GRIP_FORCE_FACTOR  = 0.001 (mass-proportional)
+GRIP_SPEED_SCALE   = 0.02  (speed attenuation)
+HIGH_SPEED_FACTOR  = 0.03  (steering reduction)
+THROTTLE_RAMP_UP   = 2.5 /sec
 THROTTLE_RAMP_DOWN = 4.0 /sec
-WHEEL_RADIUS      = 0.32 m
-ROLL_FACTOR       = 0.03
-MAX_ROLL_ANGLE    = 5°
+WHEEL_RADIUS       = 0.32 m
+ROLL_FACTOR        = 0.03
+MAX_ROLL_ANGLE     = 5°
 ```
 
 ### 3.5 Speed-Dependent Steering
 
 ```
-TurnRate = SteerAngle × SpeedFactor × SteerSpeed
-SpeedFactor = min(speed / 3, 1)
+SpeedFactor    = min(speed / 3, 1)        // low-speed reduction
+HighSpeedFactor = 1 / (1 + speed × 0.03)  // high-speed reduction
+TurnRate = SteerAngle × SpeedFactor × HighSpeedFactor × SteerSpeed
 ```
 
 At low speed (< 3 m/s), steering is reduced to prevent snap at standstill.
+At high speed, steering authority is reduced — corrections are more subtle.
 
-### 3.6 Reverse Gear
+### 3.6 Power Oversteer (Throttle Blending)
+
+When the car is sliding, throttle force direction blends between the car's forward
+vector and the velocity direction. This allows the rear to step out under power:
+```
+slipBlendFactor = min(slipAngle / 15, 1) × 0.3  // max 30% blend at extreme slip
+throttleDir = lerp(forward, velocityDir, slipBlendFactor)
+```
+At zero slip, throttle pushes straight forward (normal behavior).
+At high slip, throttle partially follows the velocity vector, allowing power slides.
+
+### 3.7 Reverse Gear
 
 When brake input is held and forward speed is ≤ 1.0 m/s:
 - Car applies reverse force at 40% of engine force
 - Reverse speed capped at 35% of max speed
 - Steering direction flips so controls remain intuitive (A=left, D=right)
 
-### 3.7 NaN Guard
+### 3.8 NaN Guard
 
 If car position contains NaN values:
 - Position reset to (0, 0.5, 0)
 - Velocity and angular velocity zeroed
 - Prevents physics explosions from corrupting state
+
+## 4. Car Tuning Parameters
+
+### 4.1 Actual CarConfig Interface
+
+```typescript
+interface CarConfig {
+  mass: number          // kg (1250-1550)
+  engineForce: number   // impulse N·s per step (750-950)
+  brakeForce: number    // impulse N·s per step (1900-2400)
+  steerSpeed: number    // rad/s turn rate multiplier (1.8-2.5)
+  maxSteerAngle: number // radians (0.42-0.48)
+  maxSpeed: number      // km/h (235-265)
+  dragCoeff: number     // linear drag coefficient (1.3-1.6)
+  peakGrip: number      // grip coefficient (1.6-2.4)
+  downforce: number     // downforce coefficient (0.8-1.8)
+  slipAnglePeak: number // degrees (6-12)
+  slipAngleLimit: number // degrees (20-35)
+  turboLagTime: number  // seconds (0 for NA cars)
+}
+```
 
 ## 4. Car Tuning Parameters
 
@@ -268,9 +312,11 @@ All car parameters adjustable via debug UI sliders:
 | Car steers correctly | A=left, D=right (forward and reverse) |
 | Reverse works | Car moves backward when brake held at low speed |
 | Top speed reached | Speed plateaus near maxSpeed config value |
-| Steering reduces at high speed | Turn rate decreases with speed |
+| Speed-dependent steering | Steering authority reduces at high speed |
 | NaN guard works | Car resets on NaN position |
-| Downforce increases grip | Less sliding at high speed |
-| Auto-correct stabilizes | Lateral velocity reduced when not steering |
 | Throttle ramp-up | ~0.4s from 0 to full throttle |
 | Grip/slip model | Car slides controllably at high slip angles |
+| Oversteer on power | Rear steps out when throttle applied in a corner |
+| Mass matters | Heavier cars have more grip, lighter cars more agile |
+| High-speed looseness | Car is easier to slide at high speed |
+| Angular momentum | Car retains yaw through corners (not instantly killed) |

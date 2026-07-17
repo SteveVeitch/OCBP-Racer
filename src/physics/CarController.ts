@@ -22,7 +22,7 @@ const DEFAULT_CONFIG: CarConfig = {
   mass: 1500,
   engineForce: 800,
   brakeForce: 2000,
-  steerSpeed: 2.0,
+  steerSpeed: 2.5,
   maxSteerAngle: 0.5,
   maxSpeed: 235,
   dragCoeff: 1.5,
@@ -36,7 +36,9 @@ const DEFAULT_CONFIG: CarConfig = {
 const WHEEL_RADIUS = 0.32
 const ROLL_FACTOR = 0.03
 const MAX_ROLL_ANGLE = 5 * (Math.PI / 180)
-const GRIP_FORCE_FACTOR = 0.15
+const GRIP_FORCE_FACTOR = 0.0015
+const GRIP_SPEED_SCALE = 0.015
+const HIGH_SPEED_STEER_FACTOR = 0.012
 const THROTTLE_RAMP_UP = 2.5
 const THROTTLE_RAMP_DOWN = 4.0
 const TURBO_DECAY_RATE = 8.0
@@ -49,6 +51,7 @@ const _right = new THREE.Vector3()
 const _axisY = new THREE.Vector3(0, 1, 0)
 const _newQuat = new THREE.Quaternion()
 const _velDir = new THREE.Vector3()
+const _throttleDir = new THREE.Vector3()
 
 function safeNumber(v: number, fallback: number): number {
   return Number.isFinite(v) && v > 0 ? v : fallback
@@ -182,7 +185,8 @@ export class CarController {
     if (gripCoeff < 0.01) return
 
     const sign = this.lateralVelocity > 0 ? -1 : 1
-    const force = sign * gripCoeff * speed * GRIP_FORCE_FACTOR * this.envModifiers.gripMultiplier
+    const speedGripScale = 1 / (1 + speed * GRIP_SPEED_SCALE)
+    const force = sign * gripCoeff * this.config.mass * GRIP_FORCE_FACTOR * speedGripScale * this.envModifiers.gripMultiplier
 
     this.body.applyImpulse(
       { x: _right.x * force, y: 0, z: _right.z * force },
@@ -203,7 +207,8 @@ export class CarController {
 
     const speed = this._cachedHorizontalSpeed
     const speedFactor = Math.min(speed / 3, 1)
-    const turnRate = this.currentSteer * speedFactor * this.config.steerSpeed * this.envModifiers.steerMultiplier
+    const highSpeedFactor = 1 / (1 + speed * HIGH_SPEED_STEER_FACTOR)
+    const turnRate = this.currentSteer * speedFactor * highSpeedFactor * this.config.steerSpeed * this.envModifiers.steerMultiplier
 
     const newAngle = currentAngle + turnRate * dt
     _newQuat.setFromAxisAngle(_axisY, newAngle)
@@ -212,7 +217,6 @@ export class CarController {
       { x: _newQuat.x, y: _newQuat.y, z: _newQuat.z, w: _newQuat.w },
       true
     )
-    this.body.setAngvel({ x: 0, y: 0, z: 0 }, true)
   }
 
   private updateThrottleLevel(input: number, dt: number): void {
@@ -244,8 +248,23 @@ export class CarController {
     const turboBoost = 1 + this.boostLevel * TURBO_BOOST_MULTIPLIER
     const force = input * this.config.engineForce * forceMultiplier * turboBoost
 
+    const slipAngle = this.calculateSlipAngle()
+    const slipBlendFactor = Math.min(slipAngle / 15, 1) * 0.3
+    if (slipBlendFactor > 0.01 && speed > 1.0) {
+      const velocity = this.body.linvel()
+      const mag = Math.sqrt(velocity.x * velocity.x + velocity.z * velocity.z)
+      if (mag > 0.01) {
+        _velDir.set(velocity.x / mag, 0, velocity.z / mag)
+      } else {
+        _velDir.copy(_forward)
+      }
+      _throttleDir.lerpVectors(_forward, _velDir, slipBlendFactor)
+    } else {
+      _throttleDir.copy(_forward)
+    }
+
     this.body.applyImpulse(
-      { x: _forward.x * force, y: 0, z: _forward.z * force },
+      { x: _throttleDir.x * force, y: 0, z: _throttleDir.z * force },
       true
     )
   }

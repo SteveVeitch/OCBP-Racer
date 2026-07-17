@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The test harness is an automated in-browser test suite that validates all game systems. It runs 131 tests across 26 phases (Phase 0–25), covering project setup through engine audio samples.
+The test harness is an automated in-browser test suite that validates all game systems. It runs 136 tests across 27 phases (Phase 0–26), covering project setup through handling overhaul.
 
 ## 2. Accessing the Test Harness
 
@@ -412,7 +412,17 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 | 130 | CarController has getThrottle method | Sync | Checks getThrottle exists on CarController prototype |
 | 131 | ENGINE_SAMPLE_PATHS covers all 4 cars | Sync | Verifies all 4 car IDs exist in CARS |
 
-**Total: 131 tests** (Phases 0–25)
+### Phase 26: Handling Overhaul (5 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 132 | CarController has calculateSlipAngle method | Sync | Checks calculateSlipAngle exists on prototype |
+| 133 | CarController has calculateGripCoefficient method | Sync | Checks calculateGripCoefficient exists on prototype |
+| 134 | All cars have distinct mass values | Sync | Ensures each car has unique mass |
+| 135 | All cars have distinct peakGrip values | Sync | Ensures each car has unique peak grip |
+| 136 | All cars have distinct slipAnglePeak values | Sync | Ensures each car has unique slip angle peak |
+
+**Total: 136 tests** (Phases 0–26)
 
 ## 6. Test Dependencies
 

@@ -1241,6 +1241,33 @@ export async function runTestHarness(): Promise<void> {
     }
   })
 
+  // ── Phase 26: Handling Overhaul ──
+  currentPhase = 'Phase 26: Handling Overhaul'
+  console.log('\n-- Phase 26: Handling Overhaul --')
+  test('CarController has calculateSlipAngle method', () => {
+    const fn = CarController.prototype.calculateSlipAngle
+    assert(typeof fn === 'function', 'calculateSlipAngle should exist')
+  })
+  test('CarController has calculateGripCoefficient method', () => {
+    const fn = CarController.prototype.calculateGripCoefficient
+    assert(typeof fn === 'function', 'calculateGripCoefficient should exist')
+  })
+  test('All cars have distinct mass values', () => {
+    const masses = CARS.map(c => c.config.mass)
+    const unique = new Set(masses)
+    assert(unique.size === CARS.length, `Expected ${CARS.length} unique masses, got ${unique.size}`)
+  })
+  test('All cars have distinct peakGrip values', () => {
+    const grips = CARS.map(c => c.config.peakGrip)
+    const unique = new Set(grips)
+    assert(unique.size === CARS.length, `Expected ${CARS.length} unique peakGrip, got ${unique.size}`)
+  })
+  test('All cars have distinct slipAnglePeak values', () => {
+    const peaks = CARS.map(c => c.config.slipAnglePeak)
+    const unique = new Set(peaks)
+    assert(unique.size === CARS.length, `Expected ${CARS.length} unique slipAnglePeak, got ${unique.size}`)
+  })
+
   // ── Summary ──
   console.log('\n=== Results ===')
   const passed = results.filter(r => r.passed).length

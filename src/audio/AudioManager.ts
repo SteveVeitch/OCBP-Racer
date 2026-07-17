@@ -85,7 +85,6 @@ export class AudioManager {
         this.ctx.decodeAudioData(accelArrayBuffer)
       ])
       this.sampleCache.set(carId, { idle: idleBuffer, accel: accelBuffer })
-      console.log(`[AudioManager] Loaded engine samples for ${carId}: idle ${idleBuffer.duration.toFixed(1)}s, accel ${accelBuffer.duration.toFixed(1)}s`)
     } catch (err) {
       console.warn(`[AudioManager] Failed to load engine samples for ${carId}:`, err)
     }
@@ -110,11 +109,7 @@ export class AudioManager {
     this.engineFilter.connect(this.engineGain)
 
     const cached = carId ? this.sampleCache.get(carId) : null
-    if (!cached) {
-      console.warn(`[AudioManager] No cached samples for ${carId}, engine sources not created`)
-      return
-    }
-    console.log(`[AudioManager] Creating engine sources for ${carId}`)
+    if (!cached) return
 
     this.engineIdleBuffer = cached.idle
     this.engineAccelBuffer = cached.accel
@@ -300,11 +295,6 @@ export class AudioManager {
     const engine = this.currentEngine
     const redline = engine?.redline ?? 7500
     const rpmRatio = Math.min(rpm / redline, 1)
-
-    if (this.engineLogCount < 5) {
-      this.engineLogCount++
-      console.log(`[AudioManager] playEngine #${this.engineLogCount}: rpm=${rpm.toFixed(0)} redline=${redline} ratio=${rpmRatio.toFixed(3)} vol=${(0.05 + rpmRatio * this.engineVolume).toFixed(3)} idleSrc=${!!this.engineIdleSource} accelSrc=${!!this.engineAccelSource}`)
-    }
 
     const now = this.ctx!.currentTime
 

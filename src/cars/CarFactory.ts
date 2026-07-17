@@ -360,7 +360,7 @@ export class CarFactory {
     desc.setTranslation(0, 0.5, 0)
     desc.setAdditionalMass(config.mass)
     desc.setLinearDamping(1.0)
-    desc.setAngularDamping(5.0)
+    desc.setAngularDamping(2.0)
 
     const body = this.world.createRigidBody(desc)
 

@@ -130,14 +130,14 @@ export class AudioManager {
     this.engineIdleSource = this.ctx.createBufferSource()
     this.engineIdleSource.buffer = this.engineIdleBuffer
     this.engineIdleSource.loop = true
-    this.engineIdleSource.playbackRate.value = 0.8
+    this.engineIdleSource.playbackRate.value = 0.35
     this.engineIdleSource.connect(this.engineIdleGain)
     this.engineIdleSource.start()
 
     this.engineAccelSource = this.ctx.createBufferSource()
     this.engineAccelSource.buffer = this.engineAccelBuffer
     this.engineAccelSource.loop = true
-    this.engineAccelSource.playbackRate.value = 0.8
+    this.engineAccelSource.playbackRate.value = 0.35
     this.engineAccelSource.connect(this.engineAccelGain)
     this.engineAccelSource.start()
   }
@@ -330,8 +330,8 @@ export class AudioManager {
       this.engineIdleGain.gain.setTargetAtTime(idleMix, now, 0.05)
       this.engineAccelGain.gain.setTargetAtTime(accelMix, now, 0.05)
 
-      const basePlaybackRate = 0.7
-      const maxPlaybackRate = 1.5
+      const basePlaybackRate = 0.35
+      const maxPlaybackRate = 1.8
       const playbackRate = basePlaybackRate + rpmRatio * (maxPlaybackRate - basePlaybackRate)
 
       this.engineIdleSource.playbackRate.setTargetAtTime(playbackRate, now, 0.05)
@@ -345,7 +345,7 @@ export class AudioManager {
     if (rpmRatio > 0.92) {
       const overRev = (rpmRatio - 0.92) / 0.08
       wobble = Math.sin(rpm * 0.05) * overRev * 0.03
-      const currentRate = 0.7 + rpmRatio * 0.8
+      const currentRate = basePlaybackRate + rpmRatio * (maxPlaybackRate - basePlaybackRate)
       if (this.engineIdleSource) {
         this.engineIdleSource.playbackRate.setTargetAtTime(currentRate + wobble, now, 0.02)
       }

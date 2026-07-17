@@ -1,0 +1,2 @@
+I want to create a browser based 3D arcade street racing game using Spec Driven Development techniques.  How would I go about building something like this?  Don't give me code examples; just give me an idea of how I would approach this.  
+Help me build the SDD artifacts through interviewing me, and then help me create the plan to implement Spec.

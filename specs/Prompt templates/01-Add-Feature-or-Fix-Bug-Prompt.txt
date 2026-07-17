@@ -1,0 +1,20 @@
+For all changes mentioned below, always ensure that the README.md, test hardness and settings options are updated appropriately (I don't need settings for every option, but consider what might be reasonable for an arcade racer).  Update the game spec as follows, then implement changes. If you feel the need, please interview me if you need more info.  Where you feel that there are multiple ways to implement the change, please ask me to choose from a list of options.  
+Licenses and Attribution: If at any time we use assets from 3rd parties, ensure that we always attribute these works to the original author with a link to the original source page and license within the README.md (and if at a later date we add a credits page, add there too).
+Always give me the option to confirm / test the changes, prior to committing to GitHub.  Once I approve the tests, update the standalone, and commit all changes to GitHub. 
+Do not commit before I've tested the interim release, please! 
+
+Feature Requests:
+1. 
+- 
+-  
+2. 
+- 
+- 
+
+Bug Fixes:
+1. 
+- 
+- 
+2. 
+- 
+- 

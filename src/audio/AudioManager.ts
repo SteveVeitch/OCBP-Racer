@@ -28,7 +28,7 @@ export class AudioManager {
   private turboWhistleOsc: OscillatorNode | null = null
   private turboWhistleFilter: BiquadFilterNode | null = null
   private masterVolume = 1.0
-  private engineVolume = 0.6
+  private engineVolume = 1.0
   private initialized = false
   private stopTimeout: ReturnType<typeof setTimeout> | null = null
 
@@ -338,7 +338,7 @@ export class AudioManager {
       this.engineAccelSource.playbackRate.setTargetAtTime(playbackRate, now, 0.05)
     }
 
-    const vol = (0.3 + rpmRatio * 0.7) * this.engineVolume
+    const vol = (0.7 + rpmRatio * 0.3) * this.engineVolume
     this.engineGain.gain.setTargetAtTime(vol, now, 0.05)
 
     let wobble = 0

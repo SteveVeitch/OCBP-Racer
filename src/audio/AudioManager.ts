@@ -1,10 +1,10 @@
 import { EngineDefinition } from '../cars/CarConfigs'
 
 const ENGINE_SAMPLE_PATHS: Record<string, { idle: string; accel: string }> = {
-  'rossini-488': { idle: 'assets/audio/engines/rossini-488/idle.wav', accel: 'assets/audio/engines/rossini-488/accel.wav' },
-  'weissach-gt3': { idle: 'assets/audio/engines/weissach-gt3/idle.wav', accel: 'assets/audio/engines/weissach-gt3/accel.wav' },
-  'kaiju-gt-r': { idle: 'assets/audio/engines/kaiju-gt-r/idle.wav', accel: 'assets/audio/engines/kaiju-gt-r/accel.wav' },
-  'stingray-z06': { idle: 'assets/audio/engines/stingray-z06/idle.wav', accel: 'assets/audio/engines/stingray-z06/accel.wav' }
+  'rossini-488': { idle: '/assets/audio/engines/rossini-488/idle.wav', accel: '/assets/audio/engines/rossini-488/accel.wav' },
+  'weissach-gt3': { idle: '/assets/audio/engines/weissach-gt3/idle.wav', accel: '/assets/audio/engines/weissach-gt3/accel.wav' },
+  'kaiju-gt-r': { idle: '/assets/audio/engines/kaiju-gt-r/idle.wav', accel: '/assets/audio/engines/kaiju-gt-r/accel.wav' },
+  'stingray-z06': { idle: '/assets/audio/engines/stingray-z06/idle.wav', accel: '/assets/audio/engines/stingray-z06/accel.wav' }
 }
 
 export class AudioManager {
@@ -326,7 +326,7 @@ export class AudioManager {
       this.engineAccelSource.playbackRate.setTargetAtTime(playbackRate, now, 0.05)
     }
 
-    const vol = this.engineGain.gain.value > 0 ? this.engineGain.gain.value : 0.05 + rpmRatio * this.engineVolume
+    const vol = 0.05 + rpmRatio * this.engineVolume
     this.engineGain.gain.setTargetAtTime(vol, now, 0.05)
 
     let wobble = 0

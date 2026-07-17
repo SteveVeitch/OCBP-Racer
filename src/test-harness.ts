@@ -4,7 +4,7 @@ import { PhysicsWorld } from './physics/PhysicsWorld'
 import { CarController } from './physics/CarController'
 import { CameraController } from './rendering/CameraController'
 import { Track } from './track/Track'
-import { TRACKS } from './track/TrackDefinitions'
+import { TRACKS, getTracksForReleaseChannel } from './track/TrackDefinitions'
 import { StateMachine } from './core/StateMachine'
 import { CARS, getCarById } from './cars/CarConfigs'
 import { CarFactory } from './cars/CarFactory'
@@ -1158,6 +1158,38 @@ export async function runTestHarness(): Promise<void> {
     for (const p of Object.values(TimeOfDayPresets)) {
       assert(p.hdrPath!.includes('1k'), `${p.name} HDR missing 1k in path: ${p.hdrPath}`)
     }
+  })
+
+  // ── Phase 23: Release Channels ──
+  currentPhase = 'Phase 23: Release Channels'
+  console.log('\n-- Phase 23: Release Channels --')
+  test('TrackDefinition includes releaseChannel field', () => {
+    for (const track of TRACKS) {
+      assert('releaseChannel' in track, `${track.id} missing releaseChannel`)
+      assert(track.releaseChannel === 'green' || track.releaseChannel === 'blue', `${track.id} invalid releaseChannel: ${track.releaseChannel}`)
+    }
+  })
+  test('Midnight Circuit is green release', () => {
+    const mc = TRACKS.find(t => t.id === 'midnight-circuit')!
+    assert(mc.releaseChannel === 'green', `Expected midnight-circuit green, got ${mc.releaseChannel}`)
+  })
+  test('All other tracks are blue releases', () => {
+    for (const track of TRACKS.filter(t => t.id !== 'midnight-circuit')) {
+      assert(track.releaseChannel === 'blue', `${track.id} expected blue, got ${track.releaseChannel}`)
+    }
+  })
+  test('GameSettings includes releaseChannel field', () => {
+    const sm = new StateMachine()
+    const settings = sm.getSettings()
+    assert('releaseChannel' in settings, 'releaseChannel not in GameSettings')
+    assert(settings.releaseChannel === 'green', `Default releaseChannel should be green, got ${settings.releaseChannel}`)
+  })
+  test('getTracksForReleaseChannel filters correctly', () => {
+    const greenTracks = getTracksForReleaseChannel('green')
+    assert(greenTracks.length === 1, `Green channel should have 1 track, got ${greenTracks.length}`)
+    assert(greenTracks[0].id === 'midnight-circuit', `Green channel should be midnight-circuit, got ${greenTracks[0].id}`)
+    const blueTracks = getTracksForReleaseChannel('blue')
+    assert(blueTracks.length === 6, `Blue channel should have 6 tracks, got ${blueTracks.length}`)
   })
 
   // ── Summary ──

@@ -413,6 +413,9 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 │  │  [Chase] [Wind/H/B]     │                             │
 │  │                         │                             │
 │  │  Demo Mode  [On/Off]    │                             │
+│  │                         │                             │
+│  │  Release Channel        │                             │
+│  │  [Green] [Blue]         │                             │
 │  └─────────────────────────┘                             │
 │                                                          │
 │                      [ BACK ]                            │
@@ -431,6 +434,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 | Fog Toggle | Toggle | On/Off | On | Enable/disable fog rendering |
 | Camera Default | Button group | Chase/Wind/Hood/Bumper | Chase | Default camera view |
 | Demo Mode | Toggle | On/Off | On | Enable/disable attract mode after 3 min idle |
+| Release Channel | Button group | Green/Blue | Green | Green = released tracks only, Blue = includes unreleased tracks |
 | Key Bindings | Per-action | See 03-INPUT-SPEC | Defaults | Rebindable controls |
 
 **Speed Unit:**
@@ -457,6 +461,14 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 **Camera Default:**
 - Sets the starting camera view for races
 - Can be overridden mid-race with camera button
+- Persisted to localStorage
+
+**Release Channel:**
+- `releaseChannel: 'green' | 'blue'` in GameSettings (default: `'green'`)
+- **Green:** Only released tracks appear in Track Select (Midnight Circuit)
+- **Blue:** All tracks appear, including unreleased tracks marked with a blue badge
+- Each track has a `releaseChannel` field (`'green'` or `'blue'`)
+- Track Select filters tracks based on this setting
 - Persisted to localStorage
 
 **Behavior:**

@@ -37,6 +37,7 @@ export interface GameSettings {
   cameraDefault: 'chase' | 'windscreen' | 'hood' | 'bumper'
   fogEnabled: boolean
   aiDifficulty: AIDifficulty
+  releaseChannel: 'green' | 'blue'
 }
 
 const DEFAULT_SETTINGS: GameSettings = {
@@ -50,7 +51,8 @@ const DEFAULT_SETTINGS: GameSettings = {
   demoEnabled: true,
   cameraDefault: 'chase',
   fogEnabled: true,
-  aiDifficulty: 'intermediate'
+  aiDifficulty: 'intermediate',
+  releaseChannel: 'green'
 }
 
 function loadSettings(): GameSettings {

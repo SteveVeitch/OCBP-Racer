@@ -9,14 +9,14 @@
 
 ## 2. Track Roster
 
-| # | Track | Difficulty | Distance | Terrain | Default Time | Default Weather | Checkpoints |
-|---|-------|-----------|----------|---------|-------------|-----------------|-------------|
-| 1 | Midnight Circuit | Easy | 0.22 km | Urban | Night | Clear | 8 |
-| 2 | Sunset Boulevard | Medium | 0.45 km | Coastal | Dusk | Clear | 10 |
-| 3 | Thunder Ridge | Hard | 0.70 km | Mountain | Day | Clear | 12 |
-| 4 | Neon District | Expert | 0.55 km | Urban | Night | Rain | 12 |
-| 5 | Iron Circuit | Expert | 0.85 km | Industrial | Dawn | Fog | 14 |
-| 6 | Typhoon Pass | Hard | 0.65 km | Mountain | Day | Rain | 12 |
+| # | Track | Difficulty | Distance | Terrain | Default Time | Default Weather | Checkpoints | Release |
+|---|-------|-----------|----------|---------|-------------|-----------------|-------------|---------|
+| 1 | Midnight Circuit | Easy | 0.22 km | Urban | Night | Clear | 8 | Green |
+| 2 | Sunset Boulevard | Medium | 0.45 km | Coastal | Dusk | Clear | 10 | Blue |
+| 3 | Thunder Ridge | Hard | 0.70 km | Mountain | Day | Clear | 12 | Blue |
+| 4 | Neon District | Expert | 0.55 km | Urban | Night | Rain | 12 | Blue |
+| 5 | Iron Circuit | Expert | 0.85 km | Industrial | Dawn | Fog | 14 | Blue |
+| 6 | Typhoon Pass | Hard | 0.65 km | Mountain | Day | Rain | 12 | Blue |
 
 ## 3. Track Design: "Midnight Circuit"
 

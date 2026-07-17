@@ -19,6 +19,7 @@ export interface TrackDefinition {
   checkpointCount: number
   buildingDensity: number
   streetLightDensity: number
+  releaseChannel: 'green' | 'blue'
 }
 
 export const TRACKS: TrackDefinition[] = [
@@ -49,7 +50,8 @@ export const TRACKS: TrackDefinition[] = [
     barrierColor: 0x888888,
     checkpointCount: 8,
     buildingDensity: 25,
-    streetLightDensity: 20
+    streetLightDensity: 20,
+    releaseChannel: 'green'
   },
   {
     id: 'sunset-boulevard',
@@ -82,7 +84,8 @@ export const TRACKS: TrackDefinition[] = [
     barrierColor: 0x998877,
     checkpointCount: 10,
     buildingDensity: 12,
-    streetLightDensity: 16
+    streetLightDensity: 16,
+    releaseChannel: 'blue'
   },
   {
     id: 'thunder-ridge',
@@ -119,7 +122,8 @@ export const TRACKS: TrackDefinition[] = [
     barrierColor: 0x777777,
     checkpointCount: 12,
     buildingDensity: 6,
-    streetLightDensity: 8
+    streetLightDensity: 8,
+    releaseChannel: 'blue'
   },
   {
     id: 'typhoon-pass',
@@ -154,7 +158,8 @@ export const TRACKS: TrackDefinition[] = [
     barrierColor: 0x777777,
     checkpointCount: 12,
     buildingDensity: 0,
-    streetLightDensity: 0
+    streetLightDensity: 0,
+    releaseChannel: 'blue'
   },
   {
     id: 'neon-district',
@@ -188,7 +193,8 @@ export const TRACKS: TrackDefinition[] = [
     barrierColor: 0x666677,
     checkpointCount: 10,
     buildingDensity: 30,
-    streetLightDensity: 24
+    streetLightDensity: 24,
+    releaseChannel: 'blue'
   },
   {
     id: 'iron-circuit',
@@ -227,7 +233,8 @@ export const TRACKS: TrackDefinition[] = [
     barrierColor: 0x555555,
     checkpointCount: 14,
     buildingDensity: 18,
-    streetLightDensity: 14
+    streetLightDensity: 14,
+    releaseChannel: 'blue'
   }
 ]
 
@@ -243,4 +250,9 @@ export function getTrackTimeOfDay(trackDef: TrackDefinition, override?: string):
 export function getTrackWeather(trackDef: TrackDefinition, override?: string): WeatherPreset {
   const key = override && override !== 'auto' ? override : trackDef.defaultWeather
   return WeatherPresets[key] || WeatherPresets.clear
+}
+
+export function getTracksForReleaseChannel(channel: 'green' | 'blue'): TrackDefinition[] {
+  if (channel === 'blue') return TRACKS
+  return TRACKS.filter(t => t.releaseChannel === 'green')
 }

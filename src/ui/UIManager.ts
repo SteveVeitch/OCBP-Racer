@@ -1,6 +1,6 @@
 import { StateMachine, AIDifficulty } from '../core/StateMachine'
 import { CARS } from '../cars/CarConfigs'
-import { TRACKS } from '../track/TrackDefinitions'
+import { TRACKS, getTracksForReleaseChannel } from '../track/TrackDefinitions'
 import { getTrackLeaderboard, getOverallLeaderboard, type LeaderboardEntry } from './LeaderboardManager'
 import { type KeyBindings, DEFAULT_KEY_BINDINGS } from '../input/InputManager'
 import { AudioManager } from '../audio/AudioManager'
@@ -1283,6 +1283,9 @@ export class UIManager {
     const trackGrid = document.createElement('div')
     trackGrid.style.cssText = 'display:grid;grid-template-columns:repeat(3,280px);gap:16px;margin:20px 0;justify-content:center;'
 
+    const settings = this.state.getSettings()
+    const availableTracks = getTracksForReleaseChannel(settings.releaseChannel)
+
     const difficultyColors: Record<string, string> = {
       'Easy': '#00ff88',
       'Medium': '#ffcc00',
@@ -1297,7 +1300,7 @@ export class UIManager {
       'industrial': '\u{1F3ED}'
     }
 
-    TRACKS.forEach((track, index) => {
+    availableTracks.forEach((track, index) => {
       const card = document.createElement('div')
       card.style.cssText = `
         padding:16px;background:var(--bg-dark);border:2px solid var(--border);
@@ -1432,7 +1435,7 @@ export class UIManager {
 
     const startBtn = this.createButton('Start Race', 'primary')
     startBtn.onclick = () => {
-      this.state.setSelectedTrack(TRACKS[this.selectedTrackIndex].id)
+      this.state.setSelectedTrack(availableTracks[this.selectedTrackIndex].id)
       this.onRaceStart?.()
     }
 
@@ -1607,6 +1610,37 @@ export class UIManager {
     demoToggle.appendChild(demoLabel)
     demoToggle.appendChild(demoBtn)
 
+    const releaseGroup = document.createElement('div')
+    releaseGroup.className = 'settings-group'
+
+    const releaseLabel = document.createElement('div')
+    releaseLabel.className = 'settings-label'
+    releaseLabel.textContent = 'Release Channel'
+
+    const releaseOptions = document.createElement('div')
+    releaseOptions.className = 'settings-options'
+
+    const releaseChannels: Array<{ value: 'green' | 'blue'; label: string }> = [
+      { value: 'green', label: 'Green' },
+      { value: 'blue', label: 'Blue' }
+    ]
+
+    for (const rc of releaseChannels) {
+      const btn = document.createElement('button')
+      btn.className = `settings-option ${settings.releaseChannel === rc.value ? 'active' : ''}`
+      btn.textContent = rc.label
+      btn.onclick = () => {
+        this.state.updateSettings({ releaseChannel: rc.value })
+        this.onSettingsChanged?.()
+        releaseOptions.querySelectorAll('.settings-option').forEach(b => b.classList.remove('active'))
+        btn.classList.add('active')
+      }
+      releaseOptions.appendChild(btn)
+    }
+
+    releaseGroup.appendChild(releaseLabel)
+    releaseGroup.appendChild(releaseOptions)
+
     const controlsHeader = document.createElement('div')
     controlsHeader.className = 'settings-label'
     controlsHeader.style.cssText = 'margin-top:8px;margin-bottom:12px;'
@@ -1682,6 +1716,7 @@ export class UIManager {
     leftCol.appendChild(fogToggle)
     leftCol.appendChild(cameraGroup)
     leftCol.appendChild(demoToggle)
+    leftCol.appendChild(releaseGroup)
 
     rightCol.appendChild(controlsHeader)
     rightCol.appendChild(controlsGroup)

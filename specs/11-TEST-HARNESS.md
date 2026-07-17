@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The test harness is an automated in-browser test suite that validates all game systems. It runs 118 tests across 23 phases (Phase 0–22), covering project setup through HDR lighting and car headlights.
+The test harness is an automated in-browser test suite that validates all game systems. It runs 123 tests across 24 phases (Phase 0–23), covering project setup through release channels.
 
 ## 2. Accessing the Test Harness
 
@@ -96,7 +96,7 @@ The overlay is a flexbox-centered container with a CSS grid inside for phase col
 ║  ... (remaining phases) ...                               ║
 ║                                                           ║
 ║  ─────────────────────────────────────────                ║
-║         118/118 PASSED                                    ║
+║         123/123 PASSED                                    ║
 ║                                                           ║
 ║            CLICK ANYWHERE TO START                        ║
 ╚═══════════════════════════════════════════════════════════╝
@@ -151,7 +151,7 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 - Centered below grid, separated by a green border-top
 - Green (#00ff88) with glow if all pass
 - Red (#ff4444) with glow if any fail
-- Format: `118/118 PASSED` or `116/118 PASSED — 2 FAILED`
+- Format: `123/123 PASSED` or `121/123 PASSED — 2 FAILED`
 - Red background if any fail
 
 ## 5. Test Inventory
@@ -384,7 +384,17 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 | 117 | All 4 HDR files use .exr extension | Sync | Checks all hdrPath ends with .exr |
 | 118 | All HDR paths contain 1k resolution suffix | Sync | Checks all hdrPath includes '1k' |
 
-**Total: 118 tests** (Phases 0–22)
+### Phase 23: Release Channels (5 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 119 | TrackDefinition includes releaseChannel field | Sync | Checks all 6 tracks have releaseChannel |
+| 120 | Midnight Circuit is green release | Sync | Checks midnight-circuit has releaseChannel 'green' |
+| 121 | All other tracks are blue releases | Sync | Checks tracks 2-6 have releaseChannel 'blue' |
+| 122 | GameSettings includes releaseChannel field | Sync | Checks default settings has releaseChannel 'green' |
+| 123 | getTracksForReleaseChannel filters correctly | Sync | Filters green channel → only midnight-circuit; blue → all 6 |
+
+**Total: 123 tests** (Phases 0–23)
 
 ## 6. Test Dependencies
 
@@ -407,6 +417,7 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 | WeatherPresets | 58–60 |
 | LeaderboardManager | 69–72 |
 | HUDGauges | 95–98 |
+| TrackDefinitions | 119–121, 123 |
 
 ### 6.2 Async Tests
 Tests 7–12, 21, 30, 31, 36–40, 47, 48, 55, 62, 74, 91, 92, 100 require async execution because they initialize Rapier.js WASM or load GLTF models. Each physics test creates and disposes its own PhysicsWorld instance.
@@ -458,8 +469,15 @@ npm run dev
   ✓ All 4 HDR files use .exr extension
   ✓ All HDR paths contain 1k resolution suffix
 
+-- Phase 23: Release Channels --
+  ✓ TrackDefinition includes releaseChannel field
+  ✓ Midnight Circuit is green release
+  ✓ All other tracks are blue releases
+  ✓ GameSettings includes releaseChannel field
+  ✓ getTracksForReleaseChannel filters correctly
+
 === Results ===
-118 passed, 0 failed, 118 total
+123 passed, 0 failed, 123 total
 ```
 
 ## 8. Failure Handling

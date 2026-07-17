@@ -54,7 +54,7 @@ Run the automated test suite:
 http://localhost:3000?test
 ```
 
-118 tests validate all game systems. Click the results overlay to start the game.
+123 tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 
@@ -166,9 +166,26 @@ Each track has distinct terrain-themed decorations (buildings, trees, rocks, ind
 | Fog Toggle | Enable/disable fog (for testing) |
 | Camera Default | Starting camera view |
 | Demo Mode | Enable/disable attract mode (on/off) |
+| Release Channel | Green = released tracks only, Blue = includes unreleased tracks |
 | Key Bindings | Rebind all gameplay actions |
 
 Settings are persisted to localStorage.
+
+## Release Channels
+
+Tracks are released in two channels:
+
+- **Green (released):** Available to all players. Currently: Midnight Circuit.
+- **Blue (unreleased):** In development, only visible when Release Channel is set to "Blue" in Settings.
+
+| Track | Channel |
+|-------|---------|
+| Midnight Circuit | Green |
+| Sunset Boulevard | Blue |
+| Thunder Ridge | Blue |
+| Neon District | Blue |
+| Iron Circuit | Blue |
+| Typhoon Pass | Blue |
 
 ## Technical Architecture
 
@@ -266,7 +283,7 @@ Each car uses a GLTF model for detailed body geometry with procedural wheels and
 - Screens: Main Menu, Car Select, Car Preview, Track Select, Countdown, HUD, Pause, Results, Settings, Leaderboard, Demo
 - **Car selection** — static 3D thumbnails, engine badges, stat bars
 - **HUD gauges** — realistic analog speedometer, rev counter, turbo boost gauge (160px canvas dials)
-- **Settings menu** — two-column arcade layout, volume, sensitivity, speed unit, graphics, fog toggle, camera default, key bindings
+- **Settings menu** — two-column arcade layout, volume, sensitivity, speed unit, graphics, fog toggle, camera default, release channel, key bindings
 - **Leaderboard** — per-track + overall best times, wall hits, top speed (75% width, vertical tabs)
 - **Mini-map** — player + AI positions during race
 - **Scoring** — 10/7/5/2 points per position

@@ -85,6 +85,7 @@ export class AudioManager {
         this.ctx.decodeAudioData(accelArrayBuffer)
       ])
       this.sampleCache.set(carId, { idle: idleBuffer, accel: accelBuffer })
+      console.log(`[AudioManager] Loaded engine samples for ${carId}: idle ${idleBuffer.duration.toFixed(1)}s, accel ${accelBuffer.duration.toFixed(1)}s`)
     } catch (err) {
       console.warn(`[AudioManager] Failed to load engine samples for ${carId}:`, err)
     }
@@ -109,7 +110,11 @@ export class AudioManager {
     this.engineFilter.connect(this.engineGain)
 
     const cached = carId ? this.sampleCache.get(carId) : null
-    if (!cached) return
+    if (!cached) {
+      console.warn(`[AudioManager] No cached samples for ${carId}, engine sources not created`)
+      return
+    }
+    console.log(`[AudioManager] Creating engine sources for ${carId}`)
 
     this.engineIdleBuffer = cached.idle
     this.engineAccelBuffer = cached.accel
@@ -287,12 +292,19 @@ export class AudioManager {
     }, 100)
   }
 
+  private engineLogCount = 0
+
   playEngine(rpm: number, _throttle: number, boostLevel: number = 0): void {
     if (!this.ensureContext() || !this.engineGain) return
 
     const engine = this.currentEngine
     const redline = engine?.redline ?? 7500
     const rpmRatio = Math.min(rpm / redline, 1)
+
+    if (this.engineLogCount < 5) {
+      this.engineLogCount++
+      console.log(`[AudioManager] playEngine #${this.engineLogCount}: rpm=${rpm.toFixed(0)} redline=${redline} ratio=${rpmRatio.toFixed(3)} vol=${(0.05 + rpmRatio * this.engineVolume).toFixed(3)} idleSrc=${!!this.engineIdleSource} accelSrc=${!!this.engineAccelSource}`)
+    }
 
     const now = this.ctx!.currentTime
 
@@ -315,8 +327,8 @@ export class AudioManager {
         accelMix = t
       }
 
-      this.engineIdleGain.gain.setTargetAtTime(idleMix * this.engineVolume, now, 0.05)
-      this.engineAccelGain.gain.setTargetAtTime(accelMix * this.engineVolume, now, 0.05)
+      this.engineIdleGain.gain.setTargetAtTime(idleMix, now, 0.05)
+      this.engineAccelGain.gain.setTargetAtTime(accelMix, now, 0.05)
 
       const basePlaybackRate = 0.7
       const maxPlaybackRate = 1.5
@@ -326,7 +338,7 @@ export class AudioManager {
       this.engineAccelSource.playbackRate.setTargetAtTime(playbackRate, now, 0.05)
     }
 
-    const vol = 0.05 + rpmRatio * this.engineVolume
+    const vol = (0.3 + rpmRatio * 0.7) * this.engineVolume
     this.engineGain.gain.setTargetAtTime(vol, now, 0.05)
 
     let wobble = 0

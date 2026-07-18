@@ -44,3 +44,6 @@ OCBP-Racer-standalone.zip
 # assets/models/
 # assets/textures/
 # assets/audio/
+.bmad-loop/runs/
+.bmad-loop/cache/
+.bmad-loop/policy.toml

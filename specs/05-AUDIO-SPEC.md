@@ -22,10 +22,10 @@ AudioManager
 │   ├── engineAccelGain (crossfade mixer)
 │   ├── engineFilter (lowpass, 600-2000Hz)
 │   └── sampleCache (Map<carId, {idle, accel}>)
-├── Turbo Synthesis (if car has turbo)
-│   ├── turboWhistleOsc (sine, 3-8kHz)
-│   ├── turboWhistleFilter (bandpass)
-│   └── turboWhistleGain (boost-linked envelope)
+├── Turbo Sample Playback (turbo cars only)
+│   ├── turboWhistleSource (AudioBufferSourceNode, looped)
+│   ├── turboWhistleGain (boost-linked envelope)
+│   └── turboSampleCache (Map<carId, {whistle, flutter}>)
 ├── Tire Screech Synthesis
 │   ├── screechSource (looping white noise buffer)
 │   ├── screechFilter (bandpass, 1.5-3.5kHz)
@@ -43,7 +43,8 @@ AudioManager
 ```
 init()                   → Creates AudioContext + masterGain
 loadEngineSamples(carId) → Fetches & decodes idle + accel WAVs for car, caches in sampleCache
-startRaceAudio()         → Loads samples if needed, creates sample-based engine + screech/wind nodes
+loadTurboSamples(carId)  → Fetches & decodes whistle + flutter WAVs for turbo cars, caches in turboSampleCache
+startRaceAudio()         → Loads samples if needed, creates sample-based engine + turbo + screech/wind nodes
 stopRaceAudio()          → Fades out + stops all continuous nodes (50ms)
 ensureContext()          → Auto-resumes suspended AudioContext (browser policy)
 ```
@@ -67,6 +68,11 @@ ENGINE_SAMPLE_PATHS = {
   'weissach-gt3': { idle: 'assets/audio/engines/weissach-gt3/idle.wav', accel: 'assets/audio/engines/weissach-gt3/accel.wav' },
   'kaiju-gt-r':   { idle: 'assets/audio/engines/kaiju-gt-r/idle.wav',   accel: 'assets/audio/engines/kaiju-gt-r/accel.wav' },
   'stingray-z06': { idle: 'assets/audio/engines/stingray-z06/idle.wav', accel: 'assets/audio/engines/stingray-z06/accel.wav' }
+}
+
+TURBO_SAMPLE_PATHS = {
+  'rossini-488':  { whistle: 'assets/audio/turbo/rossini-488/whistle.wav',  flutter: 'assets/audio/turbo/rossini-488/flutter.wav' },
+  'kaiju-gt-r':   { whistle: 'assets/audio/turbo/kaiju-gt-r/whistle.wav',   flutter: 'assets/audio/turbo/kaiju-gt-r/flutter.wav' }
 }
 ```
 
@@ -131,30 +137,46 @@ Sample Cache: Samples cached per carId to avoid re-fetching
 
 Only active for cars with `aspiration === 'turbo'` (Rossini 488, Kaiju GT-R).
 
-#### Turbo Whistle
+Turbo audio is **sample-based** using WAV files per car.
+
+#### Turbo Sample Loading
 ```
-Type:           Sine oscillator
-Frequency:      3000 + boostLevel × 5000 Hz (3-8kHz range)
-Volume:         boostLevel × 0.12 × engineVolume
-Ramp:           setTargetAtTime with 100ms time constant
+TURBO_SAMPLE_PATHS = {
+  'rossini-488':  { whistle: 'assets/audio/turbo/rossini-488/whistle.wav',  flutter: 'assets/audio/turbo/rossini-488/flutter.wav' },
+  'kaiju-gt-r':   { whistle: 'assets/audio/turbo/kaiju-gt-r/whistle.wav',   flutter: 'assets/audio/turbo/kaiju-gt-r/flutter.wav' }
+}
 ```
 
-#### Turbo Flutter (Blow-Off)
+#### Turbo Whistle (Continuous Loop)
+- Source: whistle.wav (loopable high-frequency sine sweep with harmonics)
+- Loop: true
+- Base playbackRate: 0.6 (idle)
+- Max playbackRate: 1.6 (full boost)
+- Formula: `playbackRate = 0.6 + boostLevel × 1.0`
+- Volume: `boostLevel × 0.15 × engineVolume`
+- Ramp: setTargetAtTime with 80ms time constant (volume), 100ms (pitch)
+- Per-car variation:
+  - **Rossini 488:** Smooth, refined — base 4.2kHz, sweep ±1.8kHz, gentle harmonics
+  - **Kaiju GT-R:** Aggressive, raw — base 3.8kHz, sweep ±3.2kHz, prominent harmonics
+
+#### Turbo Flutter (One-Shot)
 Triggered when throttle is released while turbo is spooled:
 ```
-Trigger:        boostLevel > 0.3 and prevThrottle was > 0 while throttle is now 0
-Sound:          Bandpass-filtered noise burst
-Filter Freq:    3000 Hz (decaying to 800 Hz over 0.3s)
-Filter Q:       5
-Duration:       0.3s (exponential decay)
-Volume:         0.15 × engineVolume
+Trigger:        prevThrottle > 0 AND throttle == 0 AND boostLevel > 0.3
+Sound:          Per-car WAV one-shot playback (blow-off / flutter)
+PlaybackRate:   0.9–1.1 (slight random variation)
+Volume:         0.12 × engineVolume
+Duration:       Per WAV length (~0.2-0.3s)
 ```
+- Per-car variation:
+  - **Rossini 488:** Subtle, clean blow-off — short descending tone
+  - **Kaiju GT-R:** Pronounced flutter — "stu-tu-tu" staccato pattern
 
 #### Turbo Spool-Up
 ```
 boostLevel increases from 0→1 over turboLagTime seconds
 boostLevel = clamp(timeSinceThrottleOn / turboLagTime, 0, 1)
-Turbo whistle volume and frequency follow boostLevel
+Turbo whistle volume and playbackRate follow boostLevel
 ```
 
 ### 2.3 Exhaust Pops & Bangs
@@ -295,7 +317,7 @@ Each car has a distinct idle sound:
 
 ### 4.3 Deceleration Character
 - **NA cars (GT3, Z06):** Engine braking sound, exhaust pops on lift-off
-- **Turbo cars (488, GT-R):** Turbo flutter on lift-off, muted engine braking
+- **Turbo cars (488, GT-R):** Sample-based turbo flutter WAV on lift-off, muted engine braking
 
 ## 5. Performance
 
@@ -306,7 +328,7 @@ Each car has a distinct idle sound:
 - One-shot sounds: fire-and-forget, auto-disconnect
 
 ### 5.2 Memory
-- Zero audio asset files on disk
+- Engine + turbo audio asset files: ~6MB total (engine samples + turbo samples)
 - Runtime noise buffers: ~240KB total (3 buffers × 2s × 44.1kHz × float32)
 - Total AudioNode count: ~20 during race (up from 15 with turbo)
 

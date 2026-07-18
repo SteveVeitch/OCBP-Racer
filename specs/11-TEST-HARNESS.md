@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-The test harness is an automated in-browser test suite that validates all game systems. It runs 136 tests across 27 phases (Phase 0–26), covering project setup through handling overhaul.
+The test harness is an automated in-browser test suite that validates all game systems. It runs 139 tests across 28 phases (Phase 0–27), covering project setup through turbo sample audio.
 
 ## 2. Accessing the Test Harness
 
@@ -422,7 +422,15 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 | 135 | All cars have distinct peakGrip values | Sync | Ensures each car has unique peak grip |
 | 136 | All cars have distinct slipAnglePeak values | Sync | Ensures each car has unique slip angle peak |
 
-**Total: 136 tests** (Phases 0–26)
+### Phase 27: Turbo Sample Audio (3 tests)
+
+| # | Test Name | Type | Description |
+|---|-----------|------|-------------|
+| 137 | AudioManager has loadTurboSamples method | Sync | Checks loadTurboSamples exists on prototype |
+| 138 | AudioManager has turboSampleCache | Sync | Checks turboSampleCache property exists |
+| 139 | Turbo cars only: Rossini and Kaiju | Sync | Verifies exactly 2 turbo cars with correct IDs |
+
+**Total: 139 tests** (Phases 0–27)
 
 ## 6. Test Dependencies
 

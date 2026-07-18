@@ -1268,6 +1268,25 @@ export async function runTestHarness(): Promise<void> {
     assert(unique.size === CARS.length, `Expected ${CARS.length} unique slipAnglePeak, got ${unique.size}`)
   })
 
+  // ── Phase 27: Turbo Sample Audio ──
+  currentPhase = 'Phase 27: Turbo Sample Audio'
+  console.log('\n-- Phase 27: Turbo Sample Audio --')
+  test('AudioManager has loadTurboSamples method', () => {
+    const audio = new AudioManager()
+    assert(typeof audio.loadTurboSamples === 'function', 'loadTurboSamples should be a function')
+  })
+  test('AudioManager has turboSampleCache', () => {
+    const audio = new AudioManager()
+    assert('turboSampleCache' in audio, 'AudioManager should have turboSampleCache')
+  })
+  test('Turbo cars only: Rossini and Kaiju', () => {
+    const turboCars = CARS.filter(c => c.config.turboLagTime > 0)
+    const ids = turboCars.map(c => c.id).sort()
+    assert(ids.length === 2, `Expected 2 turbo cars, got ${ids.length}`)
+    assert(ids[0] === 'kaiju-gt-r', `Expected Kaiju GT-R, got ${ids[0]}`)
+    assert(ids[1] === 'rossini-488', `Expected Rossini 488, got ${ids[1]}`)
+  })
+
   // ── Summary ──
   console.log('\n=== Results ===')
   const passed = results.filter(r => r.passed).length

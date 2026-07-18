@@ -28,6 +28,7 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
+routines/logs/
 
 # Testing
 coverage/

@@ -19,6 +19,23 @@ export interface KeyBindings {
   cameraSwitch: string[]
 }
 
+export interface GamepadBinding {
+  type: 'axis' | 'button'
+  index: number
+  direction?: 1 | -1
+}
+
+export interface GamepadBindings {
+  throttle: GamepadBinding
+  brake: GamepadBinding
+  steerLeft: GamepadBinding
+  steerRight: GamepadBinding
+  pause: GamepadBinding
+  confirm: GamepadBinding
+  back: GamepadBinding
+  cameraSwitch: GamepadBinding
+}
+
 export const DEFAULT_KEY_BINDINGS: KeyBindings = {
   throttle: ['KeyW', 'ArrowUp'],
   brake: ['KeyS', 'ArrowDown'],
@@ -30,7 +47,19 @@ export const DEFAULT_KEY_BINDINGS: KeyBindings = {
   cameraSwitch: ['KeyC']
 }
 
+export const DEFAULT_GAMEPAD_BINDINGS: GamepadBindings = {
+  throttle: { type: 'axis', index: 7, direction: 1 },
+  brake: { type: 'axis', index: 6, direction: 1 },
+  steerLeft: { type: 'axis', index: 0, direction: -1 },
+  steerRight: { type: 'axis', index: 0, direction: 1 },
+  pause: { type: 'button', index: 9 },
+  confirm: { type: 'button', index: 0 },
+  back: { type: 'button', index: 1 },
+  cameraSwitch: { type: 'button', index: 3 }
+}
+
 const STORAGE_KEY = 'ocbp-bindings'
+const GAMEPAD_STORAGE_KEY = 'ocbp-gamepad-bindings'
 
 function loadBindings(): KeyBindings {
   try {
@@ -48,6 +77,24 @@ function saveBindings(bindings: KeyBindings): void {
   } catch { /* ignore */ }
 }
 
+function loadGamepadBindings(): GamepadBindings {
+  try {
+    const raw = localStorage.getItem(GAMEPAD_STORAGE_KEY)
+    if (raw) {
+      return { ...DEFAULT_GAMEPAD_BINDINGS, ...JSON.parse(raw) }
+    }
+  } catch { /* ignore */ }
+  return { ...DEFAULT_GAMEPAD_BINDINGS }
+}
+
+function saveGamepadBindings(bindings: GamepadBindings): void {
+  try {
+    localStorage.setItem(GAMEPAD_STORAGE_KEY, JSON.stringify(bindings))
+  } catch { /* ignore */ }
+}
+
+export type GamepadBindingAction = keyof GamepadBindings
+
 export class InputManager {
   private keys: Set<string> = new Set()
   private gamepadIndex: number | null = null
@@ -58,6 +105,11 @@ export class InputManager {
   private bindings: KeyBindings = loadBindings()
   private listeningFor: keyof KeyBindings | null = null
   private onBindingChanged?: (action: keyof KeyBindings, keys: string[]) => void
+
+  private gamepadBindings: GamepadBindings = loadGamepadBindings()
+  private listeningForGamepad: GamepadBindingAction | null = null
+  private onGamepadBindingChanged?: (action: GamepadBindingAction, binding: GamepadBinding) => void
+  private prevGamepadState: { buttons: boolean[]; axes: number[] } = { buttons: [], axes: [] }
 
   constructor() {
     this.setupKeyboard()
@@ -115,14 +167,41 @@ export class InputManager {
   }
 
   getState(): InputState {
+    const kbState = this.getKeyboardState()
     if (this.gamepadIndex !== null) {
-      return this.getGamepadState()
+      const gpState = this.getGamepadState()
+      return {
+        throttle: gpState.throttle || kbState.throttle,
+        brake: gpState.brake || kbState.brake,
+        steer: gpState.steer || kbState.steer,
+        pause: gpState.pause || kbState.pause,
+        confirm: gpState.confirm || kbState.confirm,
+        back: gpState.back || kbState.back,
+        cameraSwitch: gpState.cameraSwitch || kbState.cameraSwitch
+      }
     }
-    return this.getKeyboardState()
+    return kbState
   }
 
   isAnyKeyPressed(): boolean {
-    return this.keys.size > 0
+    if (this.keys.size > 0) return true
+    if (this.gamepadIndex !== null) {
+      const gamepads = navigator.getGamepads()
+      const gamepad = gamepads[this.gamepadIndex]
+      if (gamepad) {
+        for (const btn of gamepad.buttons) {
+          if (btn.pressed) return true
+        }
+        for (const axis of gamepad.axes) {
+          if (Math.abs(axis) > 0.5) return true
+        }
+      }
+    }
+    return false
+  }
+
+  getGamepadIndex(): number | null {
+    return this.gamepadIndex
   }
 
   getBindings(): KeyBindings {
@@ -139,6 +218,20 @@ export class InputManager {
     saveBindings(this.bindings)
   }
 
+  getGamepadBindings(): GamepadBindings {
+    return { ...this.gamepadBindings }
+  }
+
+  setGamepadBindings(bindings: GamepadBindings): void {
+    this.gamepadBindings = { ...bindings }
+    saveGamepadBindings(this.gamepadBindings)
+  }
+
+  resetGamepadBindings(): void {
+    this.gamepadBindings = { ...DEFAULT_GAMEPAD_BINDINGS }
+    saveGamepadBindings(this.gamepadBindings)
+  }
+
   startListening(action: keyof KeyBindings, callback: (action: keyof KeyBindings, keys: string[]) => void): void {
     this.listeningFor = action
     this.onBindingChanged = callback
@@ -151,6 +244,89 @@ export class InputManager {
   cancelListening(): void {
     this.listeningFor = null
     this.onBindingChanged = undefined
+  }
+
+  startListeningGamepad(action: GamepadBindingAction, callback: (action: GamepadBindingAction, binding: GamepadBinding) => void): void {
+    this.listeningForGamepad = action
+    this.onGamepadBindingChanged = callback
+    this.captureGamepadSnapshot()
+  }
+
+  isListeningGamepad(): boolean {
+    return this.listeningForGamepad !== null
+  }
+
+  cancelListeningGamepad(): void {
+    this.listeningForGamepad = null
+    this.onGamepadBindingChanged = undefined
+  }
+
+  pollGamepadBinding(): void {
+    if (!this.listeningForGamepad) return
+    if (this.gamepadIndex === null) return
+
+    const gamepads = navigator.getGamepads()
+    const gamepad = gamepads[this.gamepadIndex]
+    if (!gamepad) return
+
+    const action = this.listeningForGamepad
+
+    for (let i = 0; i < gamepad.buttons.length; i++) {
+      const pressed = gamepad.buttons[i]?.pressed ?? false
+      const wasPressed = this.prevGamepadState.buttons[i] ?? false
+      if (pressed && !wasPressed) {
+        this.listeningForGamepad = null
+        this.applyGamepadBinding(action, { type: 'button', index: i })
+        return
+      }
+    }
+
+    for (let i = 0; i < gamepad.axes.length; i++) {
+      const val = gamepad.axes[i] ?? 0
+      const prevVal = this.prevGamepadState.axes[i] ?? 0
+      if (Math.abs(val) > 0.5 && Math.abs(prevVal) <= 0.5) {
+        this.listeningForGamepad = null
+        const direction: 1 | -1 = val > 0 ? 1 : -1
+        this.applyGamepadBinding(action, { type: 'axis', index: i, direction })
+        return
+      }
+    }
+
+    this.captureGamepadSnapshot()
+  }
+
+  private captureGamepadSnapshot(): void {
+    const gamepads = navigator.getGamepads()
+    const gamepad = this.gamepadIndex !== null ? gamepads[this.gamepadIndex] : null
+    if (!gamepad) {
+      this.prevGamepadState = { buttons: [], axes: [] }
+      return
+    }
+    this.prevGamepadState = {
+      buttons: gamepad.buttons.map(b => b.pressed),
+      axes: [...gamepad.axes]
+    }
+  }
+
+  private applyGamepadBinding(action: GamepadBindingAction, binding: GamepadBinding): void {
+    const existingAction = this.findActionForGamepadBinding(binding)
+    if (existingAction && existingAction !== action) {
+      this.gamepadBindings[existingAction] = { ...DEFAULT_GAMEPAD_BINDINGS[existingAction] }
+    }
+
+    this.gamepadBindings[action] = binding
+    saveGamepadBindings(this.gamepadBindings)
+    this.onGamepadBindingChanged?.(action, binding)
+    this.onGamepadBindingChanged = undefined
+  }
+
+  private findActionForGamepadBinding(binding: GamepadBinding): GamepadBindingAction | null {
+    for (const [action, b] of Object.entries(this.gamepadBindings) as Array<[GamepadBindingAction, GamepadBinding]>) {
+      if (b.type === binding.type && b.index === binding.index && b.direction === binding.direction) {
+        return action
+      }
+    }
+    return null
   }
 
   private handleNewBinding(code: string): void {
@@ -220,19 +396,53 @@ export class InputManager {
     const gamepad = gamepads[this.gamepadIndex!]
     if (!gamepad) return this.getKeyboardState()
 
-    const leftStickX = this.applyDeadZone(gamepad.axes[0] ?? 0)
-    const rightTrigger = this.applyDeadZone(gamepad.axes[7] ?? 0)
-    const leftTrigger = this.applyDeadZone(gamepad.axes[6] ?? 0)
+    const gb = this.gamepadBindings
 
     return {
-      throttle: rightTrigger,
-      brake: leftTrigger,
-      steer: -this.applySteerCurve(leftStickX),
-      pause: gamepad.buttons[9]?.pressed ?? false,
-      confirm: gamepad.buttons[0]?.pressed ?? false,
-      back: gamepad.buttons[1]?.pressed ?? false,
-      cameraSwitch: gamepad.buttons[3]?.pressed ?? false
+      throttle: this.readGamepadAxis(gamepad, gb.throttle),
+      brake: this.readGamepadAxis(gamepad, gb.brake),
+      steer: this.readGamepadSteer(gamepad),
+      pause: this.readGamepadButton(gamepad, gb.pause),
+      confirm: this.readGamepadButton(gamepad, gb.confirm),
+      back: this.readGamepadButton(gamepad, gb.back),
+      cameraSwitch: this.readGamepadButton(gamepad, gb.cameraSwitch)
     }
+  }
+
+  private readGamepadAxis(gamepad: Gamepad, binding: GamepadBinding): number {
+    if (binding.type === 'button') {
+      return gamepad.buttons[binding.index]?.pressed ? 1 : 0
+    }
+    const raw = gamepad.axes[binding.index] ?? 0
+    const directed = binding.direction ? raw * binding.direction : raw
+    return this.applyDeadZone(Math.abs(directed)) * Math.sign(directed || 1)
+  }
+
+  private readGamepadButton(gamepad: Gamepad, binding: GamepadBinding): boolean {
+    if (binding.type === 'button') {
+      return gamepad.buttons[binding.index]?.pressed ?? false
+    }
+    const raw = gamepad.axes[binding.index] ?? 0
+    const directed = binding.direction ? raw * binding.direction : raw
+    return directed > 0.5
+  }
+
+  private readGamepadSteer(gamepad: Gamepad): number {
+    const gb = this.gamepadBindings
+    const leftRaw = this.readGamepadAxisRaw(gamepad, gb.steerLeft)
+    const rightRaw = this.readGamepadAxisRaw(gamepad, gb.steerRight)
+    let steer = 0
+    if (leftRaw > this.DEAD_ZONE) steer += leftRaw
+    if (rightRaw > this.DEAD_ZONE) steer -= rightRaw
+    return this.applySteerCurve(steer)
+  }
+
+  private readGamepadAxisRaw(gamepad: Gamepad, binding: GamepadBinding): number {
+    if (binding.type === 'button') {
+      return gamepad.buttons[binding.index]?.pressed ? 1 : 0
+    }
+    const raw = gamepad.axes[binding.index] ?? 0
+    return binding.direction ? raw * binding.direction : raw
   }
 
   private applyDeadZone(value: number): number {

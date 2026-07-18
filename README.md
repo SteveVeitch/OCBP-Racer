@@ -46,15 +46,26 @@ python -m http.server 8000
 
 **To redistribute:** Copy the entire `dist/` folder. Recipients just need Python or Node.js and a modern browser.
 
-## Test Harness
+## Testing
 
-Run the automated test suite:
+Three-layer testing strategy with 250 total tests:
 
-```
+| Layer | Tool | Tests | Command |
+|-------|------|-------|---------|
+| **Unit** | Vitest | 88 | `npm test` |
+| **Integration** | Browser harness | 139 | Open `?test` |
+| **E2E** | Playwright | 23 | `npm run test:e2e` |
+
+```bash
+# Run unit tests (~240ms)
+npm test
+
+# Run E2E tests (~5min)
+npm run test:e2e
+
+# Browser harness — open in browser
 http://localhost:3000?test
 ```
-
-139 tests validate all game systems. Click the results overlay to start the game.
 
 ## How to Play
 

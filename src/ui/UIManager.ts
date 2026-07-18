@@ -2,7 +2,7 @@ import { StateMachine, AIDifficulty } from '../core/StateMachine'
 import { CARS, getCarsForReleaseChannel } from '../cars/CarConfigs'
 import { TRACKS, getTracksForReleaseChannel } from '../track/TrackDefinitions'
 import { getTrackLeaderboard, getOverallLeaderboard, type LeaderboardEntry } from './LeaderboardManager'
-import { type KeyBindings, DEFAULT_KEY_BINDINGS } from '../input/InputManager'
+import { type KeyBindings, DEFAULT_KEY_BINDINGS, type GamepadBindings, type GamepadBinding, type GamepadBindingAction, DEFAULT_GAMEPAD_BINDINGS } from '../input/InputManager'
 import { AudioManager } from '../audio/AudioManager'
 import { HUDGauges } from './HUDGauges'
 
@@ -20,6 +20,9 @@ export class UIManager {
   private onRebindAction?: (action: keyof KeyBindings, callback: (action: keyof KeyBindings, keys: string[]) => void) => void
   private onResetBindings?: () => void
   private getBindings?: () => KeyBindings
+  private onRebindGamepad?: (action: GamepadBindingAction, callback: (action: GamepadBindingAction, binding: GamepadBinding) => void) => void
+  private onResetGamepadBindings?: () => void
+  private getGamepadBindings?: () => GamepadBindings
   private selectedCarIndex = 0
   private selectedTrackIndex = 0
   private hudGauges = new HUDGauges()
@@ -41,6 +44,9 @@ export class UIManager {
     onRebindAction?: (action: keyof KeyBindings, callback: (action: keyof KeyBindings, keys: string[]) => void) => void
     onResetBindings?: () => void
     getBindings?: () => KeyBindings
+    onRebindGamepad?: (action: GamepadBindingAction, callback: (action: GamepadBindingAction, binding: GamepadBinding) => void) => void
+    onResetGamepadBindings?: () => void
+    getGamepadBindings?: () => GamepadBindings
     thumbnails?: Map<string, string>
   }): void {
     this.audio = callbacks.audio
@@ -54,6 +60,9 @@ export class UIManager {
     this.onRebindAction = callbacks.onRebindAction
     this.onResetBindings = callbacks.onResetBindings
     this.getBindings = callbacks.getBindings
+    this.onRebindGamepad = callbacks.onRebindGamepad
+    this.onResetGamepadBindings = callbacks.onResetGamepadBindings
+    this.getGamepadBindings = callbacks.getGamepadBindings
     if (callbacks.thumbnails) this.thumbnails = callbacks.thumbnails
 
     this.container = document.createElement('div')
@@ -223,6 +232,12 @@ export class UIManager {
 
       .menu-btn.primary:hover {
         background: rgba(0, 255, 136, 0.2);
+      }
+
+      .gp-focus {
+        outline: 2px solid var(--primary) !important;
+        outline-offset: 2px;
+        box-shadow: 0 0 12px rgba(0, 255, 136, 0.3) !important;
       }
 
       .car-select-container {
@@ -1650,19 +1665,74 @@ export class UIManager {
     controlsHeader.textContent = 'Controls'
 
     const bindings = this.getBindings?.() ?? DEFAULT_KEY_BINDINGS
-    const actions: Array<[keyof KeyBindings, string]> = [
-      ['throttle', 'Throttle'],
-      ['brake', 'Brake'],
-      ['steerLeft', 'Steer Left'],
-      ['steerRight', 'Steer Right'],
-      ['pause', 'Pause'],
-      ['cameraSwitch', 'Camera']
+    const gamepadBindings = this.getGamepadBindings?.() ?? DEFAULT_GAMEPAD_BINDINGS
+    const actions: Array<[keyof KeyBindings, GamepadBindingAction, string]> = [
+      ['throttle', 'throttle', 'Throttle'],
+      ['brake', 'brake', 'Brake'],
+      ['steerLeft', 'steerLeft', 'Steer Left'],
+      ['steerRight', 'steerRight', 'Steer Right'],
+      ['pause', 'pause', 'Pause'],
+      ['cameraSwitch', 'cameraSwitch', 'Camera']
     ]
 
-    const controlsGroup = document.createElement('div')
-    controlsGroup.style.cssText = 'margin-bottom:12px;'
+    const formatKey = (code: string) => code.replace('Key', '').replace('Arrow', '↑↓←→'.charAt(['Up','Down','Left','Right'].indexOf(code.replace('Arrow',''))))
 
-    for (const [action, label] of actions) {
+    const formatGamepadBinding = (binding: GamepadBinding): string => {
+      if (binding.type === 'button') {
+        const names: Record<number, string> = {
+          0: 'A / X', 1: 'B / O', 2: 'X / □', 3: 'Y / △',
+          4: 'LB / L1', 5: 'RB / R1', 6: 'LT / L2', 7: 'RT / R2',
+          8: 'Back / Share', 9: 'Start / Options',
+          10: 'LS / L3', 11: 'RS / R3',
+          12: 'D-Up', 13: 'D-Down', 14: 'D-Left', 15: 'D-Right'
+        }
+        return names[binding.index] ?? `Button ${binding.index}`
+      }
+      const axisNames: Record<number, string> = {
+        0: 'Left Stick X', 1: 'Left Stick Y',
+        2: 'Right Stick X', 3: 'Right Stick Y',
+        4: 'L2 Axis', 5: 'R2 Axis',
+        6: 'LT', 7: 'RT'
+      }
+      const dir = binding.direction === 1 ? '+' : binding.direction === -1 ? '-' : ''
+      return `${axisNames[binding.index] ?? `Axis ${binding.index}`}${dir}`
+    }
+
+    const tabContainer = document.createElement('div')
+    tabContainer.style.cssText = 'display:flex;gap:4px;margin-bottom:12px;'
+
+    const keyboardGroup = document.createElement('div')
+    keyboardGroup.style.cssText = 'margin-bottom:12px;'
+    const gamepadGroup = document.createElement('div')
+    gamepadGroup.style.cssText = 'margin-bottom:12px;display:none;'
+
+    const makeTab = (label: string, active: boolean) => {
+      const tab = document.createElement('button')
+      tab.className = `settings-option${active ? ' active' : ''}`
+      tab.style.cssText = 'flex:1;padding:6px 12px;font-size:12px;'
+      tab.textContent = label
+      return tab
+    }
+
+    const keyboardTab = makeTab('Keyboard', true)
+    const gamepadTab = makeTab('Gamepad', false)
+    tabContainer.appendChild(keyboardTab)
+    tabContainer.appendChild(gamepadTab)
+
+    keyboardTab.onclick = () => {
+      keyboardTab.classList.add('active')
+      gamepadTab.classList.remove('active')
+      keyboardGroup.style.display = ''
+      gamepadGroup.style.display = 'none'
+    }
+    gamepadTab.onclick = () => {
+      gamepadTab.classList.add('active')
+      keyboardTab.classList.remove('active')
+      gamepadGroup.style.display = ''
+      keyboardGroup.style.display = 'none'
+    }
+
+    for (const [kbAction, _gpAction, label] of actions) {
       const row = document.createElement('div')
       row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)'
 
@@ -1672,8 +1742,7 @@ export class UIManager {
 
       const keysEl = document.createElement('span')
       keysEl.style.cssText = 'font-family:Courier New,monospace;font-size:12px;color:var(--primary)'
-      const formatKey = (code: string) => code.replace('Key', '').replace('Arrow', '↑↓←→'.charAt(['Up','Down','Left','Right'].indexOf(code.replace('Arrow',''))))
-      keysEl.textContent = bindings[action].map(formatKey).join(' / ')
+      keysEl.textContent = bindings[kbAction].map(formatKey).join(' / ')
 
       const changeBtn = document.createElement('button')
       changeBtn.className = 'settings-option'
@@ -1682,7 +1751,7 @@ export class UIManager {
       changeBtn.onclick = () => {
         changeBtn.textContent = 'Press key...'
         changeBtn.style.borderColor = 'var(--accent)'
-        this.onRebindAction?.(action, (_act, keys) => {
+        this.onRebindAction?.(kbAction, (_act, keys) => {
           changeBtn.textContent = 'Change'
           changeBtn.style.borderColor = ''
           keysEl.textContent = keys.map(formatKey).join(' / ')
@@ -1692,20 +1761,61 @@ export class UIManager {
       row.appendChild(nameEl)
       row.appendChild(keysEl)
       row.appendChild(changeBtn)
-      controlsGroup.appendChild(row)
+      keyboardGroup.appendChild(row)
+    }
+
+    for (const [_kbAction, gpAction, label] of actions) {
+      const row = document.createElement('div')
+      row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)'
+
+      const nameEl = document.createElement('span')
+      nameEl.style.cssText = 'font-family:Rajdhani,sans-serif;font-size:14px;color:var(--text-dim)'
+      nameEl.textContent = label
+
+      const bindingEl = document.createElement('span')
+      bindingEl.style.cssText = 'font-family:Courier New,monospace;font-size:12px;color:var(--primary)'
+      bindingEl.textContent = formatGamepadBinding(gamepadBindings[gpAction])
+
+      const changeBtn = document.createElement('button')
+      changeBtn.className = 'settings-option'
+      changeBtn.style.cssText = 'flex:0;padding:4px 12px;font-size:11px;min-width:80px'
+      changeBtn.textContent = 'Change'
+      changeBtn.onclick = () => {
+        changeBtn.textContent = 'Press button...'
+        changeBtn.style.borderColor = 'var(--accent)'
+        this.onRebindGamepad?.(gpAction, (_act, binding) => {
+          changeBtn.textContent = 'Change'
+          changeBtn.style.borderColor = ''
+          bindingEl.textContent = formatGamepadBinding(binding)
+        })
+      }
+
+      row.appendChild(nameEl)
+      row.appendChild(bindingEl)
+      row.appendChild(changeBtn)
+      gamepadGroup.appendChild(row)
     }
 
     const resetBtn = this.createButton('Reset to Defaults')
     resetBtn.style.cssText = 'font-size:12px;padding:6px 16px;margin-top:8px;'
     resetBtn.onclick = () => {
       this.onResetBindings?.()
+      this.onResetGamepadBindings?.()
       if (this.getBindings) {
         const fresh = this.getBindings()
-        const keyEls = controlsGroup.querySelectorAll('span[style*="Courier"]')
-        const formatKey = (code: string) => code.replace('Key', '').replace('Arrow', '↑↓←→'.charAt(['Up','Down','Left','Right'].indexOf(code.replace('Arrow',''))))
+        const keyEls = keyboardGroup.querySelectorAll('span[style*="Courier"]')
         keyEls.forEach((el, i) => {
           if (i < actions.length) {
             el.textContent = fresh[actions[i][0]].map(formatKey).join(' / ')
+          }
+        })
+      }
+      if (this.getGamepadBindings) {
+        const fresh = this.getGamepadBindings()
+        const gpEls = gamepadGroup.querySelectorAll('span[style*="Courier"]')
+        gpEls.forEach((el, i) => {
+          if (i < actions.length) {
+            el.textContent = formatGamepadBinding(fresh[actions[i][1]])
           }
         })
       }
@@ -1722,7 +1832,9 @@ export class UIManager {
     leftCol.appendChild(releaseGroup)
 
     rightCol.appendChild(controlsHeader)
-    rightCol.appendChild(controlsGroup)
+    rightCol.appendChild(tabContainer)
+    rightCol.appendChild(keyboardGroup)
+    rightCol.appendChild(gamepadGroup)
     rightCol.appendChild(resetBtn)
 
     columns.appendChild(leftCol)

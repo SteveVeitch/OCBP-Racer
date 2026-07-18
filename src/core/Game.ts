@@ -101,6 +101,12 @@ export class Game {
   private pausePressed = false
   private cameraSwitchPressed = false
   private transitionCooldown = 0
+  private menuFocusIndex = -1
+  private menuNavUpWasPressed = false
+  private menuNavDownWasPressed = false
+  private menuConfirmWasPressed = false
+  private menuBackWasPressed = false
+  private menuStickNavCooldown = 0
 
   private isDemo = false
   private lastActivityTime = 0
@@ -204,6 +210,9 @@ export class Game {
         onRebindAction: (action, cb) => this.input.startListening(action, cb),
         onResetBindings: () => this.input.resetBindings(),
         getBindings: () => this.input.getBindings(),
+        onRebindGamepad: (action, cb) => this.input.startListeningGamepad(action, cb),
+        onResetGamepadBindings: () => this.input.resetGamepadBindings(),
+        getGamepadBindings: () => this.input.getGamepadBindings(),
         thumbnails
       })
       log('UI initialized OK')
@@ -723,6 +732,13 @@ export class Game {
 
     this.handlePauseInput()
     this.handleCameraSwitch()
+    this.input.pollGamepadBinding()
+
+    if (this.isMenuState(this.state.getCurrent())) {
+      this.handleGamepadMenuNavigation()
+    } else {
+      this.clearMenuFocus()
+    }
 
     const currentState = this.state.getCurrent()
 
@@ -808,6 +824,109 @@ export class Game {
       }
     } else if (!inputState.cameraSwitch) {
       this.cameraSwitchPressed = false
+    }
+  }
+
+  private isMenuState(state: string): boolean {
+    return state === 'MENU' || state === 'CAR_SELECT' || state === 'CAR_PREVIEW' ||
+      state === 'TRACK_SELECT' || state === 'SETTINGS' || state === 'LEADERBOARD' ||
+      state === 'RESULTS' || state === 'PAUSED'
+  }
+
+  private getFocusableElements(): HTMLElement[] {
+    const container = document.getElementById('ui-container')
+    if (!container) return []
+    const elements = container.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), .car-card, [style*="cursor:pointer"]'
+    )
+    return Array.from(elements).filter(el => {
+      const style = window.getComputedStyle(el)
+      return style.display !== 'none' && style.visibility !== 'hidden' && style.pointerEvents !== 'none'
+    })
+  }
+
+  private clearMenuFocus(): void {
+    document.querySelectorAll('.gp-focus').forEach(el => el.classList.remove('gp-focus'))
+    this.menuFocusIndex = -1
+  }
+
+  private handleGamepadMenuNavigation(): void {
+    const gamepads = navigator.getGamepads()
+    const gamepad = this.input.getGamepadIndex() !== null ? gamepads[this.input.getGamepadIndex()!] : null
+    if (!gamepad) return
+
+    const dpadUp = gamepad.buttons[12]?.pressed ?? false
+    const dpadDown = gamepad.buttons[13]?.pressed ?? false
+    const stickY = gamepad.axes[1] ?? 0
+    const stickUp = stickY < -0.5
+    const stickDown = stickY > 0.5
+    const aPressed = gamepad.buttons[0]?.pressed ?? false
+    const bPressed = gamepad.buttons[1]?.pressed ?? false
+
+    const up = dpadUp || stickUp
+    const down = dpadDown || stickDown
+
+    if (this.menuStickNavCooldown > 0) {
+      this.menuStickNavCooldown -= this.lastFrameDt
+    }
+
+    if (up && !this.menuNavUpWasPressed && this.menuStickNavCooldown <= 0) {
+      const elements = this.getFocusableElements()
+      if (elements.length > 0) {
+        this.menuFocusIndex = this.menuFocusIndex <= 0 ? elements.length - 1 : this.menuFocusIndex - 1
+        this.applyMenuFocus(elements)
+        this.menuStickNavCooldown = 0.2
+      }
+    }
+    this.menuNavUpWasPressed = up
+
+    if (down && !this.menuNavDownWasPressed && this.menuStickNavCooldown <= 0) {
+      const elements = this.getFocusableElements()
+      if (elements.length > 0) {
+        this.menuFocusIndex = this.menuFocusIndex >= elements.length - 1 ? 0 : this.menuFocusIndex + 1
+        this.applyMenuFocus(elements)
+        this.menuStickNavCooldown = 0.2
+      }
+    }
+    this.menuNavDownWasPressed = down
+
+    if (aPressed && !this.menuConfirmWasPressed) {
+      const elements = this.getFocusableElements()
+      if (this.menuFocusIndex >= 0 && this.menuFocusIndex < elements.length) {
+        elements[this.menuFocusIndex].click()
+        this.clearMenuFocus()
+      }
+    }
+    this.menuConfirmWasPressed = aPressed
+
+    if (bPressed && !this.menuBackWasPressed) {
+      const currentState = this.state.getCurrent()
+      if (currentState === 'PAUSED') {
+        this.resumeRace()
+      } else if (currentState === 'SETTINGS') {
+        const prev = this.state.getPrevious()
+        if (prev === 'PAUSED' || prev === 'RACING' || prev === 'COUNTDOWN') {
+          this.state.transition('PAUSED')
+        } else {
+          this.state.transition('MENU')
+        }
+      } else if (currentState === 'RESULTS') {
+        this.returnToMenu()
+      } else if (currentState === 'CAR_PREVIEW') {
+        this.state.transition('CAR_SELECT')
+      } else if (currentState === 'CAR_SELECT' || currentState === 'TRACK_SELECT' || currentState === 'LEADERBOARD') {
+        this.state.transition('MENU')
+      }
+      this.clearMenuFocus()
+    }
+    this.menuBackWasPressed = bPressed
+  }
+
+  private applyMenuFocus(elements: HTMLElement[]): void {
+    this.clearMenuFocus()
+    if (this.menuFocusIndex >= 0 && this.menuFocusIndex < elements.length) {
+      elements[this.menuFocusIndex].classList.add('gp-focus')
+      elements[this.menuFocusIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })
     }
   }
 

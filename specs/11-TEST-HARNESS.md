@@ -2,27 +2,61 @@
 
 ## 1. Overview
 
-The test harness is an automated in-browser test suite that validates all game systems. It runs 139 tests across 28 phases (Phase 0–27), covering project setup through turbo sample audio.
+OCBP Racer uses a three-layer testing strategy:
 
-## 2. Accessing the Test Harness
+| Layer | Tool | Environment | Test Count | Purpose |
+|-------|------|-------------|------------|---------|
+| **Layer 1** | Vitest | Node.js | 88 | Unit tests for pure logic (configs, utils, bindings, AI profiles) |
+| **Layer 2** | Custom harness | Browser | 139 | Integration tests (physics, rendering, audio, game systems) |
+| **Layer 3** | Playwright | Headless Chromium | 23 | E2E tests (UI flows, state transitions, navigation) |
 
-### 2.1 URL
+**Total: 250 tests across 3 layers**
+
+## 2. Layer 1: Vitest Unit Tests
+
+### 2.1 Accessing
+```bash
+npm test              # Run all unit tests
+npm run test:watch    # Watch mode
+npm run test:ui       # UI mode
+```
+
+### 2.2 Architecture
+- Vitest v4.1.10 with globals mode
+- Node environment (no browser needed)
+- Files: `src/**/*.test.ts`
+
+### 2.3 Test Files
+| File | Tests | Coverage |
+|------|-------|----------|
+| `src/cars/CarConfigs.test.ts` | 11 | CARS constant, getCarById, getCarsForReleaseChannel |
+| `src/environment/WeatherPresets.test.ts` | 8 | Preset values, multiplier ranges, id/name matching |
+| `src/core/StateMachine.test.ts` | 18 | State transitions, listeners, race results, settings |
+| `src/environment/EnvironmentModifiers.test.ts` | 3 | combineModifiers function |
+| `src/input/InputManager.test.ts` | 9 | DEFAULT_KEY_BINDINGS structure, duplicate keys |
+| `src/ai/AIController.test.ts` | 7 | DIFFICULTY_PROFILES progression, valid ranges |
+| `src/utils.test.ts` | 23 | formatTime, getOrdinalSuffix, convertSpeed, speedUnitLabel |
+| `src/ui/LeaderboardManager.test.ts` | 9 | addEntry, sorting, limits, clearLeaderboard |
+
+## 3. Layer 2: Browser Test Harness
+
+### 3.1 Accessing
 ```
 http://localhost:3000?test
 ```
 
 Append `?test` to the dev server URL to activate the test harness instead of the normal game.
 
-### 2.2 How It Works
+### 3.2 How It Works
 1. `main.ts` checks for `?test` query parameter
 2. If present, imports and runs `runTestHarness()` from `src/test-harness.ts`
 3. Tests execute synchronously and asynchronously in the browser
 4. Results displayed as an overlay on the page
 5. If all tests pass, clicking the results overlay starts the game
 
-## 3. Test Framework
+## 4. Test Framework
 
-### 3.1 Architecture
+### 4.1 Architecture
 - Custom lightweight test framework (no external testing libraries)
 - `test(name, fn)` — synchronous test with try/catch
 - `testAsync(name, fn)` — async test with try/catch
@@ -30,16 +64,18 @@ Append `?test` to the dev server URL to activate the test harness instead of the
 - Results collected in `results[]` array
 - Console output: `✓` for pass, `✗` for fail
 
-### 3.2 Test Result Structure
+### 4.2 Test Result Structure
 ```typescript
 interface TestResult {
   name: string
   passed: boolean
   error?: string  // Error message if failed
+  phase: string
+  duration?: number
 }
 ```
 
-### 3.3 Output Format
+### 4.3 Output Format
 ```
 === OCBP Racer Test Harness ===
 
@@ -59,7 +95,7 @@ interface TestResult {
 55 passed, 0 failed, 55 total
 ```
 
-### 3.4 Visual Overlay
+### 4.4 Visual Overlay
 - Dark background (#0a0a1a)
 - Green text for passing tests (#00ff88)
 - Red text for failing tests (#ff4444)
@@ -67,11 +103,40 @@ interface TestResult {
 - Multi-column layout for compact display
 - If all pass: "CLICK ANYWHERE TO START" hint
 
-## 4. Visual Style — Arcade Terminal
+### 4.5 Enhanced Assertions
+The test harness includes an `expect()`-style assertion library:
+- `expect(value).toBe(expected)` — strict equality
+- `expect(value).toEqual(expected)` — deep equality
+- `expect(value).toBeGreaterThan(n)` / `toBeLessThan(n)`
+- `expect(value).toBeTruthy()` / `toBeFalsy()`
+- `expect(value).toContain(item)` — array/string contains
+- `expect(value).toHaveLength(n)` — array/string length
+
+### 4.6 JSON Output
+The harness outputs structured JSON for CI/headless consumption:
+```json
+{
+  "total": 139,
+  "passed": 139,
+  "failed": 0,
+  "duration": 1234.5,
+  "phases": [
+    {
+      "name": "Phase 0: Setup",
+      "tests": [
+        { "name": "Three.js imports", "passed": true, "duration": 1.2 }
+      ]
+    }
+  ]
+}
+```
+Output tagged with `[TEST_JSON]` prefix in console. Results also exposed on `window.__OCBP_TEST_RESULTS__`.
+
+## 5. Visual Style — Arcade Terminal
 
 The test harness overlay is styled to feel like part of the arcade game: a glowing green terminal panel centered on a dark screen.
 
-### 4.1 Layout Structure
+### 5.1 Layout Structure
 The overlay is a flexbox-centered container with a CSS grid inside for phase columns:
 
 ```
@@ -102,7 +167,7 @@ The overlay is a flexbox-centered container with a CSS grid inside for phase col
 ╚═══════════════════════════════════════════════════════════╝
 ```
 
-### 4.2 Container Styling
+### 5.2 Container Styling
 - **Centering:** Overlay uses `display:flex; align-items:center; justify-content:center` to center the panel
 - **Border:** 2px solid #00ff88 with `border-radius: 8px`
 - **Glow animation:** Pulsing `box-shadow` in green (00ff88), oscillating between 8px and 16px spread
@@ -110,7 +175,7 @@ The overlay is a flexbox-centered container with a CSS grid inside for phase col
 - **Background:** Near-black (`rgba(5,5,16,0.97)`)
 - **No internal scroll:** Grid fits entirely within the viewport — no `overflow-y`
 
-### 4.3 Grid Implementation
+### 5.3 Grid Implementation
 Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting on one screen without scroll.
 
 ```css
@@ -135,26 +200,26 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 }
 ```
 
-### 4.4 Typography
+### 5.4 Typography
 - Font: `'Courier New', monospace`
 - Title: 16px, bold, letter-spacing 3px, uppercase, green with text-shadow glow
 - Phase headers: 10px, bold, uppercase, green
 - Test items: 11px, grey (#889), green (#00ff88) for pass, red (#ff4444) for fail
 - Summary: 14px, bold, letter-spacing 2px
 
-### 4.5 Layout
+### 5.5 Layout
 - Fixed 5-column grid — all 23 phases visible at once, no scrolling required
 - Container width: 95vw, centered on screen
 - Phase cards compact: 6px/8px padding, 10px font
 
-### 4.6 Summary Bar
+### 5.6 Summary Bar
 - Centered below grid, separated by a green border-top
 - Green (#00ff88) with glow if all pass
 - Red (#ff4444) with glow if any fail
 - Format: `127/127 PASSED` or `125/127 PASSED — 2 FAILED`
 - Red background if any fail
 
-## 5. Test Inventory
+## 6. Test Inventory
 
 ### Phase 0: Project Setup (3 tests)
 
@@ -576,3 +641,40 @@ await testAsync('My async test', async () => {
 - No network requests during tests (all local)
 - Test overlay is DOM-based (not canvas)
 - Multi-column layout reduces vertical scroll
+
+## 11. Layer 3: Playwright E2E Tests
+
+### 11.1 Accessing
+```bash
+npm run test:e2e       # Run all E2E tests
+npm run test:e2e:ui    # Playwright UI mode
+```
+
+### 11.2 Architecture
+- Playwright v1.61.1 with Chromium
+- Headless mode with SwiftShader WebGL (for CI compatibility)
+- Shared page per serial describe block (via `test.beforeAll`)
+- Game init takes ~45s in headless Chrome (SwiftShader software rendering)
+- Config: `playwright.config.ts`
+
+### 11.3 Test Files
+| File | Tests | Coverage |
+|------|-------|----------|
+| `e2e/main-menu.spec.ts` | 5 | Title, version, navigation to car select/settings/leaderboard |
+| `e2e/car-select.spec.ts` | 6 | Car cards, selection, Next/Back navigation |
+| `e2e/track-select.spec.ts` | 4 | Track options, ToD/weather overrides, Back navigation |
+| `e2e/settings.spec.ts` | 5 | Settings title, sliders, MPH/KPH, graphics quality, Back |
+| `e2e/full-flow.spec.ts` | 3 | Complete car selection flow, back navigation, settings+leaderboard |
+
+### 11.4 Key Design Decisions
+- **Serial describe blocks**: Each test file uses `test.describe.serial` with `test.beforeAll` to share a single page across tests (avoids re-initializing the game per test)
+- **Green release channel**: Car select tests accommodate the default `'green'` channel which shows only 1 car (Rossini 488)
+- **Long timeouts**: Game init requires 60s+ timeout in headless Chrome due to SwiftShader software rendering
+- **No data-testid attributes**: All selectors use CSS classes and text content (matching existing UI patterns)
+
+### 11.5 Running All Tests
+```bash
+npm test                    # Layer 1: Vitest unit tests (88 tests, ~240ms)
+# Layer 2: Browser harness (139 tests, open http://localhost:3000?test)
+npm run test:e2e            # Layer 3: Playwright E2E (23 tests, ~5min)
+```

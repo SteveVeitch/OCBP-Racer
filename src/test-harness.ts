@@ -18,42 +18,157 @@ import { addLeaderboardEntry, getTrackLeaderboard, getOverallLeaderboard, clearL
 import { HUDGauges } from './ui/HUDGauges'
 import { EnvironmentManager } from './environment/EnvironmentManager'
 
+declare global {
+  interface Window {
+    __OCBP_TEST_RESULTS__?: {
+      total: number
+      passed: number
+      failed: number
+      duration: number
+      phases: Array<{
+        name: string
+        tests: Array<{
+          name: string
+          passed: boolean
+          error?: string
+          duration?: number
+        }>
+      }>
+    }
+  }
+}
+
 interface TestResult {
   name: string
   passed: boolean
   error?: string
   phase: string
+  duration?: number
 }
 
 const results: TestResult[] = []
 let currentPhase = 'General'
 
 function test(name: string, fn: () => void): void {
+  const start = performance.now()
   try {
     fn()
-    results.push({ name, passed: true, phase: currentPhase })
+    const duration = performance.now() - start
+    results.push({ name, passed: true, phase: currentPhase, duration })
     console.log(`  ✓ ${name}`)
   } catch (err) {
+    const duration = performance.now() - start
     const msg = err instanceof Error ? err.message : String(err)
-    results.push({ name, passed: false, error: msg, phase: currentPhase })
+    results.push({ name, passed: false, error: msg, phase: currentPhase, duration })
     console.error(`  ✗ ${name}: ${msg}`)
   }
 }
 
 async function testAsync(name: string, fn: () => Promise<void>): Promise<void> {
+  const start = performance.now()
   try {
     await fn()
-    results.push({ name, passed: true, phase: currentPhase })
+    const duration = performance.now() - start
+    results.push({ name, passed: true, phase: currentPhase, duration })
     console.log(`  ✓ ${name}`)
   } catch (err) {
+    const duration = performance.now() - start
     const msg = err instanceof Error ? err.message : String(err)
-    results.push({ name, passed: false, error: msg, phase: currentPhase })
+    results.push({ name, passed: false, error: msg, phase: currentPhase, duration })
     console.error(`  ✗ ${name}: ${msg}`)
   }
 }
 
 function assert(condition: boolean, msg: string): void {
   if (!condition) throw new Error(msg)
+}
+
+class Expect<T> {
+  constructor(private readonly actual: T) {}
+
+  toBe(expected: T): void {
+    if (this.actual !== expected) {
+      throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(this.actual)}`)
+    }
+  }
+
+  toEqual(expected: T): void {
+    if (JSON.stringify(this.actual) !== JSON.stringify(expected)) {
+      throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(this.actual)}`)
+    }
+  }
+
+  toBeGreaterThan(expected: number): void {
+    if (typeof this.actual !== 'number' || this.actual <= expected) {
+      throw new Error(`Expected ${this.actual} to be greater than ${expected}`)
+    }
+  }
+
+  toBeGreaterThanOrEqual(expected: number): void {
+    if (typeof this.actual !== 'number' || this.actual < expected) {
+      throw new Error(`Expected ${this.actual} to be >= ${expected}`)
+    }
+  }
+
+  toBeLessThan(expected: number): void {
+    if (typeof this.actual !== 'number' || this.actual >= expected) {
+      throw new Error(`Expected ${this.actual} to be less than ${expected}`)
+    }
+  }
+
+  toBeLessThanOrEqual(expected: number): void {
+    if (typeof this.actual !== 'number' || this.actual > expected) {
+      throw new Error(`Expected ${this.actual} to be <= ${expected}`)
+    }
+  }
+
+  toBeTruthy(): void {
+    if (!this.actual) {
+      throw new Error(`Expected truthy value but got ${JSON.stringify(this.actual)}`)
+    }
+  }
+
+  toBeFalsy(): void {
+    if (this.actual) {
+      throw new Error(`Expected falsy value but got ${JSON.stringify(this.actual)}`)
+    }
+  }
+
+  toBeDefined(): void {
+    if (this.actual === undefined) {
+      throw new Error('Expected value to be defined')
+    }
+  }
+
+  toBeNull(): void {
+    if (this.actual !== null) {
+      throw new Error(`Expected null but got ${JSON.stringify(this.actual)}`)
+    }
+  }
+
+  toContain(expected: unknown): void {
+    if (Array.isArray(this.actual)) {
+      if (!this.actual.includes(expected)) {
+        throw new Error(`Expected array to contain ${JSON.stringify(expected)}`)
+      }
+    } else if (typeof this.actual === 'string') {
+      if (!this.actual.includes(expected as string)) {
+        throw new Error(`Expected string to contain "${expected}"`)
+      }
+    }
+  }
+
+  toHaveLength(expected: number): void {
+    if (Array.isArray(this.actual) || typeof this.actual === 'string') {
+      if (this.actual.length !== expected) {
+        throw new Error(`Expected length ${expected} but got ${this.actual.length}`)
+      }
+    }
+  }
+}
+
+function expect<T>(actual: T): Expect<T> {
+  return new Expect(actual)
 }
 
 export async function runTestHarness(): Promise<void> {
@@ -1415,6 +1530,27 @@ export async function runTestHarness(): Promise<void> {
   if (savedLeaderboard) {
     localStorage.setItem('ocbp-leaderboard', savedLeaderboard)
   }
+
+  // JSON output for CI/headless consumption
+  const jsonOutput = {
+    total: results.length,
+    passed,
+    failed,
+    duration: results.reduce((sum, r) => sum + (r.duration || 0), 0),
+    phases: phaseGroups.map(g => ({
+      name: g.phase,
+      tests: g.tests.map(r => ({
+        name: r.name,
+        passed: r.passed,
+        error: r.error,
+        duration: r.duration
+      }))
+    }))
+  }
+  console.log('[TEST_JSON]', JSON.stringify(jsonOutput))
+
+  // Expose for Playwright E2E access
+  window.__OCBP_TEST_RESULTS__ = jsonOutput
 
   if (failed === 0) {
     el.addEventListener('click', () => {

@@ -1122,12 +1122,12 @@ export class UIManager {
     availableCars.forEach((car, index) => {
       const card = document.createElement('div')
       card.className = `car-card ${index === this.selectedCarIndex ? 'selected' : ''}`
+      card.setAttribute('data-gp-focusable', '')
       card.onclick = () => {
         this.selectedCarIndex = index
         this.state.setSelectedCar(car.id)
         this.onCarSelected?.(car.id)
-        grid.querySelectorAll('.car-card').forEach(c => c.classList.remove('selected'))
-        card.classList.add('selected')
+        this.state.transition('CAR_PREVIEW')
       }
 
       const thumbSrc = this.thumbnails.get(car.id)
@@ -1320,6 +1320,7 @@ export class UIManager {
 
     availableTracks.forEach((track, index) => {
       const card = document.createElement('div')
+      card.setAttribute('data-gp-focusable', '')
       card.style.cssText = `
         padding:16px;background:var(--bg-dark);border:2px solid var(--border);
         cursor:pointer;transition:all 0.2s ease;text-align:center;
@@ -2193,6 +2194,7 @@ export class UIManager {
     const btn = document.createElement('button')
     btn.className = `menu-btn ${variant || ''}`
     btn.textContent = text
+    btn.setAttribute('data-gp-focusable', '')
     btn.addEventListener('click', () => {
       if (variant === 'primary') {
         this.audio?.playUIConfirm()

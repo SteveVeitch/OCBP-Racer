@@ -43,7 +43,7 @@ export const DEFAULT_KEY_BINDINGS: KeyBindings = {
   steerRight: ['KeyD', 'ArrowRight'],
   pause: ['Escape'],
   confirm: ['Enter', 'Space'],
-  back: ['Backspace'],
+  back: ['Escape'],
   cameraSwitch: ['KeyC']
 }
 
@@ -155,10 +155,14 @@ export class InputManager {
   private setupGamepad(): void {
     window.addEventListener('gamepadconnected', (e) => {
       this.gamepadIndex = e.gamepad.index
+      console.log(`[Input] Gamepad connected: "${e.gamepad.id}" at index ${e.gamepad.index}`)
     })
 
-    window.addEventListener('gamepaddisconnected', () => {
-      this.gamepadIndex = null
+    window.addEventListener('gamepaddisconnected', (e) => {
+      console.log(`[Input] Gamepad disconnected: "${e.gamepad.id}"`)
+      if (this.gamepadIndex === e.gamepad.index) {
+        this.gamepadIndex = null
+      }
     })
   }
 
@@ -202,6 +206,10 @@ export class InputManager {
 
   getGamepadIndex(): number | null {
     return this.gamepadIndex
+  }
+
+  getKeys(): Set<string> {
+    return this.keys
   }
 
   getBindings(): KeyBindings {

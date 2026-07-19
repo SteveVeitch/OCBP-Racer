@@ -734,13 +734,18 @@ export class Game {
     this.handleCameraSwitch()
     this.input.pollGamepadBinding()
 
-    if (this.isMenuState(this.state.getCurrent())) {
+    const currentState = this.state.getCurrent()
+
+    if (currentState !== 'SETTINGS') {
+      this.input.cancelListening()
+      this.input.cancelListeningGamepad()
+    }
+
+    if (this.isMenuState(currentState)) {
       this.handleGamepadMenuNavigation()
     } else {
       this.clearMenuFocus()
     }
-
-    const currentState = this.state.getCurrent()
 
     if (currentState === 'CAR_PREVIEW') {
       this.updatePreview(deltaTime)
@@ -836,13 +841,7 @@ export class Game {
   private getFocusableElements(): HTMLElement[] {
     const container = document.getElementById('ui-container')
     if (!container) return []
-    const elements = container.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), .car-card, [style*="cursor:pointer"]'
-    )
-    return Array.from(elements).filter(el => {
-      const style = window.getComputedStyle(el)
-      return style.display !== 'none' && style.visibility !== 'hidden' && style.pointerEvents !== 'none'
-    })
+    return Array.from(container.querySelectorAll<HTMLElement>('[data-gp-focusable]'))
   }
 
   private clearMenuFocus(): void {
@@ -851,26 +850,60 @@ export class Game {
   }
 
   private handleGamepadMenuNavigation(): void {
-    const gamepads = navigator.getGamepads()
-    const gamepad = this.input.getGamepadIndex() !== null ? gamepads[this.input.getGamepadIndex()!] : null
-    if (!gamepad) return
+    let gamepad: Gamepad | null = null
+    const idx = this.input.getGamepadIndex()
+    if (idx !== null) {
+      const gamepads = navigator.getGamepads()
+      gamepad = gamepads[idx] ?? null
+    }
 
-    const dpadUp = gamepad.buttons[12]?.pressed ?? false
-    const dpadDown = gamepad.buttons[13]?.pressed ?? false
-    const stickY = gamepad.axes[1] ?? 0
-    const stickUp = stickY < -0.5
-    const stickDown = stickY > 0.5
-    const aPressed = gamepad.buttons[0]?.pressed ?? false
-    const bPressed = gamepad.buttons[1]?.pressed ?? false
+    let up = false
+    let down = false
+    let left = false
+    let right = false
+    let confirm = false
+    let back = false
 
-    const up = dpadUp || stickUp
-    const down = dpadDown || stickDown
+    if (gamepad) {
+      const dpadUp = gamepad.buttons[12]?.pressed ?? false
+      const dpadDown = gamepad.buttons[13]?.pressed ?? false
+      const dpadLeft = gamepad.buttons[14]?.pressed ?? false
+      const dpadRight = gamepad.buttons[15]?.pressed ?? false
+      const stickY = gamepad.axes[1] ?? 0
+      const stickX = gamepad.axes[0] ?? 0
+      up = dpadUp || stickY < -0.5
+      down = dpadDown || stickY > 0.5
+      left = dpadLeft || stickX < -0.5
+      right = dpadRight || stickX > 0.5
+      confirm = gamepad.buttons[0]?.pressed ?? false
+      back = gamepad.buttons[1]?.pressed ?? false
+    }
+
+    const keys = this.input.getKeys()
+    const bindings = this.input.getBindings()
+    if (keys.has('ArrowUp') || bindings.throttle.some(k => keys.has(k))) up = true
+    if (keys.has('ArrowDown') || bindings.brake.some(k => keys.has(k))) down = true
+    if (keys.has('ArrowLeft') || bindings.steerLeft.some(k => keys.has(k))) left = true
+    if (keys.has('ArrowRight') || bindings.steerRight.some(k => keys.has(k))) right = true
+    if (bindings.confirm.some(k => keys.has(k))) confirm = true
+    if (bindings.back.some(k => keys.has(k))) back = true
 
     if (this.menuStickNavCooldown > 0) {
       this.menuStickNavCooldown -= this.lastFrameDt
     }
 
-    if (up && !this.menuNavUpWasPressed && this.menuStickNavCooldown <= 0) {
+    const prev = up || left
+    const next = down || right
+
+    if (!prev && !next && !confirm && !back) {
+      this.menuNavUpWasPressed = false
+      this.menuNavDownWasPressed = false
+      this.menuConfirmWasPressed = false
+      this.menuBackWasPressed = false
+      return
+    }
+
+    if (prev && !this.menuNavUpWasPressed && this.menuStickNavCooldown <= 0) {
       const elements = this.getFocusableElements()
       if (elements.length > 0) {
         this.menuFocusIndex = this.menuFocusIndex <= 0 ? elements.length - 1 : this.menuFocusIndex - 1
@@ -878,9 +911,9 @@ export class Game {
         this.menuStickNavCooldown = 0.2
       }
     }
-    this.menuNavUpWasPressed = up
+    this.menuNavUpWasPressed = prev
 
-    if (down && !this.menuNavDownWasPressed && this.menuStickNavCooldown <= 0) {
+    if (next && !this.menuNavDownWasPressed && this.menuStickNavCooldown <= 0) {
       const elements = this.getFocusableElements()
       if (elements.length > 0) {
         this.menuFocusIndex = this.menuFocusIndex >= elements.length - 1 ? 0 : this.menuFocusIndex + 1
@@ -888,22 +921,25 @@ export class Game {
         this.menuStickNavCooldown = 0.2
       }
     }
-    this.menuNavDownWasPressed = down
+    this.menuNavDownWasPressed = next
 
-    if (aPressed && !this.menuConfirmWasPressed) {
+    if (confirm && !this.menuConfirmWasPressed) {
       const elements = this.getFocusableElements()
       if (this.menuFocusIndex >= 0 && this.menuFocusIndex < elements.length) {
         elements[this.menuFocusIndex].click()
         this.clearMenuFocus()
+      } else if (elements.length > 0) {
+        this.menuFocusIndex = 0
+        this.applyMenuFocus(elements)
+        elements[0].click()
+        this.clearMenuFocus()
       }
     }
-    this.menuConfirmWasPressed = aPressed
+    this.menuConfirmWasPressed = confirm
 
-    if (bPressed && !this.menuBackWasPressed) {
+    if (back && !this.menuBackWasPressed) {
       const currentState = this.state.getCurrent()
-      if (currentState === 'PAUSED') {
-        this.resumeRace()
-      } else if (currentState === 'SETTINGS') {
+      if (currentState === 'SETTINGS') {
         const prev = this.state.getPrevious()
         if (prev === 'PAUSED' || prev === 'RACING' || prev === 'COUNTDOWN') {
           this.state.transition('PAUSED')
@@ -919,11 +955,11 @@ export class Game {
       }
       this.clearMenuFocus()
     }
-    this.menuBackWasPressed = bPressed
+    this.menuBackWasPressed = back
   }
 
   private applyMenuFocus(elements: HTMLElement[]): void {
-    this.clearMenuFocus()
+    document.querySelectorAll('.gp-focus').forEach(el => el.classList.remove('gp-focus'))
     if (this.menuFocusIndex >= 0 && this.menuFocusIndex < elements.length) {
       elements[this.menuFocusIndex].classList.add('gp-focus')
       elements[this.menuFocusIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' })

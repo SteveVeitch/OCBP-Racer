@@ -50,10 +50,13 @@ describe('InputManager', () => {
     })
 
     it('no duplicate keys across actions', () => {
+      const sharedKeys = ['Escape']
       const allKeys: string[] = []
       for (const keys of Object.values(DEFAULT_KEY_BINDINGS)) {
         for (const key of keys) {
-          expect(allKeys).not.toContain(key)
+          if (!sharedKeys.includes(key)) {
+            expect(allKeys).not.toContain(key)
+          }
           allKeys.push(key)
         }
       }

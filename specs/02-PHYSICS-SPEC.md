@@ -56,7 +56,10 @@ Each physics tick, the car controller applies forces as **impulses (N·s per ste
 2. BRAKE / REVERSE FORCE
    - If forwardSpeed > 1.0 m/s: BRAKE
      - Applied opposite to velocity direction
-     - Force = BrakePercent × BrakeForce
+     - Speed-dependent scaling: tapers at low speed
+       - speedScale = max(0.3, min(1.0, speed / 10))
+       - Full force above 36 km/h, 30% at very low speed
+     - Force = BrakePercent × BrakeForce × speedScale × weatherMultiplier
    - If forwardSpeed ≤ 1.0 m/s: REVERSE
      - Applied opposite to forward direction (pushes car backward)
      - Force = BrakePercent × EngineForce × 0.4
@@ -83,6 +86,8 @@ Each physics tick, the car controller applies forces as **impulses (N·s per ste
    - Mass-proportional: heavier cars have more grip
    - Speed-attenuated: grip reduces at high speed (car can slide more)
    - Active when speed > 0.5 m/s and slip angle > 0°
+   - Brake-induced understeer: braking reduces lateral grip by up to 40%
+     (tire grip circle — braking uses grip budget, leaving less for cornering)
    - See section 3.4 for full model
 
 7. THROTTLE RAMP-UP
@@ -142,14 +147,17 @@ At low speed, full grip applies proportional to car mass.
 
 **Key constants:**
 ```
-GRIP_FORCE_FACTOR  = 0.001 (mass-proportional)
-GRIP_SPEED_SCALE   = 0.02  (speed attenuation)
-HIGH_SPEED_FACTOR  = 0.03  (steering reduction)
-THROTTLE_RAMP_UP   = 2.5 /sec
-THROTTLE_RAMP_DOWN = 4.0 /sec
-WHEEL_RADIUS       = 0.32 m
-ROLL_FACTOR        = 0.03
-MAX_ROLL_ANGLE     = 5°
+GRIP_FORCE_FACTOR      = 0.0015 (mass-proportional)
+GRIP_SPEED_SCALE       = 0.015  (speed attenuation)
+HIGH_SPEED_FACTOR      = 0.012  (steering reduction)
+THROTTLE_RAMP_UP       = 2.5 /sec
+THROTTLE_RAMP_DOWN     = 4.0 /sec
+WHEEL_RADIUS           = 0.32 m
+ROLL_FACTOR            = 0.03
+MAX_ROLL_ANGLE         = 5°
+BRAKE_SPEED_SCALE      = 10     (m/s — speed at full brake effectiveness)
+BRAKE_MIN_EFFECTIVENESS = 0.3   (minimum brake force at very low speed)
+BRAKE_UNDERSTEER_FACTOR = 0.4   (up to 40% grip reduction when braking)
 ```
 
 ### 3.5 Speed-Dependent Steering
@@ -196,7 +204,7 @@ If car position contains NaN values:
 interface CarConfig {
   mass: number          // kg (1250-1550)
   engineForce: number   // impulse N·s per step (750-950)
-  brakeForce: number    // impulse N·s per step (1900-2400)
+  brakeForce: number    // impulse N·s per step (110-140)
   steerSpeed: number    // rad/s turn rate multiplier (1.8-2.5)
   maxSteerAngle: number // radians (0.42-0.48)
   maxSpeed: number      // km/h (235-265)
@@ -217,7 +225,7 @@ interface CarConfig {
 interface CarConfig {
   mass: number          // kg (1250-1550)
   engineForce: number   // impulse N·s per step (750-950)
-  brakeForce: number    // impulse N·s per step (1900-2400)
+  brakeForce: number    // impulse N·s per step (110-140)
   steerSpeed: number    // rad/s turn rate multiplier (1.8-2.5)
   maxSteerAngle: number // radians (0.42-0.48)
   maxSpeed: number      // km/h (235-265)
@@ -236,7 +244,7 @@ interface CarConfig {
 |-----------|------------|-------------|------------|-------------|
 | **Mass (kg)** | 1550 | 1400 | 1500 | 1250 |
 | **Engine Force (impulse)** | 800 | 850 | 950 | 750 |
-| **Brake Force (impulse)** | 2000 | 2200 | 1900 | 2400 |
+| **Brake Force (impulse)** | 130 | 140 | 110 | 125 |
 | **Steer Speed** | 1.8 | 2.2 | 2.0 | 2.5 |
 | **Max Steer (rad)** | 0.45 | 0.42 | 0.48 | 0.44 |
 | **Max Speed (km/h)** | 235 | 245 | 250 | 265 |

@@ -42,7 +42,7 @@ export const CARS: CarDefinition[] = [
     config: {
       mass: 1550,
       engineForce: 800,
-      brakeForce: 2000,
+      brakeForce: 130,
       steerSpeed: 2.2,
       maxSteerAngle: 0.45,
       maxSpeed: 235,
@@ -74,7 +74,7 @@ export const CARS: CarDefinition[] = [
     config: {
       mass: 1400,
       engineForce: 850,
-      brakeForce: 2200,
+      brakeForce: 140,
       steerSpeed: 2.8,
       maxSteerAngle: 0.42,
       maxSpeed: 245,
@@ -106,7 +106,7 @@ export const CARS: CarDefinition[] = [
     config: {
       mass: 1500,
       engineForce: 950,
-      brakeForce: 1900,
+      brakeForce: 110,
       steerSpeed: 2.6,
       maxSteerAngle: 0.48,
       maxSpeed: 250,
@@ -138,7 +138,7 @@ export const CARS: CarDefinition[] = [
     config: {
       mass: 1250,
       engineForce: 750,
-      brakeForce: 2400,
+      brakeForce: 125,
       steerSpeed: 3.2,
       maxSteerAngle: 0.44,
       maxSpeed: 265,

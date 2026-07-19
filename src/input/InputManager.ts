@@ -48,8 +48,8 @@ export const DEFAULT_KEY_BINDINGS: KeyBindings = {
 }
 
 export const DEFAULT_GAMEPAD_BINDINGS: GamepadBindings = {
-  throttle: { type: 'axis', index: 7, direction: 1 },
-  brake: { type: 'axis', index: 6, direction: 1 },
+  throttle: { type: 'button', index: 7, direction: 1 },
+  brake: { type: 'button', index: 6, direction: 1 },
   steerLeft: { type: 'axis', index: 0, direction: -1 },
   steerRight: { type: 'axis', index: 0, direction: 1 },
   pause: { type: 'button', index: 9 },
@@ -172,6 +172,9 @@ export class InputManager {
 
   getState(): InputState {
     const kbState = this.getKeyboardState()
+    if (this.gamepadIndex === null) {
+      this.rescanGamepads()
+    }
     if (this.gamepadIndex !== null) {
       const gpState = this.getGamepadState()
       return {
@@ -189,6 +192,7 @@ export class InputManager {
 
   isAnyKeyPressed(): boolean {
     if (this.keys.size > 0) return true
+    if (this.gamepadIndex === null) this.rescanGamepads()
     if (this.gamepadIndex !== null) {
       const gamepads = navigator.getGamepads()
       const gamepad = gamepads[this.gamepadIndex]
@@ -206,6 +210,16 @@ export class InputManager {
 
   getGamepadIndex(): number | null {
     return this.gamepadIndex
+  }
+
+  private rescanGamepads(): void {
+    const gamepads = navigator.getGamepads()
+    for (let i = 0; i < gamepads.length; i++) {
+      if (gamepads[i]) {
+        this.gamepadIndex = i
+        return
+      }
+    }
   }
 
   getKeys(): Set<string> {
@@ -419,7 +433,7 @@ export class InputManager {
 
   private readGamepadAxis(gamepad: Gamepad, binding: GamepadBinding): number {
     if (binding.type === 'button') {
-      return gamepad.buttons[binding.index]?.pressed ? 1 : 0
+      return gamepad.buttons[binding.index]?.value ?? 0
     }
     const raw = gamepad.axes[binding.index] ?? 0
     const directed = binding.direction ? raw * binding.direction : raw

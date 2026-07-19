@@ -75,14 +75,14 @@ http://localhost:3000?test
 |--------|----------|---------|
 | Accelerate | W / ↑ | RT (Right Trigger) |
 | Brake / Reverse | S / ↓ | LT (Left Trigger) |
-| Steer Left | A / ← | Left Stick ← |
-| Steer Right | D / → | Left Stick → |
+| Steer Left | A / ← | Left Stick ← / D-pad ← |
+| Steer Right | D / → | Left Stick → / D-pad → |
 | Pause | Escape | Start |
 | Camera | C | Y |
 | Confirm | Enter / Space | A |
-| Back | Escape / Backspace | B |
+| Back | Escape | B |
 
-All gameplay actions are **rebindable** via the Settings menu.
+All gameplay actions are **rebindable** via the Settings menu (both keyboard and gamepad).
 
 ### Reverse Gear
 
@@ -105,9 +105,11 @@ Press **C** (or **Y**) to cycle through camera views:
 Main Menu → Car Select → Car Preview → Track Select → Countdown → Race → Results → Repeat
 ```
 
+Selecting a car on the Car Select screen goes directly to the 3D Car Preview.
+
 ### Demo / Attract Mode
 
-After 1 minute of inactivity on the main menu, a demo race begins automatically with a random car, track, weather, and time-of-day. A single AI car drives at a leisurely pace. Press any key to return to the menu. Can be disabled in Settings.
+After 3 minutes of inactivity on the main menu, a demo race begins automatically with a random car, track, weather, and time-of-day. A single AI car drives at a leisurely pace. Press any key or button to return to the menu. Can be disabled in Settings.
 
 ## The Cars
 
@@ -178,7 +180,8 @@ Each track has distinct terrain-themed decorations (buildings, trees, rocks, ind
 | Camera Default | Starting camera view |
 | Demo Mode | Enable/disable attract mode (on/off) |
 | Release Channel | Green = released tracks only, Blue = includes unreleased tracks |
-| Key Bindings | Rebind all gameplay actions |
+| Key Bindings | Rebind all gameplay actions (keyboard) |
+| Gamepad Bindings | Rebind all gameplay actions (gamepad) |
 
 Settings are persisted to localStorage.
 
@@ -222,6 +225,8 @@ The game uses an arcade-realistic physics model:
 - **Engine force** applied as impulse (N·s per step), diminishing with speed
 - **Turbo lag** — delayed power delivery for turbocharged cars (0.15-0.25s)
 - **Throttle ramp-up** — 2.5/s from 0 to full power (prevents snap)
+- **Braking** — speed-dependent: full force above 36 km/h, tapers to 30% at low speed for natural coasting; stopping distance scales with momentum and car weight
+- **Brake-induced understeer** — braking while cornering reduces lateral grip by up to 40% (tire grip circle model), causing the car to push wide
 - **Linear drag** opposes motion (`dragCoeff × speed × 0.01`)
 - **Downforce** increases grip at speed
 - **Grip/slip model** — triangle curve from slip angle to grip coefficient
@@ -275,9 +280,10 @@ Each car uses a GLTF model for detailed body geometry with procedural wheels and
 - Keyboard (WASD/Arrow keys) and gamepad support
 - Dead zone: 0.15 (gamepad)
 - Steering sensitivity curve: exponent 1.4
-- Hot-plug detection for gamepads
+- Hot-plug detection for gamepads with auto-rediscovery
 - Correct steering in reverse (A=left, D=right)
-- **Rebindable controls** — all gameplay actions remappable
+- **Rebindable controls** — all gameplay actions remappable for both keyboard and gamepad
+- **Gamepad menu navigation** — D-pad/stick to navigate, A to confirm, B to go back; left/right navigation for horizontal layouts
 - Window blur handling — clears keys, auto-pauses
 
 ### Audio

@@ -43,6 +43,9 @@ const THROTTLE_RAMP_UP = 2.5
 const THROTTLE_RAMP_DOWN = 4.0
 const TURBO_DECAY_RATE = 8.0
 const TURBO_BOOST_MULTIPLIER = 0.18
+const BRAKE_SPEED_SCALE = 10
+const BRAKE_MIN_EFFECTIVENESS = 0.3
+const BRAKE_UNDERSTEER_FACTOR = 0.4
 const MS_PER_KMH = 1 / 3.6
 
 const _quat = new THREE.Quaternion()
@@ -65,6 +68,7 @@ export class CarController {
   private lateralVelocity = 0
   private wheelSpin = 0
   private throttleLevel = 0
+  private currentBrakeInput = 0
   private boostLevel = 0
   private roadHeight = 0
 
@@ -186,7 +190,8 @@ export class CarController {
 
     const sign = this.lateralVelocity > 0 ? -1 : 1
     const speedGripScale = 1 / (1 + speed * GRIP_SPEED_SCALE)
-    const force = sign * gripCoeff * this.config.mass * GRIP_FORCE_FACTOR * speedGripScale * this.envModifiers.gripMultiplier
+    const brakeGripReduction = 1.0 - (this.currentBrakeInput * BRAKE_UNDERSTEER_FACTOR)
+    const force = sign * gripCoeff * this.config.mass * GRIP_FORCE_FACTOR * speedGripScale * this.envModifiers.gripMultiplier * brakeGripReduction
 
     this.body.applyImpulse(
       { x: _right.x * force, y: 0, z: _right.z * force },
@@ -270,6 +275,7 @@ export class CarController {
   }
 
   private applyBrake(input: number): void {
+    this.currentBrakeInput = input
     if (input <= 0) return
 
     const velocity = this.body.linvel()
@@ -283,7 +289,8 @@ export class CarController {
       } else {
         _velDir.set(0, 0, 0)
       }
-      const brakeForce = input * this.config.brakeForce * this.envModifiers.brakingMultiplier
+      const speedScale = BRAKE_MIN_EFFECTIVENESS + (1.0 - BRAKE_MIN_EFFECTIVENESS) * Math.min(1.0, speed / BRAKE_SPEED_SCALE)
+      const brakeForce = input * this.config.brakeForce * speedScale * this.envModifiers.brakingMultiplier
       this.body.applyImpulse(
         { x: -_velDir.x * brakeForce, y: 0, z: -_velDir.z * brakeForce },
         true

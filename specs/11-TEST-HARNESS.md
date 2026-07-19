@@ -8,9 +8,9 @@ OCBP Racer uses a three-layer testing strategy:
 |-------|------|-------------|------------|---------|
 | **Layer 1** | Vitest | Node.js | 88 | Unit tests for pure logic (configs, utils, bindings, AI profiles) |
 | **Layer 2** | Custom harness | Browser | 139 | Integration tests (physics, rendering, audio, game systems) |
-| **Layer 3** | Playwright | Headless Chromium | 23 | E2E tests (UI flows, state transitions, navigation) |
+| **Layer 3** | Playwright | Headless Chromium | 22 | E2E tests (UI flows, state transitions, navigation) |
 
-**Total: 250 tests across 3 layers**
+**Total: 249 tests across 3 layers**
 
 ## 2. Layer 1: Vitest Unit Tests
 
@@ -109,8 +109,8 @@ The test harness includes an `expect()`-style assertion library:
 - `expect(value).toEqual(expected)` — deep equality
 - `expect(value).toBeGreaterThan(n)` / `toBeLessThan(n)`
 - `expect(value).toBeTruthy()` / `toBeFalsy()`
-- `expect(value).toContain(item)` — array/string contains
-- `expect(value).toHaveLength(n)` — array/string length
+- `expect(value).toContain(item)` — array/string contains (throws if value is not an array or string)
+- `expect(value).toHaveLength(n)` — array/string length (throws if value is not an array or string)
 
 ### 4.6 JSON Output
 The harness outputs structured JSON for CI/headless consumption:
@@ -661,7 +661,7 @@ npm run test:e2e:ui    # Playwright UI mode
 | File | Tests | Coverage |
 |------|-------|----------|
 | `e2e/main-menu.spec.ts` | 5 | Title, version, navigation to car select/settings/leaderboard |
-| `e2e/car-select.spec.ts` | 6 | Car cards, selection, Next/Back navigation |
+| `e2e/car-select.spec.ts` | 5 | Car cards, selection, direct navigation to car preview |
 | `e2e/track-select.spec.ts` | 4 | Track options, ToD/weather overrides, Back navigation |
 | `e2e/settings.spec.ts` | 5 | Settings title, sliders, MPH/KPH, graphics quality, Back |
 | `e2e/full-flow.spec.ts` | 3 | Complete car selection flow, back navigation, settings+leaderboard |
@@ -676,5 +676,5 @@ npm run test:e2e:ui    # Playwright UI mode
 ```bash
 npm test                    # Layer 1: Vitest unit tests (88 tests, ~240ms)
 # Layer 2: Browser harness (139 tests, open http://localhost:3000?test)
-npm run test:e2e            # Layer 3: Playwright E2E (23 tests, ~5min)
+npm run test:e2e            # Layer 3: Playwright E2E (22 tests, ~5min)
 ```

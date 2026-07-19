@@ -85,10 +85,9 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 ```
 
 **Interactions:**
-- Click a car card to select it
-- Click "Next" → TRACK_SELECT
+- Click a car card to select it and go directly to CAR_PREVIEW
+- Click "Next" → CAR_PREVIEW (if a car is selected)
 - Click "Back" → MENU
-- Click "Next" → CAR_PREVIEW
 - Selected car has green border + glow
 
 **Car Cards Show:**
@@ -391,16 +390,16 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 │                    SETTINGS                              │
 │                                                          │
 │  ┌─── AUDIO / GRAPHICS ───┐  ┌─── CONTROLS ──────────┐  │
-│  │                         │  │                        │  │
-│  │  Master Volume          │  │  Throttle:   W    [≡]  │  │
-│  │  ████████░░  80%        │  │  Brake:      S    [≡]  │  │
-│  │                         │  │  Steer L:    A    [≡]  │  │
-│  │  Engine Volume          │  │  Steer R:    D    [≡]  │  │
-│  │  ██████░░░░  60%        │  │  Pause:     Esc   [≡]  │  │
-│  │                         │  │  Camera:     C    [≡]  │  │
-│  │  Steer Sensitivity      │  │                        │  │
-│  │  ████░░░░░░  1.0x       │  │  [Reset Defaults]     │  │
-│  │                         │  │                        │  │
+│  │                         │  │  [Keyboard] [Gamepad]  │  │
+│  │  Master Volume          │  │                        │  │
+│  │  ████████░░  80%        │  │  Throttle:   W    [≡]  │  │
+│  │                         │  │  Brake:      S    [≡]  │  │
+│  │  Engine Volume          │  │  Steer L:    A    [≡]  │  │
+│  │  ██████░░░░  60%        │  │  Steer R:    D    [≡]  │  │
+│  │                         │  │  Pause:     Esc   [≡]  │  │
+│  │  Steer Sensitivity      │  │  Camera:     C    [≡]  │  │
+│  │  ████░░░░░░  1.0x       │  │                        │  │
+│  │                         │  │  [Reset Defaults]     │  │
 │  │  Speed Unit             │  └────────────────────────┘  │
 │  │  [ MPH ] [ KPH ]        │                             │
 │  │                         │                             │
@@ -477,6 +476,8 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - Settings persisted to `localStorage` key `ocbp-settings`
 - Back button returns to previous state (MENU or PAUSED via RACING)
 - AudioContext auto-resumes on user interaction
+- Controls column has **Keyboard** and **Gamepad** tabs for per-device rebinding
+- Gamepad-navigated menu items show a `.gp-focus` green outline (2px solid `#00ff88`) on the focused element
 
 **Graphics Quality Levels:**
 - **Low:** Bloom disabled, pixel ratio 1
@@ -512,6 +513,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 - No player car — camera follows the AI car
 - Minimal HUD overlay only (car name, track name, conditions, exit prompt)
 - Any input (throttle, brake, steer, pause, confirm, back, keyboard, mouse, gamepad) exits to MENU
+- Gamepad input detected via tracked `getGamepadIndex()` (not hardcoded to `[0]`)
 - Audio plays (engine, tire, wind) following the AI car
 
 **HUD Elements:**
@@ -701,6 +703,8 @@ The UI container gets `transform: scale(factor)` with `transform-origin: top lef
 | Camera setting | Default camera view can be changed |
 | Settings persist | Settings saved to localStorage |
 | Key rebinding | All gameplay actions can be remapped |
+| Gamepad rebinding | Gamepad bindings rebindable via Controls → Gamepad tab |
+| Gamepad focus outline | Green outline visible on gamepad-navigated menu items |
 | Leaderboard shows | Best times per track displayed |
 | Mini-map renders | Player + AI positions visible |
 | Scoring works | Points awarded correctly per position |

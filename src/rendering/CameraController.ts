@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 
-export type CameraView = 'chase' | 'windscreen' | 'hood' | 'bumper'
+export type CameraView = 'chase' | 'cockpit' | 'windscreen' | 'hood' | 'bumper'
 
 export interface CameraConfig {
   distance: number
@@ -25,6 +25,17 @@ const VIEW_CONFIGS: Record<CameraView, CameraConfig> = {
     baseFOV: 60,
     fovRange: 2,
     wallCheckRadius: 0.5
+  },
+  cockpit: {
+    distance: 0.45,
+    height: 0.95,
+    lookAhead: 0.0,
+    springStiffness: 200.0,
+    springDamping: 0.7,
+    rotationLag: 0.003,
+    baseFOV: 70,
+    fovRange: 3,
+    wallCheckRadius: 0.0
   },
   windscreen: {
     distance: 0.3,
@@ -61,7 +72,14 @@ const VIEW_CONFIGS: Record<CameraView, CameraConfig> = {
   }
 }
 
-const VIEW_ORDER: CameraView[] = ['chase', 'windscreen', 'hood', 'bumper']
+const VIEW_ORDER: CameraView[] = ['chase', 'cockpit', 'windscreen', 'hood', 'bumper']
+
+const COCKPIT_HEIGHT_OFFSETS: Record<string, number> = {
+  'rossini-488': 0.0,
+  'weissach-gt3': 0.2,
+  'kaiju-gt-r': 0.2,
+  'stingray-z06': 0.0,
+}
 
 const raycaster = new THREE.Raycaster()
 
@@ -73,6 +91,7 @@ export class CameraController {
   private velocity = new THREE.Vector3()
   private currentFOV: number
   private wallObjects: THREE.Object3D[] = []
+  private cockpitHeightOffset = 0.0
 
   constructor(camera: THREE.PerspectiveCamera, config?: Partial<CameraConfig>) {
     this.camera = camera
@@ -85,6 +104,10 @@ export class CameraController {
     this.wallObjects = objects
   }
 
+  setCockpitCar(carId: string): void {
+    this.cockpitHeightOffset = COCKPIT_HEIGHT_OFFSETS[carId] ?? 0.0
+  }
+
   cycleView(): CameraView {
     const idx = VIEW_ORDER.indexOf(this.currentView)
     this.currentView = VIEW_ORDER[(idx + 1) % VIEW_ORDER.length]
@@ -93,6 +116,13 @@ export class CameraController {
     this.currentFOV = this.config.baseFOV
     this.camera.fov = this.currentFOV
     this.camera.updateProjectionMatrix()
+    if (this.currentView === 'cockpit') {
+      this.camera.near = 0.01
+      this.camera.updateProjectionMatrix()
+    } else {
+      this.camera.near = 0.1
+      this.camera.updateProjectionMatrix()
+    }
     return this.currentView
   }
 
@@ -103,6 +133,11 @@ export class CameraController {
     this.velocity.set(0, 0, 0)
     this.currentFOV = this.config.baseFOV
     this.camera.fov = this.currentFOV
+    if (view === 'cockpit') {
+      this.camera.near = 0.01
+    } else {
+      this.camera.near = 0.1
+    }
     this.camera.updateProjectionMatrix()
   }
 
@@ -122,17 +157,32 @@ export class CameraController {
     maxSpeed: number,
     dt: number
   ): void {
-    if (this.currentView === 'chase') {
+    if (this.currentView === 'cockpit') {
+      const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(carQuaternion)
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(carQuaternion)
+
+      this.camera.position.copy(carPosition)
+        .add(forward.multiplyScalar(-0.2))
+        .add(right.multiplyScalar(0.3))
+      this.camera.position.y = carPosition.y + 0.4 + this.cockpitHeightOffset
+
+      const lookAtPoint = carPosition.clone().add(
+        new THREE.Vector3(0, 0, 1).applyQuaternion(carQuaternion).multiplyScalar(5)
+      )
+      lookAtPoint.y = carPosition.y + 0.5
+      this.camera.lookAt(lookAtPoint)
+    } else if (this.currentView === 'chase') {
       const targetPosition = this.calculateTargetPosition(carPosition, carQuaternion)
       this.resolveWallCollision(carPosition, targetPosition)
       this.springFollow(targetPosition, dt)
+      this.updateLookAt(carPosition, carQuaternion)
     } else {
       const directPosition = this.calculateTargetPosition(carPosition, carQuaternion)
       this.camera.position.copy(directPosition)
       this.velocity.set(0, 0, 0)
+      this.updateLookAt(carPosition, carQuaternion)
     }
 
-    this.updateLookAt(carPosition, carQuaternion)
     this.updateFOV(speed, maxSpeed)
   }
 
@@ -188,10 +238,16 @@ export class CameraController {
 
   private updateLookAt(carPosition: THREE.Vector3, carQuaternion: THREE.Quaternion): void {
     const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(carQuaternion)
-    const lookAheadPoint = carPosition.clone().add(forward.multiplyScalar(3))
-    lookAheadPoint.y += 1
 
-    this.camera.lookAt(lookAheadPoint)
+    if (this.currentView === 'cockpit') {
+      const lookAtPoint = carPosition.clone().add(forward.multiplyScalar(2.5))
+      lookAtPoint.y = carPosition.y + 0.4
+      this.camera.lookAt(lookAtPoint)
+    } else {
+      const lookAheadPoint = carPosition.clone().add(forward.multiplyScalar(this.config.lookAhead))
+      lookAheadPoint.y = carPosition.y + this.config.height
+      this.camera.lookAt(lookAheadPoint)
+    }
   }
 
   private updateFOV(speed: number, maxSpeed: number): void {

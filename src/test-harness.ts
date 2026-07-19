@@ -849,26 +849,28 @@ export async function runTestHarness(): Promise<void> {
     const cam = new CameraController(new THREE.PerspectiveCamera())
     assert(cam.getView() === 'chase', `Default view: ${cam.getView()}`)
   })
-  test('cycleView cycles through all 4 views', () => {
+  test('cycleView cycles through all 5 views', () => {
     const cam = new CameraController(new THREE.PerspectiveCamera())
     const views: string[] = []
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 5; i++) {
       views.push(cam.cycleView())
     }
-    assert(views[0] === 'windscreen', `After 1: ${views[0]}`)
-    assert(views[1] === 'hood', `After 2: ${views[1]}`)
-    assert(views[2] === 'bumper', `After 3: ${views[2]}`)
-    assert(views[3] === 'chase', `After 4: ${views[3]}`)
+    assert(views[0] === 'cockpit', `After 1: ${views[0]}`)
+    assert(views[1] === 'windscreen', `After 2: ${views[1]}`)
+    assert(views[2] === 'hood', `After 3: ${views[2]}`)
+    assert(views[3] === 'bumper', `After 4: ${views[3]}`)
+    assert(views[4] === 'chase', `After 5: ${views[4]}`)
   })
   test('setView changes to specific view', () => {
     const cam = new CameraController(new THREE.PerspectiveCamera())
     cam.setView('hood')
     assert(cam.getView() === 'hood', `View after set: ${cam.getView()}`)
   })
-  test('getViewConfigs returns all 4 views', () => {
+  test('getViewConfigs returns all 5 views', () => {
     const cam = new CameraController(new THREE.PerspectiveCamera())
     const configs = cam.getViewConfigs()
     assert('chase' in configs, 'Missing chase')
+    assert('cockpit' in configs, 'Missing cockpit')
     assert('windscreen' in configs, 'Missing windscreen')
     assert('hood' in configs, 'Missing hood')
     assert('bumper' in configs, 'Missing bumper')

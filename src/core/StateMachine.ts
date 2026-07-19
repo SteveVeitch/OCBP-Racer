@@ -34,7 +34,7 @@ export interface GameSettings {
   weatherOverride: string
   todOverride: string
   demoEnabled: boolean
-  cameraDefault: 'chase' | 'windscreen' | 'hood' | 'bumper'
+  cameraDefault: 'chase' | 'cockpit' | 'windscreen' | 'hood' | 'bumper'
   fogEnabled: boolean
   aiDifficulty: AIDifficulty
   releaseChannel: 'green' | 'blue'

@@ -496,6 +496,7 @@ export class Game {
     this.cameraController.reset()
     const defaultCamera = this.state.getSettings().cameraDefault
     this.cameraController.setView(defaultCamera)
+    this.cameraController.setCockpitCar(carId)
     const behindDir = new THREE.Vector3(0, 0, -1).applyAxisAngle(
       new THREE.Vector3(0, 1, 0), startRot
     )

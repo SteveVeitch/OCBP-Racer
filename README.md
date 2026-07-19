@@ -48,12 +48,12 @@ python -m http.server 8000
 
 ## Testing
 
-Three-layer testing strategy with 250 total tests:
+Three-layer testing strategy with 251 total tests:
 
 | Layer | Tool | Tests | Command |
 |-------|------|-------|---------|
 | **Unit** | Vitest | 88 | `npm test` |
-| **Integration** | Browser harness | 139 | Open `?test` |
+| **Integration** | Browser harness | 140 | Open `?test` |
 | **E2E** | Playwright | 23 | `npm run test:e2e` |
 
 ```bash
@@ -95,6 +95,7 @@ Press **C** (or **Y**) to cycle through camera views:
 | View | Description |
 |------|-------------|
 | Chase | Third-person, spring follow, look-ahead |
+| Cockpit | Interior driver seat, spring follow, near-instant rotation |
 | Windscreen | Interior view, direct attach, wide FOV |
 | Hood | On-hood, direct attach, aggressive angle |
 | Bumper | Low, direct attach, maximum speed sensation |
@@ -328,7 +329,7 @@ OCBP Racer/
 ├── public/                     # Static assets (Rapier WASM)
 ├── src/
 │   ├── main.ts                 # Entry point
-│   ├── test-harness.ts         # 118 automated tests
+│   ├── test-harness.ts         # 140 automated tests
 │   ├── core/
 │   │   ├── Game.ts             # Main game loop + race logic
 │   │   └── StateMachine.ts     # Game state transitions
@@ -338,7 +339,7 @@ OCBP Racer/
 │   │   ├── PhysicsWorld.ts     # Rapier.js WASM wrapper
 │   │   └── CarController.ts    # Car physics, grip/slip, turbo lag, env modifiers
 │   ├── rendering/
-│   │   ├── CameraController.ts # 4 camera views + spring follow + wall collision
+│   │   ├── CameraController.ts # 5 camera views + spring follow + wall collision
 │   │   ├── ParticleSystem.ts   # Tire smoke particles
 │   │   ├── WeatherParticleSystem.ts  # Rain particles (InstancedMesh)
 │   │   └── MiniMap.ts          # Track overlay with car positions
@@ -409,7 +410,7 @@ The game is designed using a comprehensive Software Design Document (SDD) system
 | `01-TECHNICAL-ARCHITECTURE.md` | Tech stack, file structure, data flow |
 | `02-PHYSICS-SPEC.md` | Physics model, car forces, grip model |
 | `03-INPUT-SPEC.md` | Input mapping, rebindable controls, dead zones |
-| `04-RENDERING-SPEC.md` | Rendering pipeline, 4 camera views, materials |
+| `04-RENDERING-SPEC.md` | Rendering pipeline, 5 camera views, materials |
 | `05-AUDIO-SPEC.md` | Per-car engine synthesis, turbo, exhaust pops |
 | `06-TRACK-SPEC.md` | 6 tracks, checkpoints, wrong-way detection |
 | `07-CAR-SPEC.md` | Car roster, engines, turbo lag, procedural meshes |

@@ -81,7 +81,7 @@ See `06-TRACK-SPEC.md` for detailed specifications.
 - Brake / Reverse
 - Steer Left / Right
 - Pause
-- Camera Switch (Chase → Windscreen → Hood → Bumper)
+- Camera Switch (Chase → Cockpit → Windscreen → Hood → Bumper)
 
 ### 6.3 Rebindable Controls
 All gameplay actions can be remapped via the settings UI.
@@ -90,8 +90,9 @@ See `03-INPUT-SPEC.md` for detailed mappings, response curves, and binding stora
 
 ## 7. Camera
 
-- 4 camera views: Chase, Windscreen, Hood, Bumper
+- 5 camera views: Chase, Cockpit, Windscreen, Hood, Bumper
 - Chase: Third-person with spring follow, look-ahead, FOV increase with speed
+- Cockpit: Interior driver seat view, spring follow, near-instant rotation tracking, no wall collision
 - Windscreen: Interior view, wide FOV, minimal lag
 - Hood: On-hood view, aggressive angle
 - Bumper: Low bumper view, maximum speed sensation

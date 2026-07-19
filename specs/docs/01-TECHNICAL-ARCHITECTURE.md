@@ -104,7 +104,7 @@ OCBP Racer/
 │   │   └── CarController.ts        ← Car physics model + grip/slip + turbo lag
 │   │
 │   ├── rendering/
-│   │   ├── CameraController.ts     ← 4 camera views + spring follow + wall collision
+│   │   ├── CameraController.ts     ← 5 camera views + spring follow + wall collision
 │   │   ├── ParticleSystem.ts       ← Tire smoke particles
 │   │   ├── WeatherParticleSystem.ts ← Rain particles (InstancedMesh)
 │   │   └── MiniMap.ts              ← Track overlay with car positions

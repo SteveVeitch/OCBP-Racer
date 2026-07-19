@@ -407,7 +407,7 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 ---
 
 ### Phase 15: Per-Car Audio + Camera Views
-**Goal:** Distinct engine sounds per car, turbo whistle, exhaust pops, 4 camera views
+**Goal:** Distinct engine sounds per car, turbo whistle, exhaust pops, 5 camera views
 **Status:** ✅ Complete
 **Dependencies:** Phase 14
 
@@ -417,7 +417,7 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 - [x] Implement turbo flutter (bandpass noise burst on throttle release)
 - [x] Implement exhaust pops (noise bursts on deceleration)
 - [x] Add RPM variation at redline (pitch wobble)
-- [x] Implement 4 camera views: Chase, Windscreen, Hood, Bumper
+- [x] Implement 5 camera views: Chase, Cockpit, Windscreen, Hood, Bumper
 - [x] Add camera view cycling via input (C key / Y button)
 - [x] Add camera default setting in Settings menu
 - [x] Store camera state per-race
@@ -427,7 +427,7 @@ This document defines the phased build order for the Minimum Viable Product (MVP
 - Turbo whistle audible on turbo cars ✅
 - Turbo flutter on throttle release ✅
 - Exhaust pops on deceleration ✅
-- 4 camera views work and feel distinct ✅
+- 5 camera views work and feel distinct ✅
 - Camera cycling works via input ✅
 - Camera default persisted in settings ✅
 

@@ -431,7 +431,7 @@ Note: SETTINGS is accessible from Main Menu, Pause Menu, and Track Select. Back 
 | Speed Unit | Button group | MPH/KPH | MPH | Display unit for speed (internal always km/h) |
 | Graphics Quality | Button group | Low/Med/High | High | Bloom strength + pixel ratio |
 | Fog Toggle | Toggle | On/Off | On | Enable/disable fog rendering |
-| Camera Default | Button group | Chase/Wind/Hood/Bumper | Chase | Default camera view |
+| Camera Default | Button group | Chase/Cockpit/Wind/Hood/Bumper | Chase | Default camera view |
 | Demo Mode | Toggle | On/Off | On | Enable/disable attract mode after 3 min idle |
 | Release Channel | Button group | Green/Blue | Green | Green = released tracks only, Blue = includes unreleased tracks |
 | Key Bindings | Per-action | See 03-INPUT-SPEC | Defaults | Rebindable controls |

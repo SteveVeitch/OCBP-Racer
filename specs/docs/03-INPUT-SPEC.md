@@ -236,7 +236,7 @@ When brake input is held and car is nearly stationary (forwardSpeed ≤ 1.0 m/s)
 ### 10.1 Camera Views
 Pressing the camera button cycles through views in order:
 ```
-Chase → Windscreen → Hood → Bumper → Chase (cycle)
+Chase → Cockpit → Windscreen → Hood → Bumper → Chase (cycle)
 ```
 
 ### 10.2 Camera Bindings
@@ -293,7 +293,7 @@ See `04-RENDERING-SPEC.md` Section 4 for camera positions and parameters.
 | Binding conflicts swap | Conflicting bindings are swapped, not duplicated |
 | Gamepad conflict logging | Conflicts logged to console via handler |
 | Bindings persist | Keyboard saved to ocbp-settings, gamepad saved to ocbp-gamepad-bindings |
-| Camera switch works | C/Y cycles through 4 camera views |
+| Camera switch works | C/Y cycles through 5 camera views |
 | Pause state correct | Consistent transition to/from PAUSED |
 | Auto-pause on blur | Game pauses when tab hidden |
 | Keys cleared on blur | No stuck keys after window blur |

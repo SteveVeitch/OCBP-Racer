@@ -1573,8 +1573,8 @@ export class UIManager {
     const cameraOptions = document.createElement('div')
     cameraOptions.className = 'settings-options'
 
-    const cameras: Array<'chase' | 'windscreen' | 'hood' | 'bumper'> = ['chase', 'windscreen', 'hood', 'bumper']
-    const cameraLabels: Record<string, string> = { chase: 'Chase', windscreen: 'Windscreen', hood: 'Hood', bumper: 'Bumper' }
+    const cameras: Array<'chase' | 'cockpit' | 'windscreen' | 'hood' | 'bumper'> = ['chase', 'cockpit', 'windscreen', 'hood', 'bumper']
+    const cameraLabels: Record<string, string> = { chase: 'Chase', cockpit: 'Cockpit', windscreen: 'Windscreen', hood: 'Hood', bumper: 'Bumper' }
     cameras.forEach(c => {
       const btn = document.createElement('button')
       btn.className = `settings-option ${settings.cameraDefault === c ? 'active' : ''}`

@@ -353,175 +353,176 @@ Fixed 5-column layout. 23 phase cards arranged in 5 columns × 5 rows, fitting o
 | 61 | Environment modifiers combine correctly | Sync | Checks combineModifiers returns correct values |
 | 62 | Weather reduces car acceleration in simulation | Async | Simulates dry vs wet for 180 steps, checks wetSpeed < drySpeed |
 
-### Phase 15: Camera Views (4 tests)
+### Phase 15: Camera Views (5 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
 | 63 | CameraController creates with chase view | Sync | Checks default view is 'chase' |
-| 64 | cycleView cycles through all 4 views | Sync | Cycles 4 times, checks windscreen→hood→bumper→chase |
+| 64 | cycleView cycles through all 5 views | Sync | Cycles 5 times, checks cockpit→windscreen→hood→bumper→chase |
 | 65 | setView changes to specific view | Sync | Sets 'hood', checks getView() returns 'hood' |
-| 66 | getViewConfigs returns all 4 views | Sync | Checks chase, windscreen, hood, bumper keys present |
+| 66 | getViewConfigs returns all 5 views | Sync | Checks chase, cockpit, windscreen, hood, bumper keys present |
+| 67 | Cockpit config has correct parameters | Sync | Checks cockpit distance=0.45, height=0.95, springStiffness=200 |
 
 ### Phase 16: Scoring + Leaderboard (8 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 67 | RaceResults includes scoring fields | Sync | Sets results with all fields, verifies retrieval |
-| 68 | LEADERBOARD state exists | Sync | Transitions to LEADERBOARD, checks valid state |
-| 69 | Leaderboard add + retrieve per-track | Sync | Adds entry, retrieves per-track, checks length and time |
-| 70 | Leaderboard overall aggregates | Sync | Adds 2 entries different tracks, checks overall length=2, sorted |
-| 71 | Leaderboard sorts by time ascending | Sync | Adds 2 entries same track, checks order |
-| 72 | clearLeaderboard empties all data | Sync | Adds entry, clears, checks empty |
-| 73 | Scoring points map correctly: 10/7/5/2 | Sync | Checks each position gets correct points |
-| 74 | Wall hits tracked in simulation | Async | Drives car with alternating steer for 600 steps, checks wallHits >= 0 |
+| 68 | RaceResults includes scoring fields | Sync | Sets results with all fields, verifies retrieval |
+| 69 | LEADERBOARD state exists | Sync | Transitions to LEADERBOARD, checks valid state |
+| 70 | Leaderboard add + retrieve per-track | Sync | Adds entry, retrieves per-track, checks length and time |
+| 71 | Leaderboard overall aggregates | Sync | Adds 2 entries different tracks, checks overall length=2, sorted |
+| 72 | Leaderboard sorts by time ascending | Sync | Adds 2 entries same track, checks order |
+| 73 | clearLeaderboard empties all data | Sync | Adds entry, clears, checks empty |
+| 74 | Scoring points map correctly: 10/7/5/2 | Sync | Checks each position gets correct points |
+| 75 | Wall hits tracked in simulation | Async | Drives car with alternating steer for 600 steps, checks wallHits >= 0 |
 
 ### Phase 17: Rebindable Controls (5 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 75 | InputManager creates with default bindings | Sync | Checks throttle=W, brake=S, steerLeft=A, pause=Escape |
-| 76 | InputManager default bindings match constant | Sync | Iterates DEFAULT_KEY_BINDINGS, checks all match |
-| 77 | InputManager resetBindings restores defaults | Sync | Resets, checks throttle=W |
-| 78 | InputManager setBindings round-trip | Sync | Sets custom throttle=T, checks it sticks, brake unchanged |
-| 79 | InputManager conflict detection swaps bindings | Sync | Swaps pause↔cameraSwitch, checks both updated |
+| 76 | InputManager creates with default bindings | Sync | Checks throttle=W, brake=S, steerLeft=A, pause=Escape |
+| 77 | InputManager default bindings match constant | Sync | Iterates DEFAULT_KEY_BINDINGS, checks all match |
+| 78 | InputManager resetBindings restores defaults | Sync | Resets, checks throttle=W |
+| 79 | InputManager setBindings round-trip | Sync | Sets custom throttle=T, checks it sticks, brake unchanged |
+| 80 | InputManager conflict detection swaps bindings | Sync | Swaps pause↔cameraSwitch, checks both updated |
 
 ### Phase 18: Bug Fixes & Polish (6 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 80 | StateMachine LOADING state removed | Sync | Verifies LOADING is no longer a valid state |
-| 81 | CarConfig autoCorrect field removed | Sync | Checks all cars lack autoCorrect property |
-| 82 | EngineDefinition has per-car waveforms | Sync | All 4 cars have valid primaryWaveform and secondaryWaveform |
-| 83 | Turbo cars have turboLagTime > 0 | Sync | Rossini and Kaiju are turbo |
-| 84 | NA cars have turboLagTime === 0 | Sync | Weissach and Stingray are NA |
-| 85 | AudioManager has UI audio methods | Sync | playUIClick and playUIConfirm exist |
+| 81 | StateMachine LOADING state removed | Sync | Verifies LOADING is no longer a valid state |
+| 82 | CarConfig autoCorrect field removed | Sync | Checks all cars lack autoCorrect property |
+| 83 | EngineDefinition has per-car waveforms | Sync | All 4 cars have valid primaryWaveform and secondaryWaveform |
+| 84 | Turbo cars have turboLagTime > 0 | Sync | Rossini and Kaiju are turbo |
+| 85 | NA cars have turboLagTime === 0 | Sync | Weissach and Stingray are NA |
+| 86 | AudioManager has UI audio methods | Sync | playUIClick and playUIConfirm exist |
 
 ### Phase 19: Car Preview & HUD Score Removal (9 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 86 | StateMachine has CAR_PREVIEW state | Sync | Transitions MENU→CAR_SELECT→CAR_PREVIEW |
-| 87 | CAR_PREVIEW transitions to TRACK_SELECT | Sync | CAR_PREVIEW→TRACK_SELECT works |
-| 88 | CAR_PREVIEW transitions back to CAR_SELECT | Sync | CAR_PREVIEW→CAR_SELECT works |
-| 89 | TRACK_SELECT transitions back to CAR_PREVIEW | Sync | TRACK_SELECT→CAR_PREVIEW works |
-| 90 | CarFactory has createPreviewMesh method | Sync | Checks method exists on prototype |
-| 91 | CarFactory createPreviewMesh returns a Group | Async | Creates preview mesh for rossini-488, checks not null |
-| 92 | createPreviewMesh works for all 4 cars | Async | Iterates all CARS, checks each mesh not null |
-| 93 | CarPreview state type exists in GameState | Sync | Transitions to CAR_PREVIEW, checks state |
-| 94 | UIManager can be constructed | Sync | Creates UIManager with StateMachine, checks not null |
+| 87 | StateMachine has CAR_PREVIEW state | Sync | Transitions MENU→CAR_SELECT→CAR_PREVIEW |
+| 88 | CAR_PREVIEW transitions to TRACK_SELECT | Sync | CAR_PREVIEW→TRACK_SELECT works |
+| 89 | CAR_PREVIEW transitions back to CAR_SELECT | Sync | CAR_PREVIEW→CAR_SELECT works |
+| 90 | TRACK_SELECT transitions back to CAR_PREVIEW | Sync | TRACK_SELECT→CAR_PREVIEW works |
+| 91 | CarFactory has createPreviewMesh method | Sync | Checks method exists on prototype |
+| 92 | CarFactory createPreviewMesh returns a Group | Async | Creates preview mesh for rossini-488, checks not null |
+| 93 | createPreviewMesh works for all 4 cars | Async | Iterates all CARS, checks each mesh not null |
+| 94 | CarPreview state type exists in GameState | Sync | Transitions to CAR_PREVIEW, checks state |
+| 95 | UIManager can be constructed | Sync | Creates UIManager with StateMachine, checks not null |
 
 ### Phase 20: HUD Gauges, Thumbnails & UI Fixes (11 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 95 | HUDGauges class exists | Sync | Checks HUDGauges is a function |
-| 96 | HUDGauges has create method | Sync | Checks create exists on prototype |
-| 97 | HUDGauges has update method | Sync | Checks update exists on prototype |
-| 98 | HUDGauges has remove method | Sync | Checks remove exists on prototype |
-| 99 | CarFactory has generateThumbnails method | Sync | Checks method exists on prototype |
-| 100 | generateThumbnails returns Map with 4 entries | Async | Generates thumbnails, checks Map with 4 data URLs |
-| 101 | UIManager init accepts thumbnails parameter | Sync | Checks init method exists |
-| 102 | UIManager has updateHUD method | Sync | Checks updateHUD exists |
-| 103 | UIManager has showHUD method | Sync | Checks showHUD exists |
-| 104 | Car engine text is two-line format | Sync | Checks all cars have engine.displacement and type |
-| 105 | Car engine definitions have displacement + type + HP | Sync | Checks displacement, type, horsepower > 100 for all cars |
+| 96 | HUDGauges class exists | Sync | Checks HUDGauges is a function |
+| 97 | HUDGauges has create method | Sync | Checks create exists on prototype |
+| 98 | HUDGauges has update method | Sync | Checks update exists on prototype |
+| 99 | HUDGauges has remove method | Sync | Checks remove exists on prototype |
+| 100 | CarFactory has generateThumbnails method | Sync | Checks method exists on prototype |
+| 101 | generateThumbnails returns Map with 4 entries | Async | Generates thumbnails, checks Map with 4 data URLs |
+| 102 | UIManager init accepts thumbnails parameter | Sync | Checks init method exists |
+| 103 | UIManager has updateHUD method | Sync | Checks updateHUD exists |
+| 104 | UIManager has showHUD method | Sync | Checks showHUD exists |
+| 105 | Car engine text is two-line format | Sync | Checks all cars have engine.displacement and type |
+| 106 | Car engine definitions have displacement + type + HP | Sync | Checks displacement, type, horsepower > 100 for all cars |
 
 ### Phase 21: HDR Environment Maps (5 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 106 | All 4 TOD presets have hdrPath | Sync | Checks hdrPath is a non-empty string on all presets |
-| 107 | HDR paths reference assets/hdr/ directory | Sync | Checks path starts with 'assets/hdr/' and ends with .hdr/.exr |
-| 108 | EnvironmentManager has initEnvironmentMaps method | Sync | Checks method exists on prototype |
-| 109 | TimeOfDayPreset interface includes hdrPath field | Sync | Checks 'hdrPath' in day preset |
-| 110 | skyColor fallback still exists on all presets | Sync | Checks skyColor is instance of THREE.Color |
+| 107 | All 4 TOD presets have hdrPath | Sync | Checks hdrPath is a non-empty string on all presets |
+| 108 | HDR paths reference assets/hdr/ directory | Sync | Checks path starts with 'assets/hdr/' and ends with .hdr/.exr |
+| 109 | EnvironmentManager has initEnvironmentMaps method | Sync | Checks method exists on prototype |
+| 110 | TimeOfDayPreset interface includes hdrPath field | Sync | Checks 'hdrPath' in day preset |
+| 111 | skyColor fallback still exists on all presets | Sync | Checks skyColor is instance of THREE.Color |
 
 ### Phase 22: EXR Support, Lighting Presets, Car Headlights (8 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 111 | TimeOfDayPreset includes hdrVerticalOffset field | Sync | Checks field exists on night preset |
-| 112 | Night preset has hdrVerticalOffset 0.15 | Sync | Checks exact value |
-| 113 | Dawn, day, dusk presets have no hdrVerticalOffset | Sync | Checks undefined or 0 |
-| 114 | All presets have ambient and directional light values | Sync | Checks ambientIntensity, directionalIntensity, colors on all presets |
-| 115 | Night preset has elevated ambient/directional (0.6) | Sync | Checks night ambient=0.6 and directional=0.6 |
-| 116 | CarController has setHeadlights method | Sync | Checks method exists on prototype |
-| 117 | All 4 HDR files use .exr extension | Sync | Checks all hdrPath ends with .exr |
-| 118 | All HDR paths contain 1k resolution suffix | Sync | Checks all hdrPath includes '1k' |
+| 112 | TimeOfDayPreset includes hdrVerticalOffset field | Sync | Checks field exists on night preset |
+| 113 | Night preset has hdrVerticalOffset 0.15 | Sync | Checks exact value |
+| 114 | Dawn, day, dusk presets have no hdrVerticalOffset | Sync | Checks undefined or 0 |
+| 115 | All presets have ambient and directional light values | Sync | Checks ambientIntensity, directionalIntensity, colors on all presets |
+| 116 | Night preset has elevated ambient/directional (0.6) | Sync | Checks night ambient=0.6 and directional=0.6 |
+| 117 | CarController has setHeadlights method | Sync | Checks method exists on prototype |
+| 118 | All 4 HDR files use .exr extension | Sync | Checks all hdrPath ends with .exr |
+| 119 | All HDR paths contain 1k resolution suffix | Sync | Checks all hdrPath includes '1k' |
 
 ### Phase 23: Release Channels (5 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 119 | TrackDefinition includes releaseChannel field | Sync | Checks all 6 tracks have releaseChannel |
-| 120 | Midnight Circuit is green release | Sync | Checks midnight-circuit has releaseChannel 'green' |
-| 121 | All other tracks are blue releases | Sync | Checks tracks 2-6 have releaseChannel 'blue' |
-| 122 | GameSettings includes releaseChannel field | Sync | Checks default settings has releaseChannel 'green' |
-| 123 | getTracksForReleaseChannel filters correctly | Sync | Filters green channel → only midnight-circuit; blue → all 6 |
+| 120 | TrackDefinition includes releaseChannel field | Sync | Checks all 6 tracks have releaseChannel |
+| 121 | Midnight Circuit is green release | Sync | Checks midnight-circuit has releaseChannel 'green' |
+| 122 | All other tracks are blue releases | Sync | Checks tracks 2-6 have releaseChannel 'blue' |
+| 123 | GameSettings includes releaseChannel field | Sync | Checks default settings has releaseChannel 'green' |
+| 124 | getTracksForReleaseChannel filters correctly | Sync | Filters green channel → only midnight-circuit; blue → all 6 |
 
 ### Phase 24: Car Release Channels (4 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 124 | CarDefinition includes releaseChannel field | Sync | Checks all 4 cars have releaseChannel |
-| 125 | Rossini 488 is green release | Sync | Checks rossini-488 has releaseChannel 'green' |
-| 126 | All other cars are blue releases | Sync | Checks cars 2-4 have releaseChannel 'blue' |
-| 127 | getCarsForReleaseChannel filters correctly | Sync | Filters green channel → only rossini-488; blue → all 4 |
+| 125 | CarDefinition includes releaseChannel field | Sync | Checks all 4 cars have releaseChannel |
+| 126 | Rossini 488 is green release | Sync | Checks rossini-488 has releaseChannel 'green' |
+| 127 | All other cars are blue releases | Sync | Checks cars 2-4 have releaseChannel 'blue' |
+| 128 | getCarsForReleaseChannel filters correctly | Sync | Filters green channel → only rossini-488; blue → all 4 |
 
 ### Phase 25: Engine Audio Samples (4 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 128 | AudioManager has loadEngineSamples method | Sync | Checks loadEngineSamples exists on prototype |
-| 129 | AudioManager has sample cache | Sync | Checks sampleCache property exists |
-| 130 | CarController has getThrottle method | Sync | Checks getThrottle exists on CarController prototype |
-| 131 | ENGINE_SAMPLE_PATHS covers all 4 cars | Sync | Verifies all 4 car IDs exist in CARS |
+| 129 | AudioManager has loadEngineSamples method | Sync | Checks loadEngineSamples exists on prototype |
+| 130 | AudioManager has sample cache | Sync | Checks sampleCache property exists |
+| 131 | CarController has getThrottle method | Sync | Checks getThrottle exists on CarController prototype |
+| 132 | ENGINE_SAMPLE_PATHS covers all 4 cars | Sync | Verifies all 4 car IDs exist in CARS |
 
 ### Phase 26: Handling Overhaul (5 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 132 | CarController has calculateSlipAngle method | Sync | Checks calculateSlipAngle exists on prototype |
-| 133 | CarController has calculateGripCoefficient method | Sync | Checks calculateGripCoefficient exists on prototype |
-| 134 | All cars have distinct mass values | Sync | Ensures each car has unique mass |
-| 135 | All cars have distinct peakGrip values | Sync | Ensures each car has unique peak grip |
-| 136 | All cars have distinct slipAnglePeak values | Sync | Ensures each car has unique slip angle peak |
+| 133 | CarController has calculateSlipAngle method | Sync | Checks calculateSlipAngle exists on prototype |
+| 134 | CarController has calculateGripCoefficient method | Sync | Checks calculateGripCoefficient exists on prototype |
+| 135 | All cars have distinct mass values | Sync | Ensures each car has unique mass |
+| 136 | All cars have distinct peakGrip values | Sync | Ensures each car has unique peak grip |
+| 137 | All cars have distinct slipAnglePeak values | Sync | Ensures each car has unique slip angle peak |
 
 ### Phase 27: Turbo Sample Audio (3 tests)
 
 | # | Test Name | Type | Description |
 |---|-----------|------|-------------|
-| 137 | AudioManager has loadTurboSamples method | Sync | Checks loadTurboSamples exists on prototype |
-| 138 | AudioManager has turboSampleCache | Sync | Checks turboSampleCache property exists |
-| 139 | Turbo cars only: Rossini and Kaiju | Sync | Verifies exactly 2 turbo cars with correct IDs |
+| 138 | AudioManager has loadTurboSamples method | Sync | Checks loadTurboSamples exists on prototype |
+| 139 | AudioManager has turboSampleCache | Sync | Checks turboSampleCache property exists |
+| 140 | Turbo cars only: Rossini and Kaiju | Sync | Verifies exactly 2 turbo cars with correct IDs |
 
-**Total: 139 tests** (Phases 0–27)
+**Total: 140 tests** (Phases 0–27)
 
 ## 6. Test Dependencies
 
 ### 6.1 Required Systems
 | System | Tests Using It |
 |--------|---------------|
-| Three.js | 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 30, 57, 106–110 |
+| Three.js | 1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 30, 57, 107–111 |
 | Rapier.js | 7, 8, 9, 10, 11, 12, 21, 30, 36, 37, 47, 48 |
-| CarFactory | 8, 9, 10, 11, 12, 30, 47, 48, 91, 92, 99, 100 |
+| CarFactory | 8, 9, 10, 11, 12, 30, 47, 48, 92, 93, 100, 101 |
 | Track | 15–21, 36–40, 47, 48, 55 |
 | SplinePath | 16, 17, 21 |
 | AIController | 36, 37, 38, 39, 40 |
-| InputManager | 22, 23, 75–79 |
-| StateMachine | 41–46, 67, 68, 80, 86–89, 93 |
-| AudioManager | 32–35, 85, 128, 129 |
-| CameraController | 13, 14, 63–66 |
-| EnvironmentManager | 108 |
-| TimeOfDayPresets | 56, 57, 106, 109, 111–115, 117, 118 |
+| InputManager | 22, 23, 75–80 |
+| StateMachine | 41–46, 68, 69, 81, 87–90, 94 |
+| AudioManager | 32–35, 86, 129, 130 |
+| CameraController | 13, 14, 63–67 |
+| EnvironmentManager | 109 |
+| TimeOfDayPresets | 56, 57, 107, 110, 112–116, 118, 119 |
 | WeatherPresets | 58–60 |
-| LeaderboardManager | 69–72 |
-| HUDGauges | 95–98 |
-| TrackDefinitions | 119–121, 123 |
-| CarConfigs | 2, 3, 24–29, 83–85, 104, 105, 124–127 |
+| LeaderboardManager | 70–73 |
+| HUDGauges | 96–99 |
+| TrackDefinitions | 120–122, 124 |
+| CarConfigs | 2, 3, 24–29, 84–86, 105, 106, 125–128 |
 
 ### 6.2 Async Tests
-Tests 7–12, 21, 30, 31, 36–40, 47, 48, 55, 62, 74, 91, 92, 100 require async execution because they initialize Rapier.js WASM or load GLTF models. Each physics test creates and disposes its own PhysicsWorld instance.
+Tests 7–12, 21, 30, 31, 36–40, 47, 48, 55, 62, 75, 92, 93, 101 require async execution because they initialize Rapier.js WASM or load GLTF models. Each physics test creates and disposes its own PhysicsWorld instance.
 
 ### 6.3 Test Isolation
 - Each async test creates its own PhysicsWorld and disposes it after

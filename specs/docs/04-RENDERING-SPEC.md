@@ -153,7 +153,7 @@ Position:       Rear corners of car
 
 ### 4.1 Camera Views
 
-The game supports 4 camera views, switchable via the camera button:
+The game supports 5 camera views, switchable via the camera button:
 
 #### Chase Camera (Default)
 ```
@@ -165,6 +165,18 @@ SpringDamping:    0.95
 RotationLag:      0.08
 BaseFOV:          60°
 FOVRange:         2° (max 62° at top speed)
+```
+
+#### Cockpit Camera
+```
+Distance:         0.45m (behind car center, at driver seat)
+Height:           0.95m (seated eye level)
+LookAhead:        0.0m (position at driver seat, lookAt handles forward view)
+SpringStiffness:  200.0 (very tight follow)
+SpringDamping:    0.7
+RotationLag:      0.003 (near-instant rotation tracking)
+BaseFOV:          70° (natural interior perspective)
+FOVRange:         3° (max 73° at top speed)
 ```
 
 #### Windscreen Camera
@@ -205,16 +217,16 @@ FOVRange:         8° (max 88° at top speed)
 
 ### 4.2 Camera View Parameters Table
 
-| Parameter | Chase | Windscreen | Hood | Bumper |
-|-----------|-------|------------|------|--------|
-| Distance | 6.0m | 0.0m | 0.0m | 0.0m |
-| Height | 2.5m | 0.8m | 0.3m | 0.4m |
-| LookAhead | 1.0m | 3.0m | 2.0m | 4.0m |
-| SpringStiffness | 30.0 | 50.0 | 40.0 | 60.0 |
-| SpringDamping | 0.95 | 0.9 | 0.92 | 0.85 |
-| RotationLag | 0.08 | 0.03 | 0.05 | 0.02 |
-| BaseFOV | 60° | 75° | 70° | 80° |
-| FOVRange | 2° | 5° | 4° | 8° |
+| Parameter | Chase | Cockpit | Windscreen | Hood | Bumper |
+|-----------|-------|---------|------------|------|--------|
+| Distance | 6.0m | 0.45m | 0.3m | 0.1m | 0.0m |
+| Height | 2.5m | 0.95m | 1.2m | 0.9m | 0.35m |
+| LookAhead | 1.0m | 0.0m | 2.0m | 3.0m | 4.0m |
+| SpringStiffness | 30.0 | 200.0 | 80.0 | 100.0 | 120.0 |
+| SpringDamping | 0.95 | 0.7 | 0.9 | 0.85 | 0.8 |
+| RotationLag | 0.08 | 0.003 | 0.02 | 0.01 | 0.005 |
+| BaseFOV | 60° | 70° | 80° | 72° | 85° |
+| FOVRange | 2° | 3° | 5° | 4° | 8° |
 
 ### 4.3 FOV with Speed
 ```
@@ -235,7 +247,8 @@ camera.position += velocity × dt
 ```
 
 #### Look At
-- Chase: car position + 3m forward + 1m up
+- Chase: car position + 1m forward + 1m up
+- Cockpit: car position + 5m forward + 0.4m up (through windshield at road level)
 - Windscreen: car position + 5m forward + 0.5m up
 - Hood: car position + 3m forward + 0.2m up
 - Bumper: car position + 6m forward + 0.1m up
@@ -446,7 +459,7 @@ Bloom makes emissive materials (headlights, taillights, street light bulbs, buil
 | Camera follows | Smooth chase cam at 60 FPS |
 | Camera collision | Camera doesn't clip through barriers |
 | FOV changes | Subtle FOV increase at speed |
-| Camera views work | All 4 views switchable and functional |
+| Camera views work | All 5 views switchable and functional |
 | Bloom works | Emissive surfaces glow |
 | Car headlights work | SpotLights illuminate road ahead (night tracks) |
 | Headlights off day | Headlights disabled on day tracks |

@@ -1676,7 +1676,15 @@ export class UIManager {
       ['cameraSwitch', 'cameraSwitch', 'Camera']
     ]
 
-    const formatKey = (code: string) => code.replace('Key', '').replace('Arrow', '↑↓←→'.charAt(['Up','Down','Left','Right'].indexOf(code.replace('Arrow',''))))
+    const formatKey = (code: string) => {
+      if (code.startsWith('Arrow')) {
+        const dir = code.slice(5)
+        const arrows = '↑↓←→'
+        const idx = ['Up','Down','Left','Right'].indexOf(dir)
+        return idx >= 0 ? arrows[idx] : code
+      }
+      return code.replace('Key', '')
+    }
 
     const formatGamepadBinding = (binding: GamepadBinding): string => {
       if (binding.type === 'button') {

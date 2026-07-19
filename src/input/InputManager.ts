@@ -81,7 +81,14 @@ function loadGamepadBindings(): GamepadBindings {
   try {
     const raw = localStorage.getItem(GAMEPAD_STORAGE_KEY)
     if (raw) {
-      return { ...DEFAULT_GAMEPAD_BINDINGS, ...JSON.parse(raw) }
+      const parsed = JSON.parse(raw)
+      const result = { ...DEFAULT_GAMEPAD_BINDINGS }
+      for (const key of Object.keys(DEFAULT_GAMEPAD_BINDINGS) as Array<keyof GamepadBindings>) {
+        if (parsed[key]) {
+          result[key] = { ...DEFAULT_GAMEPAD_BINDINGS[key], ...parsed[key] }
+        }
+      }
+      return result
     }
   } catch { /* ignore */ }
   return { ...DEFAULT_GAMEPAD_BINDINGS }
@@ -109,7 +116,9 @@ export class InputManager {
   private gamepadBindings: GamepadBindings = loadGamepadBindings()
   private listeningForGamepad: GamepadBindingAction | null = null
   private onGamepadBindingChanged?: (action: GamepadBindingAction, binding: GamepadBinding) => void
+  private onGamepadConflict?: (resetAction: GamepadBindingAction) => void
   private prevGamepadState: { buttons: boolean[]; axes: number[] } = { buttons: [], axes: [] }
+  private lastRescanTime = 0
 
   constructor() {
     this.setupKeyboard()
@@ -122,6 +131,13 @@ export class InputManager {
         e.preventDefault()
         e.stopPropagation()
         this.handleNewBinding(e.code)
+        return
+      }
+
+      if (this.listeningForGamepad && e.code === 'Escape') {
+        e.preventDefault()
+        e.stopPropagation()
+        this.cancelListeningGamepad()
         return
       }
 
@@ -213,6 +229,9 @@ export class InputManager {
   }
 
   private rescanGamepads(): void {
+    const now = performance.now()
+    if (now - this.lastRescanTime < 1000) return
+    this.lastRescanTime = now
     const gamepads = navigator.getGamepads()
     for (let i = 0; i < gamepads.length; i++) {
       if (gamepads[i]) {
@@ -252,6 +271,10 @@ export class InputManager {
   resetGamepadBindings(): void {
     this.gamepadBindings = { ...DEFAULT_GAMEPAD_BINDINGS }
     saveGamepadBindings(this.gamepadBindings)
+  }
+
+  setGamepadConflictHandler(callback: (resetAction: GamepadBindingAction) => void): void {
+    this.onGamepadConflict = callback
   }
 
   startListening(action: keyof KeyBindings, callback: (action: keyof KeyBindings, keys: string[]) => void): void {
@@ -334,6 +357,7 @@ export class InputManager {
     const existingAction = this.findActionForGamepadBinding(binding)
     if (existingAction && existingAction !== action) {
       this.gamepadBindings[existingAction] = { ...DEFAULT_GAMEPAD_BINDINGS[existingAction] }
+      this.onGamepadConflict?.(existingAction)
     }
 
     this.gamepadBindings[action] = binding
@@ -454,8 +478,8 @@ export class InputManager {
     const leftRaw = this.readGamepadAxisRaw(gamepad, gb.steerLeft)
     const rightRaw = this.readGamepadAxisRaw(gamepad, gb.steerRight)
     let steer = 0
-    if (leftRaw > this.DEAD_ZONE) steer += leftRaw
-    if (rightRaw > this.DEAD_ZONE) steer -= rightRaw
+    if (Math.abs(leftRaw) > this.DEAD_ZONE) steer += this.applyDeadZone(leftRaw)
+    if (Math.abs(rightRaw) > this.DEAD_ZONE) steer -= this.applyDeadZone(rightRaw)
     return this.applySteerCurve(steer)
   }
 

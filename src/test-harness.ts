@@ -155,6 +155,8 @@ class Expect<T> {
       if (!this.actual.includes(expected as string)) {
         throw new Error(`Expected string to contain "${expected}"`)
       }
+    } else {
+      throw new Error(`toContain called on ${typeof this.actual}, expected array or string`)
     }
   }
 
@@ -163,6 +165,8 @@ class Expect<T> {
       if (this.actual.length !== expected) {
         throw new Error(`Expected length ${expected} but got ${this.actual.length}`)
       }
+    } else {
+      throw new Error(`toHaveLength called on ${typeof this.actual}, expected array or string`)
     }
   }
 }

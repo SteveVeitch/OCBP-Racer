@@ -403,6 +403,7 @@ export class CarController {
     this.lateralVelocity = 0
     this.wheelSpin = 0
     this.throttleLevel = 0
+    this.currentBrakeInput = 0
     this.boostLevel = 0
   }
 

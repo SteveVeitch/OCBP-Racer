@@ -20,8 +20,6 @@ test.describe.serial('Full Menu Flow', () => {
     await page.locator('.car-select-container').waitFor({ timeout: 5000 })
 
     await page.locator('.car-card').first().click()
-
-    await page.locator('.menu-btn', { hasText: 'Next' }).click()
     await page.locator('.car-preview-spec-name').waitFor({ timeout: 5000 })
 
     const carName = await page.locator('.car-preview-spec-name').textContent()
@@ -34,9 +32,6 @@ test.describe.serial('Full Menu Flow', () => {
   })
 
   test('back navigation works through all screens', async () => {
-    await page.locator('.menu-btn', { hasText: 'Back' }).click()
-    await page.locator('.car-preview-spec-name').waitFor({ timeout: 5000 })
-
     await page.locator('.menu-btn', { hasText: 'Back' }).click()
     await page.locator('.car-select-container').waitFor({ timeout: 5000 })
 

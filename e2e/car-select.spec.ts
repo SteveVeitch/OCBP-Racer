@@ -27,20 +27,13 @@ test.describe.serial('Car Selection', () => {
     await expect(page.locator('.car-card.selected')).toHaveCount(1)
   })
 
-  test('clicking a car selects it', async () => {
+  test('clicking a car goes to car preview', async () => {
     const secondCar = page.locator('.car-card').nth(1)
     if (await secondCar.count() > 0) {
       await secondCar.click()
-      await expect(secondCar).toHaveClass(/selected/)
     } else {
-      const firstCar = page.locator('.car-card').first()
-      await firstCar.click()
-      await expect(firstCar).toHaveClass(/selected/)
+      await page.locator('.car-card').first().click()
     }
-  })
-
-  test('Next goes to car preview', async () => {
-    await page.locator('.menu-btn', { hasText: 'Next' }).click()
     await expect(page.locator('.car-preview-spec-name')).toBeVisible({ timeout: 5000 })
   })
 

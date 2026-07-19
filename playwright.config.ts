@@ -16,7 +16,7 @@ export default defineConfig({
         '--enable-webgl',
         '--use-gl=swiftshader',
         '--enable-gpu-rasterization',
-        '--no-sandbox',
+        ...(process.env.CI ? ['--no-sandbox'] : []),
       ],
     },
   },

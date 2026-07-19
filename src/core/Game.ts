@@ -217,6 +217,10 @@ export class Game {
       })
       log('UI initialized OK')
 
+      this.input.setGamepadConflictHandler((resetAction) => {
+        log(`Gamepad conflict: "${resetAction}" was reset to default`)
+      })
+
       log('Starting game loop...')
       this.setupAutoPause()
       this.setupPreviewListeners()
@@ -841,7 +845,15 @@ export class Game {
   private getFocusableElements(): HTMLElement[] {
     const container = document.getElementById('ui-container')
     if (!container) return []
-    return Array.from(container.querySelectorAll<HTMLElement>('[data-gp-focusable]'))
+    const all = Array.from(container.querySelectorAll<HTMLElement>('[data-gp-focusable]'))
+    return all.filter(el => {
+      let node: HTMLElement | null = el
+      while (node && node !== container) {
+        if (window.getComputedStyle(node).display === 'none') return false
+        node = node.parentElement
+      }
+      return true
+    })
   }
 
   private clearMenuFocus(): void {
@@ -952,6 +964,8 @@ export class Game {
         this.state.transition('CAR_SELECT')
       } else if (currentState === 'CAR_SELECT' || currentState === 'TRACK_SELECT' || currentState === 'LEADERBOARD') {
         this.state.transition('MENU')
+      } else if (currentState === 'PAUSED') {
+        this.resumeRace()
       }
       this.clearMenuFocus()
     }
@@ -1350,9 +1364,12 @@ export class Game {
       this.returnToMenu()
       return
     }
-    const gamepad = navigator.getGamepads()[0]
-    if (gamepad && (gamepad.buttons.some(b => b.pressed) || gamepad.axes.some(a => Math.abs(a) > 0.15))) {
-      this.returnToMenu()
+    const gpIdx = this.input.getGamepadIndex()
+    if (gpIdx !== null) {
+      const gamepad = navigator.getGamepads()[gpIdx]
+      if (gamepad && (gamepad.buttons.some(b => b.pressed) || gamepad.axes.some(a => Math.abs(a) > 0.15))) {
+        this.returnToMenu()
+      }
     }
   }
 

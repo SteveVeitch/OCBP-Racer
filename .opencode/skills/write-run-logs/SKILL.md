@@ -1,6 +1,6 @@
 ---
 name: write-run-logs
-description: Use at the end of any opencode session or routine to write a structured run log to routines/logs/. Captures tool calls, files changed, and narratives per subagent. Invoke with /write-run-logs [session-name].
+description: Use at the end of any opencode session or routine to write a structured run log to _bmad-output/routines/logs/. Captures tool calls, files changed, and narratives per subagent. Invoke with /write-run-logs [session-name].
 ---
 
 # Write Run Logs
@@ -18,7 +18,7 @@ Generate a structured markdown log of the current session, broken down by agent/
 
 ## Output
 
-Write to: `routines/logs/[NAME]-[DATE].md`
+Write to: `_bmad-output/routines/logs/[NAME]-[DATE].md`
 - `[NAME]` = session name from arguments (or "run")
 - `[DATE]` = today's date in YYYY-MM-DD format
 
@@ -74,7 +74,7 @@ When invoked, follow these steps:
 
 3. **Write narratives** — for each agent, write a brief summary of what it accomplished and why. Focus on outcomes and decisions, not step-by-step tool mechanics.
 
-4. **Generate the file** — write the complete markdown to `routines/logs/[NAME]-[DATE].md`
+4. **Generate the file** — write the complete markdown to `_bmad-output/routines/logs/[NAME]-[DATE].md`
 
 5. **Confirm** — tell the user where the file was written and how many agents/commits are logged.
 
@@ -83,5 +83,5 @@ When invoked, follow these steps:
 - If the session has no subagents, just document the primary agent's work
 - If no tests were run, skip the Test Results section or note "No tests run"
 - If no commits were made, skip the Commits section or note "No commits"
-- If the output directory doesn't exist, create it (`routines/logs/`)
+- If the output directory doesn't exist, create it (`_bmad-output/routines/logs/`)
 - If a file with the same name already exists, append a suffix: `[NAME]-[DATE]-2.md`, `-3.md`, etc.

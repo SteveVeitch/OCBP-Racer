@@ -28,7 +28,7 @@ desktop.ini
 # Logs
 *.log
 npm-debug.log*
-routines/logs/
+_bmad-output/routines/logs/
 
 # Testing
 coverage/

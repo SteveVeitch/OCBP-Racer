@@ -321,7 +321,12 @@ Each car uses a GLTF model for detailed body geometry with procedural wheels and
 
 ```
 OCBP Racer/
-├── specs/                      # SDD specification documents
+├── _bmad-output/               # BMAD artifacts (planning, implementation, tests)
+│   ├── archive/                # Legacy documents
+│   ├── implementation-artifacts/  # Stories, sprint status
+│   ├── planning-artifacts/     # Epics, architecture spine
+│   ├── routines/logs/          # Session run logs
+│   └── test-artifacts/         # Test design, results
 ├── assets/                     # Game assets
 │   ├── models/                 # GLTF car models (Sketchfab, CC licenses)
 │   ├── hdr/                    # HDR environment maps (Polyhaven, CC0)
@@ -330,6 +335,7 @@ OCBP Racer/
 ├── src/
 │   ├── main.ts                 # Entry point
 │   ├── test-harness.ts         # 140 automated tests
+│   ├── e2e/                    # Playwright E2E tests
 │   ├── core/
 │   │   ├── Game.ts             # Main game loop + race logic
 │   │   └── StateMachine.ts     # Game state transitions

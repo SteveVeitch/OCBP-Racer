@@ -1,11 +1,11 @@
 {
   "$schema": "https://opencode.ai/config.json",
   "username": "Steve Veitch",
-  "instructions": ["specs/00-GAME-DESIGN-DOCUMENT.md"],
+  "instructions": ["_bmad-output/planning-artifacts/epics.md"],
   "references": {
-    "specs": {
-      "path": "./specs",
-      "description": "OCBP Racer SDD specifications — use when implementing features to check acceptance criteria and design decisions"
+    "bmad-output": {
+      "path": "./_bmad-output",
+      "description": "OCBP Racer BMAD artifacts — planning, implementation, and test outputs"
     }
   }
 }

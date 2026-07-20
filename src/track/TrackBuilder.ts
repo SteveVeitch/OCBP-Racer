@@ -119,7 +119,7 @@ function createGuardrailGeometry(
   side: number,
   halfWidth: number
 ): THREE.BufferGeometry {
-  const railHeight = 0.75
+  const railHeight = 1.0
 
   const vertices: number[] = []
   const normals: number[] = []

@@ -14,7 +14,7 @@ const MARGIN = 30
 
 const START = (2 * Math.PI) / 3
 const SPEED_SPAN = (4 * Math.PI) / 3
-const REV_SPAN = Math.PI
+const REV_SPAN = (5 * Math.PI) / 3
 const BOOST_SPAN = (2 * Math.PI) / 3
 
 const BG_COLOR = 'rgba(8, 8, 20, 0.92)'

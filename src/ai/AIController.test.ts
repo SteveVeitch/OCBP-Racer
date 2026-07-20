@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 
 const DIFFICULTY_PROFILES = {
-  beginner: {
+  easy: {
     speedMultiplier: 0.55,
     aggressiveness: 0.15,
     lookAheadBase: 0.03,
@@ -11,7 +11,7 @@ const DIFFICULTY_PROFILES = {
     recoveryTimeout: 8.0,
     steerSmoothing: 0.15,
   },
-  intermediate: {
+  normal: {
     speedMultiplier: 0.75,
     aggressiveness: 0.4,
     lookAheadBase: 0.05,
@@ -21,7 +21,7 @@ const DIFFICULTY_PROFILES = {
     recoveryTimeout: 5.0,
     steerSmoothing: 0.08,
   },
-  advanced: {
+  hard: {
     speedMultiplier: 0.92,
     aggressiveness: 0.7,
     lookAheadBase: 0.07,
@@ -31,7 +31,7 @@ const DIFFICULTY_PROFILES = {
     recoveryTimeout: 3.0,
     steerSmoothing: 0.04,
   },
-  pro: {
+  expert: {
     speedMultiplier: 1.0,
     aggressiveness: 0.9,
     lookAheadBase: 0.09,
@@ -48,11 +48,11 @@ describe('AI Difficulty Profiles', () => {
     expect(Object.keys(DIFFICULTY_PROFILES)).toHaveLength(4)
   })
 
-  it('has beginner, intermediate, advanced, pro', () => {
-    expect(DIFFICULTY_PROFILES.beginner).toBeDefined()
-    expect(DIFFICULTY_PROFILES.intermediate).toBeDefined()
-    expect(DIFFICULTY_PROFILES.advanced).toBeDefined()
-    expect(DIFFICULTY_PROFILES.pro).toBeDefined()
+  it('has easy, normal, hard, expert', () => {
+    expect(DIFFICULTY_PROFILES.easy).toBeDefined()
+    expect(DIFFICULTY_PROFILES.normal).toBeDefined()
+    expect(DIFFICULTY_PROFILES.hard).toBeDefined()
+    expect(DIFFICULTY_PROFILES.expert).toBeDefined()
   })
 
   it('speedMultiplier increases with difficulty', () => {
@@ -77,11 +77,11 @@ describe('AI Difficulty Profiles', () => {
   })
 
   it('pro profile has max speed multiplier', () => {
-    expect(DIFFICULTY_PROFILES.pro.speedMultiplier).toBe(1.0)
+    expect(DIFFICULTY_PROFILES.expert.speedMultiplier).toBe(1.0)
   })
 
   it('all profiles have valid ranges', () => {
-    for (const [name, profile] of Object.entries(DIFFICULTY_PROFILES)) {
+    for (const [, profile] of Object.entries(DIFFICULTY_PROFILES)) {
       expect(profile.speedMultiplier).toBeGreaterThan(0)
       expect(profile.speedMultiplier).toBeLessThanOrEqual(1.0)
       expect(profile.aggressiveness).toBeGreaterThanOrEqual(0)

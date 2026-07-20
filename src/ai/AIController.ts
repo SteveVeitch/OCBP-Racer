@@ -18,7 +18,7 @@ interface DifficultyProfile {
 }
 
 const DIFFICULTY_PROFILES: Record<AIDifficulty, DifficultyProfile> = {
-  beginner: {
+  easy: {
     speedMultiplier: 0.55,
     aggressiveness: 0.15,
     lookAheadBase: 0.03,
@@ -28,7 +28,7 @@ const DIFFICULTY_PROFILES: Record<AIDifficulty, DifficultyProfile> = {
     recoveryTimeout: 8.0,
     steerSmoothing: 0.15,
   },
-  intermediate: {
+  normal: {
     speedMultiplier: 0.75,
     aggressiveness: 0.4,
     lookAheadBase: 0.05,
@@ -38,7 +38,7 @@ const DIFFICULTY_PROFILES: Record<AIDifficulty, DifficultyProfile> = {
     recoveryTimeout: 5.0,
     steerSmoothing: 0.08,
   },
-  advanced: {
+  hard: {
     speedMultiplier: 0.92,
     aggressiveness: 0.7,
     lookAheadBase: 0.07,
@@ -48,7 +48,7 @@ const DIFFICULTY_PROFILES: Record<AIDifficulty, DifficultyProfile> = {
     recoveryTimeout: 3.0,
     steerSmoothing: 0.04,
   },
-  pro: {
+  expert: {
     speedMultiplier: 1.0,
     aggressiveness: 0.9,
     lookAheadBase: 0.09,
@@ -99,7 +99,7 @@ export class AIController {
   constructor(
     car: CarController,
     spline: SplinePath,
-    difficulty: AIDifficulty = 'intermediate',
+    difficulty: AIDifficulty = 'normal',
     allCars: CarController[] = [],
   ) {
     this.car = car

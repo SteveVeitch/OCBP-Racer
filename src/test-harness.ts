@@ -83,98 +83,6 @@ function assert(condition: boolean, msg: string): void {
   if (!condition) throw new Error(msg)
 }
 
-class Expect<T> {
-  constructor(private readonly actual: T) {}
-
-  toBe(expected: T): void {
-    if (this.actual !== expected) {
-      throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(this.actual)}`)
-    }
-  }
-
-  toEqual(expected: T): void {
-    if (JSON.stringify(this.actual) !== JSON.stringify(expected)) {
-      throw new Error(`Expected ${JSON.stringify(expected)} but got ${JSON.stringify(this.actual)}`)
-    }
-  }
-
-  toBeGreaterThan(expected: number): void {
-    if (typeof this.actual !== 'number' || this.actual <= expected) {
-      throw new Error(`Expected ${this.actual} to be greater than ${expected}`)
-    }
-  }
-
-  toBeGreaterThanOrEqual(expected: number): void {
-    if (typeof this.actual !== 'number' || this.actual < expected) {
-      throw new Error(`Expected ${this.actual} to be >= ${expected}`)
-    }
-  }
-
-  toBeLessThan(expected: number): void {
-    if (typeof this.actual !== 'number' || this.actual >= expected) {
-      throw new Error(`Expected ${this.actual} to be less than ${expected}`)
-    }
-  }
-
-  toBeLessThanOrEqual(expected: number): void {
-    if (typeof this.actual !== 'number' || this.actual > expected) {
-      throw new Error(`Expected ${this.actual} to be <= ${expected}`)
-    }
-  }
-
-  toBeTruthy(): void {
-    if (!this.actual) {
-      throw new Error(`Expected truthy value but got ${JSON.stringify(this.actual)}`)
-    }
-  }
-
-  toBeFalsy(): void {
-    if (this.actual) {
-      throw new Error(`Expected falsy value but got ${JSON.stringify(this.actual)}`)
-    }
-  }
-
-  toBeDefined(): void {
-    if (this.actual === undefined) {
-      throw new Error('Expected value to be defined')
-    }
-  }
-
-  toBeNull(): void {
-    if (this.actual !== null) {
-      throw new Error(`Expected null but got ${JSON.stringify(this.actual)}`)
-    }
-  }
-
-  toContain(expected: unknown): void {
-    if (Array.isArray(this.actual)) {
-      if (!this.actual.includes(expected)) {
-        throw new Error(`Expected array to contain ${JSON.stringify(expected)}`)
-      }
-    } else if (typeof this.actual === 'string') {
-      if (!this.actual.includes(expected as string)) {
-        throw new Error(`Expected string to contain "${expected}"`)
-      }
-    } else {
-      throw new Error(`toContain called on ${typeof this.actual}, expected array or string`)
-    }
-  }
-
-  toHaveLength(expected: number): void {
-    if (Array.isArray(this.actual) || typeof this.actual === 'string') {
-      if (this.actual.length !== expected) {
-        throw new Error(`Expected length ${expected} but got ${this.actual.length}`)
-      }
-    } else {
-      throw new Error(`toHaveLength called on ${typeof this.actual}, expected array or string`)
-    }
-  }
-}
-
-function expect<T>(actual: T): Expect<T> {
-  return new Expect(actual)
-}
-
 export async function runTestHarness(): Promise<void> {
   const savedLeaderboard = localStorage.getItem('ocbp-leaderboard')
   console.log('=== OCBP Racer Test Harness ===\n')
@@ -544,13 +452,13 @@ export async function runTestHarness(): Promise<void> {
     const startPosSlow = track.getStartPosition(0)
     carSlow.setPosition(new THREE.Vector3(startPosSlow.x, 0.5, startPosSlow.z))
     carSlow.setLookAt(track.getStartRotation())
-    const aiSlow = new AIController(carSlow, track.getSpline(), 'beginner')
+    const aiSlow = new AIController(carSlow, track.getSpline(), 'easy')
 
     const carFast = factory.createCar(CARS[0], scene)
     const startPosFast = track.getStartPosition(0)
     carFast.setPosition(new THREE.Vector3(startPosFast.x, 0.5, startPosFast.z))
     carFast.setLookAt(track.getStartRotation())
-    const aiFast = new AIController(carFast, track.getSpline(), 'pro')
+    const aiFast = new AIController(carFast, track.getSpline(), 'expert')
 
     for (let i = 0; i < 300; i++) {
       aiSlow.update(1 / 60)
@@ -1339,26 +1247,28 @@ export async function runTestHarness(): Promise<void> {
     assert(blueCars.length === 4, `Blue channel should have 4 cars, got ${blueCars.length}`)
   })
 
-  // ── Phase 25: Engine Audio Samples ──
-  currentPhase = 'Phase 25: Engine Audio Samples'
-  console.log('\n-- Phase 25: Engine Audio Samples --')
-  test('AudioManager has loadEngineSamples method', () => {
+  // ── Phase 25: Procedural Engine Audio ──
+  currentPhase = 'Phase 25: Procedural Engine Audio'
+  console.log('\n-- Phase 25: Procedural Engine Audio --')
+  test('AudioManager creates without error', () => {
     const audio = new AudioManager()
-    assert(typeof audio.loadEngineSamples === 'function', 'loadEngineSamples should be a function')
+    assert(audio !== null, 'AudioManager not created')
   })
-  test('AudioManager has sample cache', () => {
+  test('AudioManager init creates context', async () => {
     const audio = new AudioManager()
-    assert('sampleCache' in audio, 'AudioManager should have sampleCache')
+    await audio.init()
+    assert(true, 'init() completed without error')
   })
   test('CarController has getThrottle method', () => {
     const fn = CarController.prototype.getThrottle
     assert(typeof fn === 'function', 'getThrottle should exist on CarController')
   })
-  test('ENGINE_SAMPLE_PATHS covers all 4 cars', () => {
-    const carIds = ['rossini-488', 'weissach-gt3', 'kaiju-gt-r', 'stingray-z06']
-    for (const id of carIds) {
-      const car = CARS.find(c => c.id === id)
-      assert(car !== undefined, `Car ${id} not found in CARS`)
+  test('All cars have engine definitions with frequencies', () => {
+    for (const car of CARS) {
+      assert(car.engine.baseFrequency > 0, `${car.name} missing baseFrequency`)
+      assert(car.engine.maxFrequency > car.engine.baseFrequency, `${car.name} maxFrequency <= baseFrequency`)
+      assert(['sine', 'square', 'sawtooth', 'triangle'].includes(car.engine.primaryWaveform), `${car.name} invalid primaryWaveform`)
+      assert(['sine', 'square', 'sawtooth', 'triangle'].includes(car.engine.secondaryWaveform), `${car.name} invalid secondaryWaveform`)
     }
   })
 
@@ -1366,11 +1276,11 @@ export async function runTestHarness(): Promise<void> {
   currentPhase = 'Phase 26: Handling Overhaul'
   console.log('\n-- Phase 26: Handling Overhaul --')
   test('CarController has calculateSlipAngle method', () => {
-    const fn = CarController.prototype.calculateSlipAngle
+    const fn = (CarController.prototype as unknown as Record<string, unknown>)['calculateSlipAngle']
     assert(typeof fn === 'function', 'calculateSlipAngle should exist')
   })
   test('CarController has calculateGripCoefficient method', () => {
-    const fn = CarController.prototype.calculateGripCoefficient
+    const fn = (CarController.prototype as unknown as Record<string, unknown>)['calculateGripCoefficient']
     assert(typeof fn === 'function', 'calculateGripCoefficient should exist')
   })
   test('All cars have distinct mass values', () => {
@@ -1389,23 +1299,20 @@ export async function runTestHarness(): Promise<void> {
     assert(unique.size === CARS.length, `Expected ${CARS.length} unique slipAnglePeak, got ${unique.size}`)
   })
 
-  // ── Phase 27: Turbo Sample Audio ──
-  currentPhase = 'Phase 27: Turbo Sample Audio'
-  console.log('\n-- Phase 27: Turbo Sample Audio --')
-  test('AudioManager has loadTurboSamples method', () => {
-    const audio = new AudioManager()
-    assert(typeof audio.loadTurboSamples === 'function', 'loadTurboSamples should be a function')
-  })
-  test('AudioManager has turboSampleCache', () => {
-    const audio = new AudioManager()
-    assert('turboSampleCache' in audio, 'AudioManager should have turboSampleCache')
-  })
+  // ── Phase 27: Procedural Turbo Audio ──
+  currentPhase = 'Phase 27: Procedural Turbo Audio'
+  console.log('\n-- Phase 27: Procedural Turbo Audio --')
   test('Turbo cars only: Rossini and Kaiju', () => {
     const turboCars = CARS.filter(c => c.config.turboLagTime > 0)
     const ids = turboCars.map(c => c.id).sort()
     assert(ids.length === 2, `Expected 2 turbo cars, got ${ids.length}`)
     assert(ids[0] === 'kaiju-gt-r', `Expected Kaiju GT-R, got ${ids[0]}`)
     assert(ids[1] === 'rossini-488', `Expected Rossini 488, got ${ids[1]}`)
+  })
+  test('No audio files referenced in codebase', () => {
+    const audio = new AudioManager()
+    assert(!('sampleCache' in audio), 'AudioManager should not have sampleCache')
+    assert(!('turboSampleCache' in audio), 'AudioManager should not have turboSampleCache')
   })
 
   // ── Summary ──

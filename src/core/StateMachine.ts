@@ -23,7 +23,7 @@ export interface RaceResults {
   trackId: string
 }
 
-export type AIDifficulty = 'beginner' | 'intermediate' | 'advanced' | 'pro'
+export type AIDifficulty = 'easy' | 'normal' | 'hard' | 'expert'
 
 export interface GameSettings {
   masterVolume: number
@@ -51,7 +51,7 @@ const DEFAULT_SETTINGS: GameSettings = {
   demoEnabled: true,
   cameraDefault: 'chase',
   fogEnabled: true,
-  aiDifficulty: 'intermediate',
+  aiDifficulty: 'normal',
   releaseChannel: 'green'
 }
 

@@ -100,6 +100,9 @@ export class Game {
 
   private pausePressed = false
   private cameraSwitchPressed = false
+  private fpsOverlay: HTMLDivElement | null = null
+  private fpsFrames = 0
+  private fpsLastTime = 0
   private transitionCooldown = 0
   private menuFocusIndex = -1
   private menuNavUpWasPressed = false
@@ -110,6 +113,7 @@ export class Game {
 
   private isDemo = false
   private lastActivityTime = 0
+  private gamepadActivityCheck: (() => void) | null = null
   private static readonly DEMO_IDLE_TIMEOUT = 180
   private static readonly POINTS_TABLE = [10, 7, 5, 2]
   private miniMap: MiniMap | null = null
@@ -221,6 +225,10 @@ export class Game {
         log(`Gamepad conflict: "${resetAction}" was reset to default`)
       })
 
+      log('Setting up FPS overlay...')
+      this.createFPSOverlay()
+      this.setupDebugKeyListener()
+
       log('Starting game loop...')
       this.setupAutoPause()
       this.setupPreviewListeners()
@@ -263,7 +271,7 @@ export class Game {
   private setupScene(): void {
     this.scene = new THREE.Scene()
     this.scene.background = new THREE.Color(0x0d1520)
-    this.scene.fog = new THREE.Fog(0x0a0a15, 40, 160)
+    this.scene.fog = new THREE.FogExp2(0x0d1520, 0.006)
     this.clock = new THREE.Clock()
   }
 
@@ -558,7 +566,7 @@ export class Game {
 
     try {
       this.audio.stopRaceAudio()
-      this.audio.startRaceAudio(getCarById(carId).engine, carId)
+      this.audio.startRaceAudio(getCarById(carId).engine)
     } catch (err) {
       logError('Audio init failed (non-fatal):', err)
     }
@@ -737,6 +745,7 @@ export class Game {
 
     this.handlePauseInput()
     this.handleCameraSwitch()
+    this.updateFPSCounter()
     this.input.pollGamepadBinding()
 
     const currentState = this.state.getCurrent()
@@ -789,6 +798,13 @@ export class Game {
     }
 
     if (currentState === 'MENU' && !this.isDemo && this.state.getSettings().demoEnabled) {
+      const gpIdx = this.input.getGamepadIndex()
+      if (gpIdx !== null) {
+        const gp = navigator.getGamepads()[gpIdx]
+        if (gp && (gp.buttons.some(b => b.pressed) || gp.axes.some(a => Math.abs(a) > 0.15))) {
+          this.gamepadActivityCheck?.()
+        }
+      }
       const now = performance.now() / 1000
       if (now - this.lastActivityTime >= Game.DEMO_IDLE_TIMEOUT) {
         this.startDemo()
@@ -1280,7 +1296,7 @@ export class Game {
     this.input?.setSteerSensitivity(settings.steerSensitivity)
     this.applyGraphicsQuality()
     if (this.scene) {
-      this.scene.fog = settings.fogEnabled ? new THREE.Fog(0x0a0a15, 40, 160) : null
+      this.scene.fog = settings.fogEnabled ? new THREE.FogExp2(0x0d1520, 0.006) : null
     }
   }
 
@@ -1292,6 +1308,59 @@ export class Game {
     window.addEventListener('mousemove', resetTimer)
     window.addEventListener('mousedown', resetTimer)
     window.addEventListener('touchstart', resetTimer)
+    window.addEventListener('gamepadconnected', resetTimer)
+    this.gamepadActivityCheck = resetTimer
+  }
+
+  private createFPSOverlay(): void {
+    this.fpsOverlay = document.createElement('div')
+    this.fpsOverlay.style.cssText = `
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #00ff00;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 4px;
+      z-index: 9999;
+      pointer-events: none;
+      display: none;
+      min-width: 120px;
+    `
+    this.fpsOverlay.textContent = 'FPS: --'
+    document.body.appendChild(this.fpsOverlay)
+    this.fpsLastTime = performance.now()
+  }
+
+  private setupDebugKeyListener(): void {
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'F3') {
+        e.preventDefault()
+        if (this.fpsOverlay) {
+          const visible = this.fpsOverlay.style.display !== 'none'
+          this.fpsOverlay.style.display = visible ? 'none' : 'block'
+        }
+      }
+    })
+  }
+
+  private updateFPSCounter(): void {
+    if (!this.fpsOverlay || this.fpsOverlay.style.display === 'none') return
+    
+    this.fpsFrames++
+    const now = performance.now()
+    const elapsed = now - this.fpsLastTime
+    
+    if (elapsed >= 1000) {
+      const fps = Math.round((this.fpsFrames * 1000) / elapsed)
+      const color = fps >= 55 ? '#00ff00' : fps >= 30 ? '#ffff00' : '#ff3333'
+      this.fpsOverlay.textContent = `FPS: ${fps}`
+      this.fpsOverlay.style.color = color
+      this.fpsFrames = 0
+      this.fpsLastTime = now
+    }
   }
 
   private startDemo(): void {
@@ -1345,7 +1414,7 @@ export class Game {
     aiCar.setEnvironmentModifiers(mods)
     aiCar.setHeadlights(randomTod.id !== 'day')
     this.aiCars = [aiCar]
-    this.aiControllers = [new AIController(aiCar, this.track.getSpline(), 'beginner', [aiCar])]
+    this.aiControllers = [new AIController(aiCar, this.track.getSpline(), 'easy', [aiCar])]
 
     this.track.reset()
 

@@ -1423,10 +1423,10 @@ export class UIManager {
     aiDiffOptions.className = 'settings-options'
     aiDiffOptions.style.justifyContent = 'center'
     const aiDiffChoices: Array<{ value: string; label: string; color: string }> = [
-      { value: 'beginner', label: 'Beginner', color: '#00ff88' },
-      { value: 'intermediate', label: 'Intermediate', color: '#ffcc00' },
-      { value: 'advanced', label: 'Advanced', color: '#ff8844' },
-      { value: 'pro', label: 'Pro', color: '#ff3366' },
+      { value: 'easy', label: 'Easy', color: '#00ff88' },
+      { value: 'normal', label: 'Normal', color: '#ffcc00' },
+      { value: 'hard', label: 'Hard', color: '#ff8844' },
+      { value: 'expert', label: 'Expert', color: '#ff3366' },
     ]
     const currentAiDiff = this.state.getSettings().aiDifficulty
     aiDiffChoices.forEach(d => {

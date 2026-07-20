@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { DEFAULT_KEY_BINDINGS } from './InputManager'
 
 describe('InputManager', () => {
@@ -15,7 +15,7 @@ describe('InputManager', () => {
     })
 
     it('all actions have at least one key', () => {
-      for (const [action, keys] of Object.entries(DEFAULT_KEY_BINDINGS)) {
+      for (const [, keys] of Object.entries(DEFAULT_KEY_BINDINGS)) {
         expect(keys.length).toBeGreaterThan(0)
       }
     })

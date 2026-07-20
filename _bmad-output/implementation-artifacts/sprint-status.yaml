@@ -1,0 +1,97 @@
+# generated: 2026-07-20
+# last_updated: 2026-07-20
+# project: OCBP Racer
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: {project-root}/_bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+
+generated: 2026-07-20
+last_updated: 2026-07-20
+project: OCBP Racer
+project_key: NOKEY
+tracking_system: file-system
+story_location: "{project-root}/_bmad-output/implementation-artifacts"
+
+development_status:
+  # Epic 1: Core Racing Experience
+  epic-1: done
+  1-1-project-foundation: done
+  1-2-car-physics: done
+  1-3-track-system: done
+  1-4-ai-opponents: done
+  1-5-race-flow: done
+  1-6-menu-selection-ui: done
+  1-7-race-results: done
+  1-8-in-race-hud: done
+  epic-1-retrospective: optional
+
+  # Epic 2: Car Showcase
+  epic-2: done
+  2-1-car-preview-scene: done
+  2-2-car-spec-card: done
+  epic-2-retrospective: optional
+
+  # Epic 3: Race Customization
+  epic-3: done
+  3-1-weather-override: done
+  3-2-time-of-day-override: done
+  3-3-ai-difficulty-override: done
+  epic-3-retrospective: optional
+
+  # Epic 4: Immersive Cameras
+  epic-4: done
+  4-1-camera-views: done
+  4-2-camera-settings: done
+  epic-4-retrospective: optional
+
+  # Epic 5: Dynamic Audio
+  epic-5: done
+  5-1-procedural-engine-audio: done
+  5-2-tire-wind-audio: done
+  5-3-ui-effects-audio: done
+  epic-5-retrospective: optional
+
+  # Epic 6: Personalized Controls
+  epic-6: done
+  6-1-keyboard-rebinding: done
+  6-2-gamepad-support: done
+  epic-6-retrospective: optional
+
+  # Epic 7: Settings & Preferences
+  epic-7: done
+  7-1-settings-menu: done
+  7-2-settings-persistence: done
+  7-3-pause-menu: done
+  epic-7-retrospective: optional
+
+  # Epic 8: Performance Leaderboards
+  epic-8: done
+  8-1-leaderboard-storage: done
+  8-2-leaderboard-ui: done
+  8-3-race-metrics: done
+  epic-8-retrospective: optional
+
+  # Epic 9: Demo Showcase
+  epic-9: done
+  9-1-demo-mode: done
+  9-2-demo-hud: done
+  9-3-demo-activity-tracking: done
+  epic-9-retrospective: optional
